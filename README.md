@@ -5,7 +5,7 @@
 
 Simulador de facturación electrónica de AFIP/ARCA para el Trabajo Final Integrador de la carrera. Incluye onboarding de empresas con solicitud pública, aprobación por administrador global e invitación por email, además de emisión, consultas, API keys, portal y verificación pública de un CAE.
 
-> Estado actual: base funcional con API, portal Blazor/Razor, MongoDB, endpoint público de verificación, Docker y CI/CD. El onboarding, la autenticación, la emisión, el PDF y el SOAP están documentados y preparados como próximos incrementos. US-19 está completada; US-11 y US-20 tienen base implementada; US-21 está parcial.
+> Estado actual: base funcional con API, portal Blazor/Razor, MongoDB, endpoint público de verificación, Docker y CI/CD. El onboarding, la autenticación, la emisión, el PDF y el SOAP están documentados y preparados como próximos incrementos. US-19 está completada; US-11, US-20 y US-31 tienen base implementada; US-21 está parcial.
 
 ## Alcance
 
@@ -328,8 +328,10 @@ dotnet test FacturAR.slnx -c Release --filter "FullyQualifiedName~MongoApiTests"
 
 La integración continua y la entrega continua son dos workflows separados:
 
-- `.github/workflows/ci.yml`: validación, build y tests. No publica imágenes.
-- `.github/workflows/cd.yml`: publicación de imágenes en Docker Hub. No ejecuta tests.
+- US-20, `.github/workflows/ci.yml`: validación, build y tests. No publica imágenes.
+- US-31, `.github/workflows/cd.yml`: publicación de imágenes en Docker Hub. No ejecuta tests. El deploy en Azure está documentado y pendiente de recursos.
+
+La guía operativa completa está en [`docs/despliegue-azure.md`](docs/despliegue-azure.md).
 
 ### CI
 
@@ -340,7 +342,7 @@ Se ejecuta en:
 
 Jobs:
 
-1. `Validar nombre de rama`: solo en pull requests. Exige `feature/us-XX-slug`, `fix/us-XX-slug` o una rama auxiliar `chore/`, `docs/`, `refactor/`, `test/`, `perf/`, `ci/` o `build/`.
+1. `Validar nombre de rama`: solo en pull requests. Exige `feature/us-XX-slug`, `fix/us-XX-slug` o una rama auxiliar `chore/`, `docs/`, `refactor/`, `test/`, `perf/`, `ci/` o `build/`. Omite `main` y `development` para permitir la promoción entre ramas.
 2. `Build y tests`: restaura, compila en `Release`, levanta MongoDB 8 como servicio, ejecuta la suite completa (incluidos los tests `MongoFact`) y sube `TestResults` como artefacto.
 
 La CI debe pasar antes de mergear. No publica ni despliega nada.
@@ -354,14 +356,18 @@ Publica dos imágenes en Docker Hub con dos tags: `latest` y el SHA del commit v
 - `<usuario>/facturar-api`
 - `<usuario>/facturar-web`
 
-El CD no despliega al servidor: solo publica imágenes. El despliegue sigue siendo manual por SSH. Para que `workflow_run` funcione, `.github/workflows/cd.yml` debe existir en la rama default del repositorio.
+El CD actual solo publica imágenes. El despliegue automático en Azure App Service es US-31 y está documentado en [`docs/despliegue-azure.md`](docs/despliegue-azure.md); todavía no está habilitado en el workflow. El despliegue manual por SSH sigue disponible.
 
-Secretos requeridos en GitHub:
+Secretos requeridos para publicar imágenes:
 
 | Secreto | Uso |
 | --- | --- |
 | `DOCKERHUB_USERNAME` | Usuario de Docker Hub |
 | `DOCKERHUB_TOKEN` | Access token de Docker Hub |
+
+Cuando se habilite el deploy de US-31, agregar `AZURE_WEBAPP_PUBLISH_PROFILE_API`, `AZURE_WEBAPP_PUBLISH_PROFILE_WEB` y las variables `AZURE_API_APP_NAME`, `AZURE_WEB_APP_NAME` y `AZURE_DEPLOY_ENABLED`.
+
+Para que `workflow_run` funcione, `.github/workflows/cd.yml` debe existir en la rama default del repositorio.
 
 ### Flujo de ramas
 
@@ -379,17 +385,18 @@ feature/us-XX-slug ──PR──> development ──PR──> main
 Configurar en GitHub:
 
 1. `Settings > General > Default branch`: cambiar la rama default a `development`.
-2. `Settings > Branches > Add branch protection rule` o `Settings > Rules > Rulesets`.
+2. `Settings > Rules > Rulesets > New branch ruleset`.
 3. Proteger `main`:
    - Requerir pull request antes de mergear.
    - Requerir al menos 1 aprobación.
-   - Requerir los checks `Validar nombre de rama` y `Build y tests` (pueden aparecer como `CI / ...`).
+   - Requerir los checks `CI / Validar nombre de rama` y `CI / Build y tests`.
    - Requerir que la rama esté actualizada antes de mergear.
    - Bloquear force pushes y borrado de la rama.
    - Resolver conversaciones antes de mergear.
 4. Proteger `development`:
-   - Requerir pull request.
-   - Requerir el check `Build y tests` (puede aparecer como `CI / Build y tests`).
+   - Requerir pull request y 1 aprobación.
+   - Requerir los checks `CI / Validar nombre de rama` y `CI / Build y tests`.
+   - Resolver conversaciones.
    - Bloquear force pushes y borrado.
 5. Opcional: crear un ruleset para tags `v*` y bloquear su borrado o movimiento.
 
@@ -412,6 +419,7 @@ Para rollback, cambiar `IMAGE_TAG` en `.env.production` por el SHA de un build a
 - [Requisitos funcionales](docs/requisitos-funcionales.md)
 - [Requisitos no funcionales](docs/requisitos-no-funcionales.md)
 - [Modelo de datos](docs/modelos.md)
+- [Despliegue continuo en Azure](docs/despliegue-azure.md)
 - [Historias de usuario](docs/historias-usuario/README.md)
 - [Historias terminadas](docs/historias-usuario-terminadas/README.md)
 - [Colección Postman](docs/postman/FacturAR.postman_collection.json)
@@ -428,4 +436,4 @@ Para rollback, cambiar `IMAGE_TAG` en `.env.production` por el SHA de un build a
 - Los montos se modelan con `decimal` (MongoDB `Decimal128`).
 - Las fechas se almacenan en UTC.
 - El equipo es de 4-5 personas con una ventana de 3 semanas.
-- El alcance obligatorio tiene 25 historias y 45 días ideales; US-22 a US-26 son stretch.
+- El alcance obligatorio tiene 26 historias y 47 días ideales; US-22 a US-26 son stretch.

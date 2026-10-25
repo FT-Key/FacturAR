@@ -4,7 +4,7 @@
 **Prioridad:** Baja (stretch)  
 **Estimación:** 3 días  
 **Requisito:** RNF-10  
-**Depende de:** US-19, US-20  
+**Depende de:** US-19, US-20, US-31  
 **Estado:** Stretch
 
 ## Historia

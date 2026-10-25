@@ -4,7 +4,7 @@
 **Prioridad:** Alta  
 **Estimación:** 2 días  
 **Requisito:** RNF-13, RNF-17, RNF-18  
-**Depende de:** todas las historias implementadas; CI depende de US-20
+**Depende de:** todas las historias implementadas; CI depende de US-20 y CD de US-31  
 
 ## Historia
 
@@ -87,7 +87,7 @@ Scenario: CI
 - `MongoApiTests` se ejecuta contra MongoDB real y se omite sin connection string.
 - `ApiEndpointsTests` verifica OpenAPI en Development.
 - Suite local: 18 tests unitarios y 9 de integración aprobados.
-- Pendiente: tests de onboarding/emisión y ejecución en CI, que depende de US-20.
+- Pendiente: tests de onboarding/emisión y ejecución en CI, que depende de US-20; el deploy en Azure depende de US-31.
 
 ## Notas de alcance
 

@@ -10,7 +10,7 @@ FacturAR es un TFI desarrollado por 4-5 personas en 3 semanas. Los requisitos no
 | --- | --- | --- | --- |
 | RNF-01 | Rendimiento | La verificación pública por CAE debe responder en menos de 1 segundo en condiciones normales. | Prueba con 1.000 comprobantes e índice por CAE. |
 | RNF-02 | Rendimiento | La emisión de un comprobante debe completarse en menos de 3 segundos, sin contar la generación del PDF. | Medición en entorno de staging. |
-| RNF-03 | Disponibilidad | El servicio debe exponer `/health` y reiniciarse automáticamente en producción. | `restart: unless-stopped` y health check. |
+| RNF-03 | Disponibilidad | El servicio debe exponer `/health` y reiniciarse automáticamente en producción. | `restart: unless-stopped`, health check de App Service y reinicio automático. |
 | RNF-04 | Seguridad | Las API keys se almacenan hasheadas; nunca en texto plano. | Revisión de la colección `apiKeys`. |
 | RNF-05 | Seguridad | Las contraseñas se almacenan con un algoritmo de hash robusto. | Revisión del registro de usuario. |
 | RNF-06 | Seguridad | Las connection strings y secretos se inyectan por variables de entorno. | `.env` fuera del repositorio y `.gitignore`. |
@@ -27,7 +27,7 @@ FacturAR es un TFI desarrollado por 4-5 personas en 3 semanas. Los requisitos no
 | RNF-17 | Documentación | README, OpenAPI, requisitos, modelos, manual e historias están versionados. | Revisión del repositorio. |
 | RNF-18 | Testing | Al menos los casos críticos de onboarding, CUIT, CAE, numeración, idempotencia y aislamiento tienen tests. | Cobertura de casos críticos. |
 | RNF-19 | Datos | Fechas en UTC y montos con `decimal`/`Decimal128`. | Revisión del modelo y de la base. |
-| RNF-20 | Restricciones | La solución debe poder desarrollarse y demostrarse con recursos gratuitos o de bajo costo. | Atlas free tier y Docker local. |
+| RNF-20 | Restricciones | La solución debe poder desarrollarse y demostrarse con recursos gratuitos o de bajo costo. | Atlas M0, App Service F1, Docker Hub y GitHub Actions free. |
 | RNF-21 | Seguridad de onboarding | Los tokens de invitación se almacenan hasheados, son de un solo uso, vencen a las 48 horas y están asociados a un email. | Revisión de la colección `invitaciones` y tests de token vencido/usado. |
 | RNF-22 | Confiabilidad de emails | Un fallo de email no debe perder la solicitud, la empresa ni la invitación; debe permitir reenvío. | Test de fallo de SMTP y aprobación exitosa. |
 | RNF-23 | Protección de abuso | Los endpoints públicos de solicitud, activación y login tienen rate limit. | Test de `429` y configuración de límites. |
