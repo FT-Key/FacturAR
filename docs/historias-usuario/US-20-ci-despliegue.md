@@ -119,9 +119,9 @@ Scenario: Publicación manual
 - `.github/workflows/ci.yml` contiene validación de rama, build, tests y artefacto.
 - `.github/workflows/cd.yml` contiene publicación de imágenes condicionada a CI exitoso en `main`.
 - `README.md` documenta CI, CD, secretos, flujo de ramas, protección y despliegue manual.
-- CI en `main`: https://github.com/FT-Key/FacturAR/actions/runs/40242885161 (success).
-- CI en `development`: https://github.com/FT-Key/FacturAR/actions/runs/40242890151 (success).
-- CD disparado por CI de `main`: https://github.com/FT-Key/FacturAR/actions/runs/40242936550 (failure esperada: faltan secretos de Docker Hub).
+- CI en `main` con MongoDB 8: https://github.com/FT-Key/FacturAR/actions/runs/40243514062 (success).
+- CI en `development` con MongoDB 8: https://github.com/FT-Key/FacturAR/actions/runs/40243508964 (success).
+- CD disparado por CI de `main`: https://github.com/FT-Key/FacturAR/actions/runs/40243592916 (failure esperada: faltan secretos de Docker Hub).
 - Pendiente: configurar secretos, verificar imágenes, desplegar y probar rollback.
 
 ## Notas de alcance
