@@ -383,13 +383,13 @@ Configurar en GitHub:
 3. Proteger `main`:
    - Requerir pull request antes de mergear.
    - Requerir al menos 1 aprobación.
-   - Requerir los checks `CI / Validar nombre de rama` y `CI / Build y tests`.
+   - Requerir los checks `Validar nombre de rama` y `Build y tests` (pueden aparecer como `CI / ...`).
    - Requerir que la rama esté actualizada antes de mergear.
    - Bloquear force pushes y borrado de la rama.
    - Resolver conversaciones antes de mergear.
 4. Proteger `development`:
    - Requerir pull request.
-   - Requerir el check `CI / Build y tests`.
+   - Requerir el check `Build y tests` (puede aparecer como `CI / Build y tests`).
    - Bloquear force pushes y borrado.
 5. Opcional: crear un ruleset para tags `v*` y bloquear su borrado o movimiento.
 
