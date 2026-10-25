@@ -16,7 +16,7 @@ Como equipo, quiero validar cada cambio con integración continua y publicar im�
 
 La integración continua (CI) y la entrega continua (CD) son workflows separados:
 
-- `.github/workflows/ci.yml`: valida rama, restaura, compila y ejecuta tests.
+- `.github/workflows/ci.yml`: valida rama, restaura, compila, levanta MongoDB 8 y ejecuta tests.
 - `.github/workflows/cd.yml`: publica imágenes en Docker Hub después de que CI termine con éxito en `main`.
 
 El CD no despliega al servidor. El despliegue sigue siendo manual por SSH. Para que `workflow_run` funcione, el workflow de CD debe existir en la rama default del repositorio.
@@ -25,6 +25,7 @@ El CD no despliega al servidor. El despliegue sigue siendo manual por SSH. Para 
 
 - [x] CI valida el nombre de la rama en pull requests.
 - [x] CI restaura, compila y ejecuta tests en pushes y pull requests a `main` y `development`.
+- [x] CI levanta MongoDB 8 y ejecuta los tests `MongoFact`, no solo los unitarios.
 - [x] CI sube los resultados de tests como artefacto.
 - [x] CI no publica imágenes.
 - [x] CD se dispara solo después de un CI exitoso en `main`.
@@ -92,6 +93,7 @@ Scenario: Publicación manual
 
 - [x] Separar CI y CD en dos workflows.
 - [x] Crear validación de rama y build/test en `ci.yml`.
+- [x] Agregar MongoDB 8 como servicio de CI para ejecutar tests de integración.
 - [x] Crear publicación de imágenes en `cd.yml`.
 - [x] Encadenar CD a CI con `workflow_run` y conclusión exitosa.
 - [x] Documentar secretos, despliegue manual y rollback.

@@ -341,7 +341,7 @@ Se ejecuta en:
 Jobs:
 
 1. `Validar nombre de rama`: solo en pull requests. Exige `feature/us-XX-slug`, `fix/us-XX-slug` o una rama auxiliar `chore/`, `docs/`, `refactor/`, `test/`, `perf/`, `ci/` o `build/`.
-2. `Build y tests`: restaura, compila en `Release`, ejecuta la suite y sube `TestResults` como artefacto.
+2. `Build y tests`: restaura, compila en `Release`, levanta MongoDB 8 como servicio, ejecuta la suite completa (incluidos los tests `MongoFact`) y sube `TestResults` como artefacto.
 
 La CI debe pasar antes de mergear. No publica ni despliega nada.
 
