@@ -84,8 +84,8 @@ Scenario: Pull request
 ```gherkin
 Scenario: Publicación manual
   Given un operador autorizado
-  When ejecuta CD con workflow_dispatch
-  Then se publican las imágenes del commit seleccionado
+  When ejecuta CD con workflow_dispatch sobre main
+  Then se publican las imágenes del commit de main
 ```
 
 ## Tareas técnicas

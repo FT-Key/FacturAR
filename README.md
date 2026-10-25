@@ -347,7 +347,7 @@ La CI debe pasar antes de mergear. No publica ni despliega nada.
 
 ### CD
 
-Se ejecuta cuando termina el workflow `CI` en `main` y la conclusión fue exitosa. También permite `workflow_dispatch` manual para una publicación de emergencia.
+Se ejecuta cuando termina el workflow `CI` en `main` y la conclusión fue exitosa. También permite `workflow_dispatch` manual, únicamente sobre `main`, para una publicación de emergencia.
 
 Publica dos imágenes en Docker Hub con dos tags: `latest` y el SHA del commit validado.
 
