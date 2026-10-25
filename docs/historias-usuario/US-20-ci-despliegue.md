@@ -33,7 +33,7 @@ El CD no despliega al servidor. El despliegue sigue siendo manual por SSH. Para 
 - [x] CD usa secretos de Docker Hub y no los expone.
 - [x] El README documenta CI, CD, secretos, ramas y despliegue manual.
 - [x] El README incluye badges de CI y CD.
-- [ ] El repositorio remoto está conectado y los workflows se ejecutan en GitHub Actions.
+- [x] El repositorio remoto está conectado y los workflows se ejecutan en GitHub Actions.
 - [ ] Los secretos `DOCKERHUB_USERNAME` y `DOCKERHUB_TOKEN` están configurados.
 - [ ] Las imágenes publicadas se pueden descargar y ejecutar.
 - [ ] El despliegue manual por SSH está probado.
@@ -96,28 +96,31 @@ Scenario: Publicación manual
 - [x] Encadenar CD a CI con `workflow_run` y conclusión exitosa.
 - [x] Documentar secretos, despliegue manual y rollback.
 - [x] Agregar badges de CI y CD al README.
-- [ ] Conectar el repositorio remoto.
+- [x] Conectar el repositorio remoto.
 - [ ] Configurar secretos de Docker Hub.
 - [ ] Ejecutar CI en un pull request real.
-- [ ] Verificar que CD se dispare solo después de CI en `main`.
+- [x] Verificar que CD se dispare solo después de CI en `main`.
 - [ ] Verificar las imágenes publicadas.
 - [ ] Probar el despliegue y el rollback.
 
 ## Definition of Done
 
-- [ ] CI pasa en GitHub Actions.
-- [ ] CD se ejecuta solo después de CI exitoso en `main`.
+- [x] CI pasa en GitHub Actions.
+- [x] CD se dispara solo después de CI exitoso en `main`; la publicación queda pendiente por secretos.
 - [ ] Las imágenes se publican y se pueden ejecutar.
 - [ ] El despliegue y el rollback están probados.
-- [ ] El README muestra el estado de CI y CD.
-- [ ] La historia está enlazada desde el índice y el README.
+- [x] El README muestra el estado de CI y CD.
+- [x] La historia está enlazada desde el índice y el README.
 
 ## Evidencia
 
 - `.github/workflows/ci.yml` contiene validación de rama, build, tests y artefacto.
 - `.github/workflows/cd.yml` contiene publicación de imágenes condicionada a CI exitoso en `main`.
 - `README.md` documenta CI, CD, secretos, flujo de ramas, protección y despliegue manual.
-- Pendiente: ejecución real en GitHub Actions y configuración de secretos.
+- CI en `main`: https://github.com/FT-Key/FacturAR/actions/runs/40242885161 (success).
+- CI en `development`: https://github.com/FT-Key/FacturAR/actions/runs/40242890151 (success).
+- CD disparado por CI de `main`: https://github.com/FT-Key/FacturAR/actions/runs/40242936550 (failure esperada: faltan secretos de Docker Hub).
+- Pendiente: configurar secretos, verificar imágenes, desplegar y probar rollback.
 
 ## Notas de alcance
 
