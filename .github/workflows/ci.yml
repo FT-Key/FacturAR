@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  branch-name:
+    name: Validar nombre de rama
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validar convención
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
+        run: |
+          pattern='^(feature|fix|hotfix)/us-[0-9]{2}-[a-z0-9]+(-[a-z0-9]+)*$|^(chore|docs|refactor|test|perf|ci|build)/[a-z0-9]+(-[a-z0-9]+)*$'
+          if [[ ! "$BRANCH_NAME" =~ $pattern ]]; then
+            echo "::error::Rama '$BRANCH_NAME' inválida. Usar feature/us-XX-slug, fix/us-XX-slug o una rama auxiliar chore/docs/refactor/test/perf/ci/build con slug en minúsculas."
+            exit 1
+          fi
+
+  build-test:
+    name: Build y tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Cache de NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.slnx') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restaurar
+        run: dotnet restore FacturAR.slnx
+
+      - name: Compilar
+        run: dotnet build FacturAR.slnx -c Release --no-restore
+
+      - name: Ejecutar tests
+        run: dotnet test FacturAR.slnx -c Release --no-build --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
+
+      - name: Publicar resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults
+          if-no-files-found: ignore

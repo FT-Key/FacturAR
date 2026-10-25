@@ -1,0 +1,26 @@
+name: facturar
+
+services:
+  api:
+    image: ${DOCKERHUB_USERNAME}/facturar-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      Mongo__ConnectionString: ${MONGO_CONNECTION_STRING:?Definí MONGO_CONNECTION_STRING}
+      Mongo__DatabaseName: ${MONGO_DATABASE:?Definí MONGO_DATABASE}
+      Mongo__InitializeIndexes: ${MONGO_INITIALIZE_INDEXES:-true}
+    ports:
+      - "8080:8080"
+
+  web:
+    image: ${DOCKERHUB_USERNAME}/facturar-web:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      Api__BaseUrl: http://api:8080
+    ports:
+      - "80:8080"
+    depends_on:
+      - api

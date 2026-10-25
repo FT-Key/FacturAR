@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/facturAR_backend/" />
+  <Folder Name="/facturAR_backend/src/">
+    <Project Path="facturAR_backend/src/FacturAR.Api/FacturAR.Api.csproj" />
+    <Project Path="facturAR_backend/src/FacturAR.Application/FacturAR.Application.csproj" />
+    <Project Path="facturAR_backend/src/FacturAR.Contracts/FacturAR.Contracts.csproj" />
+    <Project Path="facturAR_backend/src/FacturAR.Domain/FacturAR.Domain.csproj" />
+    <Project Path="facturAR_backend/src/FacturAR.Infrastructure/FacturAR.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/facturAR_backend/tests/">
+    <Project Path="facturAR_backend/tests/FacturAR.IntegrationTests/FacturAR.IntegrationTests.csproj" />
+    <Project Path="facturAR_backend/tests/FacturAR.UnitTests/FacturAR.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/facturAR_frontend/" />
+  <Folder Name="/facturAR_frontend/src/">
+    <Project Path="facturAR_frontend/src/FacturAR.Web/FacturAR.Web.csproj" />
+  </Folder>
+</Solution>

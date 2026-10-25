@@ -1,0 +1,32 @@
+name: facturar-dev
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: facturAR_backend/Dockerfile
+    image: facturar-api:dev
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      Mongo__ConnectionString: ${MONGO_CONNECTION_STRING:-mongodb://host.docker.internal:27017/?serverSelectionTimeoutMS=3000}
+      Mongo__DatabaseName: ${MONGO_DATABASE:-facturar_dev}
+      Mongo__InitializeIndexes: ${MONGO_INITIALIZE_INDEXES:-true}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8080:8080"
+
+  web:
+    build:
+      context: .
+      dockerfile: facturAR_frontend/Dockerfile
+    image: facturar-web:dev
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      Api__BaseUrl: http://api:8080
+    ports:
+      - "8081:8080"
+    depends_on:
+      - api

@@ -1,0 +1,200 @@
+{
+  "info": {
+    "_postman_id": "b6a4f6e2-8f5a-4e7d-9a1b-3c2d5e6f7a80",
+    "name": "FacturAR API",
+    "description": "Colección de la API pública de FacturAR. Importar junto con el environment `FacturAR local`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Sistema",
+      "item": [
+        {
+          "name": "Raíz",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Identifica el servicio', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.servicio).to.eql('FacturAR API');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            },
+            "description": "Información básica del servicio."
+          },
+          "response": []
+        },
+        {
+          "name": "Health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200 o 503', () => pm.expect([200, 503]).to.include(pm.response.code));",
+                  "pm.test('Devuelve estado', () => pm.expect(pm.response.json()).to.have.property('estado'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Health check. Devuelve 503 si MongoDB no está disponible."
+          },
+          "response": []
+        },
+        {
+          "name": "OpenAPI",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Expone el documento OpenAPI', () => pm.expect(pm.response.json()).to.have.property('openapi'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/openapi/v1.json",
+              "host": ["{{baseUrl}}"],
+              "path": ["openapi", "v1.json"]
+            },
+            "description": "Documento OpenAPI disponible en Development."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Comprobantes",
+      "item": [
+        {
+          "name": "Verificar CAE existente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200 o 404', () => pm.expect([200, 404]).to.include(pm.response.code));",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Expone datos públicos del comprobante', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('cae');",
+                  "    pm.expect(body).to.have.property('tipoComprobanteDescripcion');",
+                  "    pm.expect(body).to.not.have.property('idempotencyKey');",
+                  "  });",
+                  "} else {",
+                  "  pm.test('Devuelve código de no encontrado', () => pm.expect(pm.response.json().codigo).to.eql('COMPROBANTE_NO_ENCONTRADO'));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes/verificar/{{caeExistente}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "comprobantes", "verificar", "{{caeExistente}}"]
+            },
+            "description": "Verificación pública por CAE. Usar un CAE de 14 dígitos existente en la base para obtener 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Verificar CAE con formato inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Devuelve CAE_INVALIDO', () => pm.expect(pm.response.json().codigo).to.eql('CAE_INVALIDO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes/verificar/123",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "comprobantes", "verificar", "123"]
+            },
+            "description": "CAE que no tiene 14 dígitos."
+          },
+          "response": []
+        },
+        {
+          "name": "Verificar CAE inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Devuelve COMPROBANTE_NO_ENCONTRADO', () => pm.expect(pm.response.json().codigo).to.eql('COMPROBANTE_NO_ENCONTRADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes/verificar/99999999999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "comprobantes", "verificar", "99999999999999"]
+            },
+            "description": "CAE con formato válido pero sin comprobante asociado."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "caeExistente",
+      "value": "12345678901234",
+      "type": "string"
+    }
+  ]
+}

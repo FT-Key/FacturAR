@@ -1,0 +1,11 @@
+@FacturAR_Api_HostAddress = http://localhost:5171
+
+GET {{FacturAR_Api_HostAddress}}/health
+Accept: application/json
+
+###
+
+GET {{FacturAR_Api_HostAddress}}/v1/comprobantes/verificar/12345678901234
+Accept: application/json
+
+###
