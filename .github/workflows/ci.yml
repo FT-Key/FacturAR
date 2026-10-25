@@ -24,6 +24,10 @@ jobs:
         env:
           BRANCH_NAME: ${{ github.head_ref }}
         run: |
+          if [[ "$BRANCH_NAME" == "main" || "$BRANCH_NAME" == "development" ]]; then
+            echo "Rama de promoción '$BRANCH_NAME'; validación de nombre omitida."
+            exit 0
+          fi
           pattern='^(feature|fix|hotfix)/us-[0-9]{2}-[a-z0-9]+(-[a-z0-9]+)*$|^(chore|docs|refactor|test|perf|ci|build)/[a-z0-9]+(-[a-z0-9]+)*$'
           if [[ ! "$BRANCH_NAME" =~ $pattern ]]; then
             echo "::error::Rama '$BRANCH_NAME' inválida. Usar feature/us-XX-slug, fix/us-XX-slug o una rama auxiliar chore/docs/refactor/test/perf/ci/build con slug en minúsculas."
