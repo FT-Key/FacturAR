@@ -6,7 +6,7 @@
 **Requisito:** RF-21 / RNF-13  
 **Depende de:** US-19  
 **Habilita:** US-21, US-26, US-31  
-**Estado:** Base implementada
+**Estado:** Completada
 
 ## Historia
 
@@ -18,7 +18,7 @@ La integración continua vive en `.github/workflows/ci.yml` y no publica ni desp
 
 La CI se ejecuta en pushes y pull requests a `main` y `development`, levanta MongoDB 8 como servicio y ejecuta los tests unitarios y los tests `MongoFact`.
 
-Para que las reglas de GitHub funcionen, la rama default debe ser `development` y los rulesets deben exigir los checks de CI. El paso a paso está en [`docs/despliegue-azure.md`](../despliegue-azure.md), secciones 4.1 a 4.3.
+Para que las reglas de GitHub funcionen, la rama default debe ser `development` y los rulesets deben exigir los checks de CI. El paso a paso está en [`docs/despliegue-azure.md`](../../despliegue-azure.md), secciones 4.1 a 4.3.
 
 ## Criterios de aceptación
 
@@ -30,11 +30,11 @@ Para que las reglas de GitHub funcionen, la rama default debe ser `development` 
 - [x] CI no publica imágenes ni despliega.
 - [x] El repositorio remoto está conectado y CI se ejecuta en GitHub Actions.
 - [x] La rama default del repositorio es `development`.
-- [ ] Existe un ruleset activo para `main` con PR, aprobación, checks, conversaciones resueltas y bloqueo de force push/borrado.
-- [ ] Existe un ruleset activo para `development` con PR, checks y bloqueo de force push/borrado.
-- [ ] Los checks `CI / Validar nombre de rama` y `CI / Build y tests` están seleccionados como requeridos.
+- [x] Existe un ruleset activo para `main` con PR, aprobación, checks, conversaciones resueltas y bloqueo de force push/borrado.
+- [x] Existe un ruleset activo para `development` con PR, checks y bloqueo de force push/borrado.
+- [x] Los checks `CI / Validar nombre de rama` y `CI / Build y tests` están seleccionados como requeridos.
 - [x] Se validó un pull request real de una rama `feature/us-XX-slug` hacia `development`.
-- [ ] Se validó el bloqueo de merge cuando CI falla.
+- [x] Se validó el bloqueo de merge cuando CI falla.
 
 ## Escenarios Gherkin
 
@@ -83,7 +83,7 @@ Scenario: CI falla
 - [x] Cambiar la rama default a `development`.
 - [x] Crear el ruleset de `main`.
 - [x] Crear el ruleset de `development`.
-- [ ] Validar un PR real y el bloqueo por CI fallida.
+- [x] Validar un PR real y el bloqueo por CI fallida.
 - [x] Documentar la evidencia de la configuración de GitHub en esta historia.
 
 ## Definition of Done
@@ -93,7 +93,7 @@ Scenario: CI falla
 - [x] El README y esta historia explican CI y el flujo de ramas.
 - [x] La rama default es `development`.
 - [x] Los rulesets de `main` y `development` están activos.
-- [ ] Los checks requeridos aparecen y bloquean merges inválidos.
+- [x] Los checks requeridos aparecen y bloquean merges inválidos.
 - [x] La evidencia de la configuración de GitHub está registrada.
 
 ## Evidencia
@@ -110,16 +110,14 @@ Scenario: CI falla
 - La validación de rama omite `main` y `development` para permitir la promoción.
 - La CI no publica imágenes ni despliega: eso es US-31.
 
-### Pendiente de verificación
+### Rulesets, checks requeridos y bloqueo de merge
 
-Motivo común: `required_status_checks` con `required_status_checks: []` en los rulesets `main-protection` y `development-protection`; hay que seleccionar los checks "Validar nombre de rama" y "Build y tests" y después validar el bloqueo con un PR en rojo.
-
-- "Existe un ruleset activo para `main` con PR, aprobación, checks, conversaciones resueltas y bloqueo de force push/borrado." → el ruleset existe y está activo, pero la regla `required_status_checks` tiene la lista `required_status_checks` vacía.
-- "Existe un ruleset activo para `development` con PR, checks y bloqueo de force push/borrado." → el ruleset existe y está activo, pero la regla `required_status_checks` tiene la lista `required_status_checks` vacía.
-- "Los checks `CI / Validar nombre de rama` y `CI / Build y tests` están seleccionados como requeridos." → la lista de checks requeridos está vacía en ambos rulesets.
-- "Se validó el bloqueo de merge cuando CI falla." → falta la validación con checks requeridos configurados.
-- Tarea técnica "Validar un PR real y el bloqueo por CI fallida." → el PR real está validado; el bloqueo por CI fallida todavía no.
-- DoD "Los checks requeridos aparecen y bloquean merges inválidos." → los checks requeridos aún no están seleccionados y no se validó el bloqueo de un merge inválido.
+- Rulesets con los checks requeridos seleccionados (API `GET /repos/FT-Key/FacturAR/rulesets/{id}`):
+  - `main-protection` (id 26004120): `enforcement=active`, `ref_name include refs/heads/main`, actualizado 2026-10-28T19:01:14Z; `required_status_checks` con los contexts "Validar nombre de rama" y "Build y tests" (integration_id 15368) y `strict_required_status_checks_policy: true`.
+  - `development-protection` (id 26004163): `enforcement=active`, `ref_name include refs/heads/development`, actualizado 2026-10-28T19:00:51Z; mismos checks requeridos con `strict_required_status_checks_policy: false`.
+- Bloqueo de merge validado: el PR #3 (evidencia de US-20/US-31) quedó con el check requerido "Build y tests" en rojo (run https://github.com/FT-Key/FacturAR/actions/runs/40748717363, attempt 4) y el merge bloqueado por el ruleset.
+- Incidente del servicio de MongoDB en la CI y fix: los runners de GitHub Actions corren kernel `7.0.0` (`ubuntu-latest` con Ubuntu 26.04 y también `ubuntu-24.04`, imagen `20261026.354.1`) y MongoDB 8.0.x aborta el arranque con `Failed to initialize container mongo:8` por el guard TCMalloc/rseq (`SERVER-121912`), un falso positivo porque el guard parsea `uname -r` como "7.0.0" y no reconoce el kernel upstream 7.0.14 (`SERVER-136848`). Un workflow de diagnóstico ejecutado en el runner confirmó que `mongo:8` falla con `CONTROL 12257600` y que `mongo:8.2` (8.2.12) arranca correctamente. Fix: `image: mongo:8.2` en el servicio `mongo` de `.github/workflows/ci.yml` (PR https://github.com/FT-Key/FacturAR/pull/4). Runs afectados: `40637531339` (attempt 1) y `40748717363` (attempts 1 a 4). CI en verde con el fix: https://github.com/FT-Key/FacturAR/actions/runs/40752233101.
+- `cd.yml` no se modifica porque no usa MongoDB; el CD funcionó sobre Ubuntu 26.04 (run https://github.com/FT-Key/FacturAR/actions/runs/40639732298).
 
 ## Notas de alcance
 

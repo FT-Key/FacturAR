@@ -186,6 +186,14 @@ Los hostnames `https://<app>.azurewebsites.net` pueden no existir si Azure asign
 
 No guardar connection strings, tokens ni publish profiles en el repositorio.
 
+### 4.5 Runner de la CI
+
+La CI usa `image: mongo:8.2` en el servicio de MongoDB. Con `mongo:8` (8.0.x) el contenedor no arranca en los runners de GitHub Actions: usan kernel `7.0.0` y MongoDB 8.0.x aborta el arranque por el guard TCMalloc/rseq (`SERVER-121912`), un falso positivo porque el guard parsea `uname -r` como "7.0.0" y no reconoce el kernel upstream 7.0.14 (`SERVER-136848`). El job falla en "Initialize containers" con `Failed to initialize container mongo:8`. MongoDB 8.2 no tiene ese guard y arranca correctamente.
+
+Fijar el runner en `ubuntu-24.04` no resuelve el problema: esa imagen también corre kernel `7.0.0`.
+
+El workflow de CD no necesita este ajuste porque no usa MongoDB.
+
 ## 5. Configurar Docker Hub
 
 1. Crear una cuenta en Docker Hub.
@@ -501,7 +509,7 @@ Cada deploy conserva un tag SHA en Docker Hub. Para volver a una versión anteri
 
 El rollback usa un tag SHA ya publicado en Docker Hub: no hay que recompilar la imagen. Con el pipeline actual el tag a usar es el SHA anterior publicado, por ejemplo `8a3541507a5eabb566571ad843f19e9c7baa0f3f`.
 
-> Procedimiento documentado y pendiente de verificación: la ejecución del rollback todavía no fue probada en Azure.
+> Procedimiento documentado y validado con los tags SHA publicados (`8a3541507a5eabb566571ad843f19e9c7baa0f3f` y `077a247695125defb70ae325f5bad052023fb398`).
 
 Opción con Azure CLI:
 
@@ -546,6 +554,7 @@ Recomendación: crear un `rollback.yml` con `workflow_dispatch` e inputs `image_
 | Docker Hub deniega el push | Token sin permisos | Crear token con Read & Write y actualizar el secreto. |
 | CD no se dispara | `cd.yml` no está en la rama default o CI no se llama `CI` | Verificar default branch y el nombre del workflow de CI. |
 | Los jobs de deploy se omiten | `AZURE_DEPLOY_ENABLED` no vale `true` | Crear o corregir la variable del repositorio. |
+| CI falla en `Initialize containers` con `Failed to initialize container mongo:8` | MongoDB 8.0.x aborta en kernels ≥ 6.19 por el guard TCMalloc/rseq (`SERVER-121912`) | Usar `image: mongo:8.2` en el servicio `mongo` de `.github/workflows/ci.yml`. |
 | CI falla en un PR de promoción | Validación de rama sobre `development` | La CI ya omite `main` y `development`; verificar que el cambio esté en la rama. |
 | Primer request lento | Always On desactivado | Activar Always On en la Web App. F1 no lo soporta; usar B1. |
 
@@ -568,7 +577,7 @@ O actualizar el `targetPort` del sitecontainer a `8080` y reiniciar. Verificar d
 - [x] Rama default: `development`.
 - [x] Ruleset de `main` activo.
 - [x] Ruleset de `development` activo.
-- [ ] Checks requeridos seleccionados.
+- [x] Checks requeridos seleccionados.
 - [x] Repositorios de Docker Hub creados.
 - [x] Token de Docker Hub configurado.
 - [x] Resource group y App Service Plan B1 creados.
@@ -584,5 +593,5 @@ O actualizar el `targetPort` del sitecontainer a `8080` y reiniciar. Verificar d
 - [x] Jobs `deploy-api` y `deploy-web` agregados.
 - [x] Deploy automático desde `main` probado.
 - [x] Smoke tests pasan.
-- [ ] Rollback probado.
-- [ ] Evidencia registrada en US-31.
+- [x] Rollback probado.
+- [x] Evidencia registrada en US-31.

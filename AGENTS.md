@@ -2,7 +2,7 @@
 
 ## Contexto
 
-FacturAR es un simulador de facturación electrónica argentina con onboarding de empresas. El alcance obligatorio está en `docs/historias-usuario/` (US-01 a US-21 y US-27 a US-31); US-19 está completada. Las US-22 a US-26 son stretch y no se implementan sin pedido explícito.
+FacturAR es un simulador de facturación electrónica argentina con onboarding de empresas. El alcance obligatorio está en `docs/historias-usuario/` (US-01 a US-21 y US-27 a US-31); US-19, US-20 y US-31 están completadas y archivadas en `docs/historias-usuario-terminadas/`. Las US-22 a US-26 son stretch y no se implementan sin pedido explícito.
 
 Stack: .NET 10, ASP.NET Core Minimal API, Blazor Web App (Server) + Razor Pages, MongoDB 8+ con `MongoDB.Driver`, xUnit, Docker Compose y GitHub Actions.
 
