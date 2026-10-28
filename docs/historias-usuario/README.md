@@ -1,6 +1,6 @@
 # Historias de usuario
 
-El alcance obligatorio tiene 26 historias y 47 días ideales de trabajo. US-19 está completada y archivada; quedan 25 historias activas. Las US-22 a US-26 son mejoras opcionales (stretch) y no forman parte del MVP. US-31 agrega la entrega continua y el despliegue en Azure.
+El alcance obligatorio tiene 26 historias y 47 días ideales de trabajo. US-19, US-20 y US-31 están completadas y archivadas; quedan 23 historias activas. Las US-22 a US-26 son mejoras opcionales (stretch) y no forman parte del MVP. US-31 agrega la entrega continua y el despliegue en Azure.
 
 Las US-27 a US-30 completan el onboarding profesional: solicitud pública, aprobación por administrador global, invitación por email y manual de integración. Los números no indican orden de implementación; el orden se define por dependencias.
 
@@ -29,7 +29,7 @@ Las US-27 a US-30 completan el onboarding profesional: solicitud pública, aprob
 | [US-17](US-17-auditoria-outbox.md) | Auditoría y outbox | Operación | Media | 2 | RF-17 | Pendiente |
 | [US-18](US-18-parametros-seed.md) | Parámetros y datos semilla | Operación | Media | 1 | RF-18 | Pendiente |
 | [US-19](../historias-usuario-terminadas/US-19-docker-compose.md) | Docker y Docker Compose | Infraestructura | Alta | 2 | RF-21 | Completada |
-| [US-20](US-20-integracion-continua.md) | Integración continua (CI) | Infraestructura | Alta | 1 | RF-21 | Base implementada |
+| [US-20](../historias-usuario-terminadas/US-20-integracion-continua.md) | Integración continua (CI) | Infraestructura | Alta | 1 | RF-21 | Completada |
 | [US-21](US-21-tests-documentacion.md) | Tests, Postman y documentación | Calidad | Alta | 2 | RNF-13/17/18 | Parcial |
 | [US-22](US-22-mvc-anulacion.md) | Anulación administrativa MVC | Administración | Baja | 2 | RF-19 | Stretch |
 | [US-23](US-23-webhooks.md) | Webhooks de eventos | Integraciones | Baja | 2 | RF-20 | Stretch |
@@ -40,7 +40,7 @@ Las US-27 a US-30 completan el onboarding profesional: solicitud pública, aprob
 | [US-28](US-28-invitacion-cuenta.md) | Activación de cuenta por invitación | Registro | Alta | 2 | RF-25 | Pendiente |
 | [US-29](US-29-emails-transaccionales.md) | Notificaciones transaccionales por email | Registro | Alta | 2 | RF-26 | Pendiente |
 | [US-30](US-30-manual-integracion.md) | Manual online de integración | Portal | Media | 1 | RF-27 | Pendiente |
-| [US-31](US-31-entrega-continua-azure.md) | Entrega continua y despliegue en Azure | Infraestructura | Alta | 3 | RNF-20 / RF-21 | Parcial |
+| [US-31](../historias-usuario-terminadas/US-31-entrega-continua-azure.md) | Entrega continua y despliegue en Azure | Infraestructura | Alta | 3 | RNF-20 / RF-21 | Completada |
 
 ## Dependencias
 

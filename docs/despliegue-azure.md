@@ -186,6 +186,14 @@ Los hostnames `https://<app>.azurewebsites.net` pueden no existir si Azure asign
 
 No guardar connection strings, tokens ni publish profiles en el repositorio.
 
+### 4.5 Runner de la CI
+
+La CI usa `image: mongo:8.2` en el servicio de MongoDB. Con `mongo:8` (8.0.x) el contenedor no arranca en los runners de GitHub Actions: usan kernel `7.0.0` y MongoDB 8.0.x aborta el arranque por el guard TCMalloc/rseq (`SERVER-121912`), un falso positivo porque el guard parsea `uname -r` como "7.0.0" y no reconoce el kernel upstream 7.0.14 (`SERVER-136848`). El job falla en "Initialize containers" con `Failed to initialize container mongo:8`. MongoDB 8.2 no tiene ese guard y arranca correctamente.
+
+Fijar el runner en `ubuntu-24.04` no resuelve el problema: esa imagen también corre kernel `7.0.0`.
+
+El workflow de CD no necesita este ajuste porque no usa MongoDB.
+
 ## 5. Configurar Docker Hub
 
 1. Crear una cuenta en Docker Hub.
@@ -367,8 +375,9 @@ No commitear la connection string. Cargarla como `Mongo__ConnectionString` en Ap
 
 1. Abrir `https://facturar-api-utn-frt-gncabkgzghh2gbf2.brazilsouth-01.azurewebsites.net/health`; debe responder `200`.
 2. Abrir `https://facturar-web-utn-frt-gjbhdhb3bjgggxfg.brazilsouth-01.azurewebsites.net/`; debe cargar el portal.
-3. Probar login o una ruta pública según el estado de las historias.
-4. Revisar **Log stream** de cada Web App si algo falla.
+3. Abrir `/verificar` del portal con un CAE de 14 dígitos, por ejemplo `https://facturar-web-utn-frt-gjbhdhb3bjgggxfg.brazilsouth-01.azurewebsites.net/verificar?cae=12345678901234`; debe responder `200` y mostrar la validación del comprobante. Si responde 500, revisar `Api__BaseUrl` (ver Troubleshooting).
+4. Probar login o una ruta pública según el estado de las historias.
+5. Revisar **Log stream** de cada Web App si algo falla.
 
 Esas son las URLs reales de la demo. No asumir que `https://<app>.azurewebsites.net` existe: usar siempre el **Default domain** que muestra el portal de Azure.
 
@@ -489,7 +498,7 @@ Notas:
 - `environment: production` permite ver la URL en GitHub. No agregar required reviewers si se quiere deploy automático.
 - `azure/webapps-deploy@v3` no necesita `actions/checkout`.
 - Los smoke tests reintentan 18 veces cada 10 segundos (3 minutos). App Service puede tardar en levantar el contenedor.
-- El deploy automático real queda pendiente de prueba hasta mergear y poner `AZURE_DEPLOY_ENABLED=true`.
+- El deploy automático real quedó verificado: con `AZURE_DEPLOY_ENABLED=true` y la CI exitosa en `main`, el CD publica las imágenes y despliega API y portal con el SHA validado.
 
 ## 9. Rollback
 
@@ -497,6 +506,10 @@ Cada deploy conserva un tag SHA en Docker Hub. Para volver a una versión anteri
 
 1. Elegir el SHA sano en el historial de GitHub Actions o Docker Hub.
 2. Ejecutar el workflow de rollback o desplegar manualmente con ese tag.
+
+El rollback usa un tag SHA ya publicado en Docker Hub: no hay que recompilar la imagen. Con el pipeline actual el tag a usar es el SHA anterior publicado, por ejemplo `8a3541507a5eabb566571ad843f19e9c7baa0f3f`.
+
+> Procedimiento documentado y validado con los tags SHA publicados (`8a3541507a5eabb566571ad843f19e9c7baa0f3f` y `077a247695125defb70ae325f5bad052023fb398`).
 
 Opción con Azure CLI:
 
@@ -534,12 +547,14 @@ Recomendación: crear un `rollback.yml` con `workflow_dispatch` e inputs `image_
 | `ImagePullBackOff` o error de imagen | Imagen inexistente o privada | Verificar el tag en Docker Hub y usar repositorio público. |
 | API responde 500 en `/health` | Mongo no conecta | Revisar connection string, usuario y Network Access de Atlas. |
 | Portal carga pero no llama a la API | `Api__BaseUrl` incorrecto | Usar la URL real de `AZURE_API_URL`, sin barra final. |
+| Portal `/verificar` devuelve 500 | `Api__BaseUrl` mal formado (sin `https://`) genera `System.UriFormatException` al construir el `HttpClient` | Usar la URL completa de `AZURE_API_URL` con `https://` y sin barra final. |
 | Blazor pierde conexión | WebSockets o afinidad deshabilitados | Activar WebSockets y Session affinity. |
 | Deploy falla con 401/403 | Publish profile vencido o app name incorrecto | Descargar de nuevo el publish profile y revisar `AZURE_*_APP_NAME`. |
 | Deploy falla por basic auth | SCM Basic Auth deshabilitado | Activarlo en Configuration → General settings. |
 | Docker Hub deniega el push | Token sin permisos | Crear token con Read & Write y actualizar el secreto. |
 | CD no se dispara | `cd.yml` no está en la rama default o CI no se llama `CI` | Verificar default branch y el nombre del workflow de CI. |
 | Los jobs de deploy se omiten | `AZURE_DEPLOY_ENABLED` no vale `true` | Crear o corregir la variable del repositorio. |
+| CI falla en `Initialize containers` con `Failed to initialize container mongo:8` | MongoDB 8.0.x aborta en kernels ≥ 6.19 por el guard TCMalloc/rseq (`SERVER-121912`) | Usar `image: mongo:8.2` en el servicio `mongo` de `.github/workflows/ci.yml`. |
 | CI falla en un PR de promoción | Validación de rama sobre `development` | La CI ya omite `main` y `development`; verificar que el cambio esté en la rama. |
 | Primer request lento | Always On desactivado | Activar Always On en la Web App. F1 no lo soporta; usar B1. |
 
@@ -559,24 +574,24 @@ O actualizar el `targetPort` del sitecontainer a `8080` y reiniciar. Verificar d
 
 ## 12. Checklist de cierre
 
-- [ ] Rama default: `development`.
-- [ ] Ruleset de `main` activo.
-- [ ] Ruleset de `development` activo.
-- [ ] Checks requeridos seleccionados.
-- [ ] Repositorios de Docker Hub creados.
-- [ ] Token de Docker Hub configurado.
-- [ ] Resource group y App Service Plan B1 creados.
-- [ ] Web App de API creada.
-- [ ] Web App del portal creada.
-- [ ] App Settings de API configurados.
-- [ ] App Settings y WebSockets del portal configurados.
-- [ ] Always On activo en la API y en el portal.
-- [ ] Atlas M0 accesible desde Azure.
-- [ ] Publish profiles guardados como secretos.
-- [ ] Variables de Azure configuradas: `AZURE_API_APP_NAME`, `AZURE_WEB_APP_NAME`, `AZURE_API_URL`, `AZURE_WEB_URL` y `AZURE_DEPLOY_ENABLED`.
-- [ ] URLs reales de API y portal verificadas y cargadas sin barra final.
-- [ ] Jobs `deploy-api` y `deploy-web` agregados.
-- [ ] Deploy automático desde `main` probado.
-- [ ] Smoke tests pasan.
-- [ ] Rollback probado.
-- [ ] Evidencia registrada en US-31.
+- [x] Rama default: `development`.
+- [x] Ruleset de `main` activo.
+- [x] Ruleset de `development` activo.
+- [x] Checks requeridos seleccionados.
+- [x] Repositorios de Docker Hub creados.
+- [x] Token de Docker Hub configurado.
+- [x] Resource group y App Service Plan B1 creados.
+- [x] Web App de API creada.
+- [x] Web App del portal creada.
+- [x] App Settings de API configurados.
+- [x] App Settings y WebSockets del portal configurados.
+- [x] Always On activo en la API y en el portal.
+- [x] Atlas M0 accesible desde Azure.
+- [x] Publish profiles guardados como secretos.
+- [x] Variables de Azure configuradas: `AZURE_API_APP_NAME`, `AZURE_WEB_APP_NAME`, `AZURE_API_URL`, `AZURE_WEB_URL` y `AZURE_DEPLOY_ENABLED`.
+- [x] URLs reales de API y portal verificadas y cargadas sin barra final.
+- [x] Jobs `deploy-api` y `deploy-web` agregados.
+- [x] Deploy automático desde `main` probado.
+- [x] Smoke tests pasan.
+- [x] Rollback probado.
+- [x] Evidencia registrada en US-31.
