@@ -40,7 +40,7 @@ Las US-27 a US-30 completan el onboarding profesional: solicitud pública, aprob
 | [US-28](US-28-invitacion-cuenta.md) | Activación de cuenta por invitación | Registro | Alta | 2 | RF-25 | Pendiente |
 | [US-29](US-29-emails-transaccionales.md) | Notificaciones transaccionales por email | Registro | Alta | 2 | RF-26 | Pendiente |
 | [US-30](US-30-manual-integracion.md) | Manual online de integración | Portal | Media | 1 | RF-27 | Pendiente |
-| [US-31](US-31-entrega-continua-azure.md) | Entrega continua y despliegue en Azure | Infraestructura | Alta | 3 | RNF-20 / RF-21 | Base implementada |
+| [US-31](US-31-entrega-continua-azure.md) | Entrega continua y despliegue en Azure | Infraestructura | Alta | 3 | RNF-20 / RF-21 | Parcial |
 
 ## Dependencias
 

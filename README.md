@@ -5,7 +5,7 @@
 
 Simulador de facturación electrónica de AFIP/ARCA para el Trabajo Final Integrador de la carrera. Incluye onboarding de empresas con solicitud pública, aprobación por administrador global e invitación por email, además de emisión, consultas, API keys, portal y verificación pública de un CAE.
 
-> Estado actual: base funcional con API, portal Blazor/Razor, MongoDB, endpoint público de verificación, Docker y CI/CD. El onboarding, la autenticación, la emisión, el PDF y el SOAP están documentados y preparados como próximos incrementos. US-19 está completada; US-11, US-20 y US-31 tienen base implementada; US-21 está parcial.
+> Estado actual: base funcional con API, portal Blazor/Razor, MongoDB, endpoint público de verificación, Docker y CI/CD. El onboarding, la autenticación, la emisión, el PDF y el SOAP están documentados y preparados como próximos incrementos. US-19 está completada; US-11 y US-20 tienen base implementada; US-21 y US-31 están en estado parcial.
 
 ## Alcance
 
@@ -329,7 +329,7 @@ dotnet test FacturAR.slnx -c Release --filter "FullyQualifiedName~MongoApiTests"
 La integración continua y la entrega continua son dos workflows separados:
 
 - US-20, `.github/workflows/ci.yml`: validación, build y tests. No publica imágenes.
-- US-31, `.github/workflows/cd.yml`: publicación de imágenes en Docker Hub. No ejecuta tests. El deploy en Azure está documentado y pendiente de recursos.
+- US-31, `.github/workflows/cd.yml`: publicación de imágenes en Docker Hub y despliegue en Azure App Service. No ejecuta tests.
 
 La guía operativa completa está en [`docs/despliegue-azure.md`](docs/despliegue-azure.md).
 
@@ -356,16 +356,28 @@ Publica dos imágenes en Docker Hub con dos tags: `latest` y el SHA del commit v
 - `<usuario>/facturar-api`
 - `<usuario>/facturar-web`
 
-El CD actual solo publica imágenes. El despliegue automático en Azure App Service es US-31 y está documentado en [`docs/despliegue-azure.md`](docs/despliegue-azure.md); todavía no está habilitado en el workflow. El despliegue manual por SSH sigue disponible.
+Después de publicar, cuando `AZURE_DEPLOY_ENABLED` vale `true`, el CD despliega primero la API y después el portal en Azure App Service, siempre con el tag SHA validado, y ejecuta un smoke test contra `/health` de la API y `/` del portal. Azure usa un plan B1 para poder activar Always On, porque F1 no lo soporta y las apps se dormían. El despliegue manual por SSH sigue disponible.
 
-Secretos requeridos para publicar imágenes:
+Secretos requeridos:
 
 | Secreto | Uso |
 | --- | --- |
 | `DOCKERHUB_USERNAME` | Usuario de Docker Hub |
 | `DOCKERHUB_TOKEN` | Access token de Docker Hub |
+| `AZURE_WEBAPP_PUBLISH_PROFILE_API` | Publish profile de la Web App de la API |
+| `AZURE_WEBAPP_PUBLISH_PROFILE_WEB` | Publish profile de la Web App del portal |
 
-Cuando se habilite el deploy de US-31, agregar `AZURE_WEBAPP_PUBLISH_PROFILE_API`, `AZURE_WEBAPP_PUBLISH_PROFILE_WEB` y las variables `AZURE_API_APP_NAME`, `AZURE_WEB_APP_NAME` y `AZURE_DEPLOY_ENABLED`.
+Variables requeridas:
+
+| Variable | Uso |
+| --- | --- |
+| `AZURE_API_APP_NAME` | Nombre corto del recurso de la API, por ejemplo `facturar-api-utn-frt` |
+| `AZURE_WEB_APP_NAME` | Nombre corto del recurso del portal, por ejemplo `facturar-web-utn-frt` |
+| `AZURE_API_URL` | URL pública completa de la API, sin barra final |
+| `AZURE_WEB_URL` | URL pública completa del portal, sin barra final |
+| `AZURE_DEPLOY_ENABLED` | `true` habilita los jobs de deploy; `false` solo publica imágenes |
+
+Los hostnames cortos `<app>.azurewebsites.net` pueden no existir; `AZURE_*_URL` debe llevar la URL real que muestra Azure. Mientras no se valide el deploy automático, `AZURE_DEPLOY_ENABLED` queda en `false`.
 
 Para que `workflow_run` funcione, `.github/workflows/cd.yml` debe existir en la rama default del repositorio.
 
