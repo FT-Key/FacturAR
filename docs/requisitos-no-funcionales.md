@@ -27,7 +27,7 @@ FacturAR es un TFI desarrollado por 4-5 personas en 3 semanas. Los requisitos no
 | RNF-17 | Documentación | README, OpenAPI, requisitos, modelos, manual e historias están versionados. | Revisión del repositorio. |
 | RNF-18 | Testing | Al menos los casos críticos de onboarding, CUIT, CAE, numeración, idempotencia y aislamiento tienen tests. | Cobertura de casos críticos. |
 | RNF-19 | Datos | Fechas en UTC y montos con `decimal`/`Decimal128`. | Revisión del modelo y de la base. |
-| RNF-20 | Restricciones | La solución debe poder desarrollarse y demostrarse con recursos gratuitos o de bajo costo. | Atlas M0, App Service F1, Docker Hub y GitHub Actions free. |
+| RNF-20 | Restricciones | La solución debe poder desarrollarse y demostrarse con recursos gratuitos o de bajo costo. | Atlas M0, App Service B1 (elegido para la demo por Always On), Docker Hub y GitHub Actions free. |
 | RNF-21 | Seguridad de onboarding | Los tokens de invitación se almacenan hasheados, son de un solo uso, vencen a las 48 horas y están asociados a un email. | Revisión de la colección `invitaciones` y tests de token vencido/usado. |
 | RNF-22 | Confiabilidad de emails | Un fallo de email no debe perder la solicitud, la empresa ni la invitación; debe permitir reenvío. | Test de fallo de SMTP y aprobación exitosa. |
 | RNF-23 | Protección de abuso | Los endpoints públicos de solicitud, activación y login tienen rate limit. | Test de `429` y configuración de límites. |

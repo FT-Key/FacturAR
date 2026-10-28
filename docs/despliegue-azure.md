@@ -1,13 +1,15 @@
 # Despliegue continuo en Azure con Docker Hub y App Service
 
-Esta guía explica cómo publicar FacturAR en internet usando solo recursos gratuitos:
+Esta guía explica cómo publicar FacturAR en internet usando recursos gratuitos o de bajo costo:
 
 - GitHub Actions para CI/CD.
 - Docker Hub para las imágenes.
-- Azure App Service for Containers, plan F1, para la API y el portal.
+- Azure App Service for Containers, plan B1, para la API y el portal.
 - MongoDB Atlas M0 para la base de datos.
 
 El objetivo es que un push a `main` con CI exitoso publique las imágenes y actualice ambas aplicaciones sin intervención manual. El procedimiento es el mismo patrón que el proyecto ICS: Docker Hub + App Service + publish profile. FacturAR agrega una segunda Web App para el portal Blazor.
+
+El plan B1 se eligió para la demo porque soporta **Always On** y F1 no. Con F1 las apps se dormían y el primer request tardaba demasiado; B1 mantiene los contenedores despiertos y sigue siendo de bajo costo.
 
 > Esta guía corresponde a **US-31 — Entrega continua y despliegue en Azure**. La CI está en **US-20**. El despliegue manual por SSH de `docker-compose.prod.yml` sigue disponible para otros entornos.
 
@@ -21,6 +23,13 @@ Al terminar:
 - Base: MongoDB Atlas M0.
 - Imágenes: `<dockerhub-user>/facturar-api:<sha>` y `<dockerhub-user>/facturar-web:<sha>`.
 - Push a `main` → CI → CD publica imágenes → CD despliega API → smoke test → CD despliega portal → smoke test.
+
+En la demo actual las URLs completas son:
+
+- API: `https://facturar-api-utn-frt-gncabkgzghh2gbf2.brazilsouth-01.azurewebsites.net`
+- Portal: `https://facturar-web-utn-frt-gjbhdhb3bjgggxfg.brazilsouth-01.azurewebsites.net`
+
+Los hostnames cortos `https://<app>.azurewebsites.net` pueden no existir: Azure puede asignar un sufijo adicional. Siempre usar la URL real que muestra el portal en **Overview → Default domain**.
 
 ## 2. Arquitectura
 
@@ -165,9 +174,15 @@ Si Azure rechaza el publish profile porque la autenticación básica está desha
 
 | Nombre | Ejemplo | Uso |
 | --- | --- | --- |
-| `AZURE_API_APP_NAME` | `facturar-api-abc123` | Nombre único de la Web App de la API. |
-| `AZURE_WEB_APP_NAME` | `facturar-web-abc123` | Nombre único de la Web App del portal. |
-| `AZURE_DEPLOY_ENABLED` | `true` | Permite publicar imágenes sin desplegar mientras Azure no está listo. Usar `false` para desactivar el deploy. |
+| `AZURE_API_APP_NAME` | `facturar-api-utn-frt` | Nombre corto del recurso de la Web App de la API. No es el hostname. Se usa en `app-name` del deploy. |
+| `AZURE_WEB_APP_NAME` | `facturar-web-utn-frt` | Nombre corto del recurso de la Web App del portal. No es el hostname. Se usa en `app-name` del deploy. |
+| `AZURE_API_URL` | `https://facturar-api-utn-frt-gncabkgzghh2gbf2.brazilsouth-01.azurewebsites.net` | URL pública completa de la API. Se usa en `environment.url` y en el smoke test de `/health`. Sin barra final. |
+| `AZURE_WEB_URL` | `https://facturar-web-utn-frt-gjbhdhb3bjgggxfg.brazilsouth-01.azurewebsites.net` | URL pública completa del portal. Se usa en `environment.url` y en el smoke test de `/`. Sin barra final. |
+| `AZURE_DEPLOY_ENABLED` | `false` | Habilita los jobs `deploy-api` y `deploy-web`. Usar `true` solo cuando Azure y los secretos estén listos. |
+
+`AZURE_API_APP_NAME` y `AZURE_WEB_APP_NAME` son los nombres cortos del recurso, tal como aparecen en el portal de Azure. No usar el hostname completo en esas variables: `azure/webapps-deploy` espera el nombre de la Web App.
+
+Los hostnames `https://<app>.azurewebsites.net` pueden no existir si Azure asigna un sufijo adicional al crear la Web App. Copiar la URL real desde **Overview → Default domain** y cargarla completa en `AZURE_API_URL` y `AZURE_WEB_URL`. Esas URLs son las que usan los smoke tests.
 
 No guardar connection strings, tokens ni publish profiles en el repositorio.
 
@@ -236,10 +251,12 @@ Se puede hacer desde el portal. Los nombres de las Web Apps deben ser únicos a 
    - Nombre: `asp-facturar`.
    - OS: **Linux**.
    - Región: la misma del resource group.
-   - Pricing plan: **F1 (Free)**.
+   - Pricing plan: **B1 (Basic)**.
 3. Crear.
 
-Una sola instancia F1 puede alojar las dos Web Apps, pero comparte CPU y memoria. F1 no tiene Always On ni deployment slots. Para una demo estable, el crédito de Azure for Students permite subir a B1 sin cambiar el workflow.
+B1 es el plan elegido para la demo porque soporta **Always On**. F1 es gratis pero no tiene Always On: las apps se dormían y el primer request podía tardar demasiado. B1 tiene costo bajo y entra en el crédito de Azure for Students.
+
+Una sola instancia B1 puede alojar las dos Web Apps, aunque comparten CPU y memoria. Para la demo alcanza; si se necesita más aislamiento, usar un plan por app.
 
 ### 6.3 Web App de la API
 
@@ -250,7 +267,7 @@ Una sola instancia F1 puede alojar las dos Web Apps, pero comparte CPU y memoria
    - Publish: **Docker Container**.
    - Operating System: **Linux**.
    - Region: la misma.
-   - App Service Plan: `asp-facturar` (F1).
+   - App Service Plan: `asp-facturar` (B1).
 3. Docker:
    - Image Source: **Docker Hub**.
    - Image: `<dockerhub-user>/facturar-api:latest`.
@@ -286,7 +303,7 @@ No hace falta configurar CORS: el portal llama a la API desde el servidor.
    - Publish: **Docker Container**.
    - Operating System: **Linux**.
    - Region: la misma.
-   - App Service Plan: `asp-facturar` (F1).
+   - App Service Plan: `asp-facturar` (B1).
 3. Docker:
    - Image Source: **Docker Hub**.
    - Image: `<dockerhub-user>/facturar-web:latest`.
@@ -300,7 +317,7 @@ Después de crear:
 | --- | --- |
 | `WEBSITES_PORT` | `8080` |
 | `ASPNETCORE_ENVIRONMENT` | `Production` |
-| `Api__BaseUrl` | `https://<api-app>.azurewebsites.net` |
+| `Api__BaseUrl` | `https://facturar-api-utn-frt-gncabkgzghh2gbf2.brazilsouth-01.azurewebsites.net` |
 
 2. **Configuration** → **General settings**:
    - **Web sockets:** On.
@@ -312,7 +329,29 @@ Después de crear:
 
 `Api__BaseUrl` debe ser la URL pública de la API, sin barra final. El valor `http://api:8080` de `docker-compose.prod.yml` no funciona en Azure.
 
-### 6.5 MongoDB Atlas
+### 6.5 Activar Always On en API y portal
+
+Always On mantiene despierto el contenedor y evita el cold start. Requiere un plan Basic o superior; F1 no lo soporta. Activarlo en las dos Web Apps.
+
+Desde el portal:
+
+1. Web App de la API → **Configuration** → **General settings**.
+2. **Always On** → **On**.
+3. **Save** y reiniciar si Azure lo pide.
+4. Repetir en la Web App del portal.
+
+Con Azure CLI:
+
+```powershell
+az webapp config set --name facturar-api-utn-frt --resource-group rg-facturar --always-on true
+az webapp config set --name facturar-web-utn-frt --resource-group rg-facturar --always-on true
+az webapp restart --name facturar-api-utn-frt --resource-group rg-facturar
+az webapp restart --name facturar-web-utn-frt --resource-group rg-facturar
+```
+
+Verificar que el plan sea B1; en F1 el comando falla porque Always On no está disponible.
+
+### 6.6 MongoDB Atlas
 
 1. Crear un cluster **M0 Free** en Atlas.
 2. Crear un usuario de base de datos.
@@ -326,10 +365,12 @@ No commitear la connection string. Cargarla como `Mongo__ConnectionString` en Ap
 
 ## 7. Verificar el deploy
 
-1. Abrir `https://<api-app>.azurewebsites.net/health`; debe responder `200`.
-2. Abrir `https://<web-app>.azurewebsites.net/`; debe cargar el portal.
+1. Abrir `https://facturar-api-utn-frt-gncabkgzghh2gbf2.brazilsouth-01.azurewebsites.net/health`; debe responder `200`.
+2. Abrir `https://facturar-web-utn-frt-gjbhdhb3bjgggxfg.brazilsouth-01.azurewebsites.net/`; debe cargar el portal.
 3. Probar login o una ruta pública según el estado de las historias.
 4. Revisar **Log stream** de cada Web App si algo falla.
+
+Esas son las URLs reales de la demo. No asumir que `https://<app>.azurewebsites.net` existe: usar siempre el **Default domain** que muestra el portal de Azure.
 
 Si la API no arranca:
 
@@ -348,18 +389,19 @@ Si Blazor pierde la conexión:
 
 - Verificar **Web sockets: On**.
 - Verificar **Session affinity: On**.
-- Recordar que F1 no tiene Always On; el primer request puede tardar.
+- Verificar que **Always On** esté activo. B1 lo soporta; F1 no, y por eso las apps se dormían.
 
-## 8. Agregar el deploy al workflow de CD
+## 8. Deploy en el workflow de CD
 
-El `cd.yml` actual publica imágenes, pero no despliega. Para completar US-31:
+El `cd.yml` publica las imágenes y despliega en Azure. La configuración es:
 
-1. El job de publicación debe exponer el SHA como output.
-2. Agregar `deploy-api` después de `publish-images`.
-3. Agregar `deploy-web` después de `deploy-api`.
-4. Condicionar ambos a `vars.AZURE_DEPLOY_ENABLED == 'true'`.
-5. Usar `secrets.AZURE_WEBAPP_PUBLISH_PROFILE_*` y `vars.AZURE_*_APP_NAME`.
-6. Desplegar con el SHA validado, no con `latest`.
+1. `publish-images` expone el SHA validado como output (`outputs.sha`).
+2. `deploy-api` corre después de `publish-images`.
+3. `deploy-web` corre después de `deploy-api`.
+4. Ambos jobs se condicionan a `vars.AZURE_DEPLOY_ENABLED == 'true'`.
+5. Cada job valida el publish profile y las variables antes de desplegar.
+6. El deploy usa el SHA validado, nunca `latest`.
+7. `environment.url` y los smoke tests usan `AZURE_API_URL` y `AZURE_WEB_URL`; `app-name` usa `AZURE_API_APP_NAME` y `AZURE_WEB_APP_NAME`.
 
 Bloque de referencia:
 
@@ -378,8 +420,18 @@ jobs:
     if: vars.AZURE_DEPLOY_ENABLED == 'true'
     environment:
       name: production
-      url: https://${{ vars.AZURE_API_APP_NAME }}.azurewebsites.net
+      url: ${{ vars.AZURE_API_URL }}
     steps:
+      - name: Verificar secretos y variables de Azure
+        env:
+          PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_API }}
+          APP_NAME: ${{ vars.AZURE_API_APP_NAME }}
+          API_URL: ${{ vars.AZURE_API_URL }}
+        run: |
+          [ -n "$PUBLISH_PROFILE" ] && [ -n "$APP_NAME" ] && [ -n "$API_URL" ] || {
+            echo "::error::Faltan el publish profile o las variables de Azure."
+            exit 1
+          }
       - uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ vars.AZURE_API_APP_NAME }}
@@ -388,8 +440,8 @@ jobs:
       - name: Smoke test API
         shell: bash
         run: |
-          for i in $(seq 1 12); do
-            if curl -fsS "https://${{ vars.AZURE_API_APP_NAME }}.azurewebsites.net/health"; then
+          for i in $(seq 1 18); do
+            if curl -fsS "${{ vars.AZURE_API_URL }}/health"; then
               exit 0
             fi
             sleep 10
@@ -401,8 +453,18 @@ jobs:
     if: vars.AZURE_DEPLOY_ENABLED == 'true'
     environment:
       name: production
-      url: https://${{ vars.AZURE_WEB_APP_NAME }}.azurewebsites.net
+      url: ${{ vars.AZURE_WEB_URL }}
     steps:
+      - name: Verificar secretos y variables de Azure
+        env:
+          PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_WEB }}
+          APP_NAME: ${{ vars.AZURE_WEB_APP_NAME }}
+          WEB_URL: ${{ vars.AZURE_WEB_URL }}
+        run: |
+          [ -n "$PUBLISH_PROFILE" ] && [ -n "$APP_NAME" ] && [ -n "$WEB_URL" ] || {
+            echo "::error::Faltan el publish profile o las variables de Azure."
+            exit 1
+          }
       - uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ vars.AZURE_WEB_APP_NAME }}
@@ -411,8 +473,8 @@ jobs:
       - name: Smoke test portal
         shell: bash
         run: |
-          for i in $(seq 1 12); do
-            if curl -fsS "https://${{ vars.AZURE_WEB_APP_NAME }}.azurewebsites.net/"; then
+          for i in $(seq 1 18); do
+            if curl -fsS "${{ vars.AZURE_WEB_URL }}/"; then
               exit 0
             fi
             sleep 10
@@ -422,11 +484,12 @@ jobs:
 
 Notas:
 
-- `publish-images` ya existe; solo hay que agregar `outputs` y el step `sha`.
 - `needs` garantiza que el portal no se despliegue si la API falla.
-- `environment: production` es opcional para secrets, pero permite ver la URL en GitHub. No agregar required reviewers si se quiere deploy automático.
+- Si `AZURE_DEPLOY_ENABLED` es `false` o no existe, los jobs de deploy se omiten y solo se publican imágenes.
+- `environment: production` permite ver la URL en GitHub. No agregar required reviewers si se quiere deploy automático.
 - `azure/webapps-deploy@v3` no necesita `actions/checkout`.
-- El deploy de App Service puede tardar uno o dos minutos.
+- Los smoke tests reintentan 18 veces cada 10 segundos (3 minutos). App Service puede tardar en levantar el contenedor.
+- El deploy automático real queda pendiente de prueba hasta mergear y poner `AZURE_DEPLOY_ENABLED=true`.
 
 ## 9. Rollback
 
@@ -442,8 +505,8 @@ az login
 az webapp config container set `
   --name <api-app> `
   --resource-group rg-facturar `
-  --docker-custom-image-name <dockerhub-user>/facturar-api:<sha> `
-  --docker-registry-server-url https://index.docker.io
+  --container-image-name <dockerhub-user>/facturar-api:<sha> `
+  --container-registry-url https://index.docker.io
 
 az webapp restart --name <api-app> --resource-group rg-facturar
 ```
@@ -456,8 +519,9 @@ Recomendación: crear un `rollback.yml` con `workflow_dispatch` e inputs `image_
 
 - **GitHub Actions:** gratis para repositorios públicos. En privados, 2.000 minutos/mes en el plan Free.
 - **Docker Hub:** repositorios públicos gratis. Hay límites de pulls anónimos; el deploy no hace pulls frecuentes.
-- **Azure App Service F1:** gratis, con límites de CPU, memoria y sin Always On. Las apps pueden dormir.
-- **Azure for Students:** incluye crédito; sirve para subir a B1 si F1 no alcanza para la demo.
+- **Azure App Service B1:** bajo costo, con Always On. Es el plan elegido para la demo.
+- **Azure App Service F1:** gratis, pero sin Always On; no se usa porque las apps se dormían.
+- **Azure for Students:** incluye crédito que cubre B1 durante la demo.
 - **MongoDB Atlas M0:** gratis, 512 MB.
 - No crear recursos pagos innecesarios. Eliminar el resource group al terminar la demo si no se usa más.
 
@@ -466,16 +530,32 @@ Recomendación: crear un `rollback.yml` con `workflow_dispatch` e inputs `image_
 | Síntoma | Causa probable | Solución |
 | --- | --- | --- |
 | App Service muestra 503 | El contenedor no escucha en el puerto esperado | Configurar `WEBSITES_PORT=8080`. |
+| App Service muestra 503 y en el log aparece `linuxFxVersion=sitecontainers` con `targetPort=80` | Azure sondea el puerto 80 del sitecontainer e ignora `WEBSITES_PORT` | Pasar a Docker clásico con `az webapp config container set --container-image-name ... --container-registry-url https://index.docker.io` o cambiar el `targetPort` del sitecontainer a `8080`; reiniciar. |
 | `ImagePullBackOff` o error de imagen | Imagen inexistente o privada | Verificar el tag en Docker Hub y usar repositorio público. |
 | API responde 500 en `/health` | Mongo no conecta | Revisar connection string, usuario y Network Access de Atlas. |
-| Portal carga pero no llama a la API | `Api__BaseUrl` incorrecto | Usar `https://<api-app>.azurewebsites.net`, sin barra final. |
+| Portal carga pero no llama a la API | `Api__BaseUrl` incorrecto | Usar la URL real de `AZURE_API_URL`, sin barra final. |
 | Blazor pierde conexión | WebSockets o afinidad deshabilitados | Activar WebSockets y Session affinity. |
-| Deploy falla con 401/403 | Publish profile vencido o app name incorrecto | Descargar de nuevo el publish profile y revisar la variable. |
+| Deploy falla con 401/403 | Publish profile vencido o app name incorrecto | Descargar de nuevo el publish profile y revisar `AZURE_*_APP_NAME`. |
 | Deploy falla por basic auth | SCM Basic Auth deshabilitado | Activarlo en Configuration → General settings. |
 | Docker Hub deniega el push | Token sin permisos | Crear token con Read & Write y actualizar el secreto. |
 | CD no se dispara | `cd.yml` no está en la rama default o CI no se llama `CI` | Verificar default branch y el nombre del workflow de CI. |
+| Los jobs de deploy se omiten | `AZURE_DEPLOY_ENABLED` no vale `true` | Crear o corregir la variable del repositorio. |
 | CI falla en un PR de promoción | Validación de rama sobre `development` | La CI ya omite `main` y `development`; verificar que el cambio esté en la rama. |
-| Primer request lento | F1 sin Always On | Es esperado; usar B1 con crédito si molesta. |
+| Primer request lento | Always On desactivado | Activar Always On en la Web App. F1 no lo soporta; usar B1. |
+
+Si el log de la Web App muestra `linuxFxVersion=sitecontainers` y `targetPort=80`, `WEBSITES_PORT` se ignora y Azure sondea el puerto 80. Opciones:
+
+```powershell
+az webapp config container set `
+  --name <api-app> `
+  --resource-group rg-facturar `
+  --container-image-name <dockerhub-user>/facturar-api:<sha> `
+  --container-registry-url https://index.docker.io
+
+az webapp restart --name <api-app> --resource-group rg-facturar
+```
+
+O actualizar el `targetPort` del sitecontainer a `8080` y reiniciar. Verificar después `/health`.
 
 ## 12. Checklist de cierre
 
@@ -485,14 +565,16 @@ Recomendación: crear un `rollback.yml` con `workflow_dispatch` e inputs `image_
 - [ ] Checks requeridos seleccionados.
 - [ ] Repositorios de Docker Hub creados.
 - [ ] Token de Docker Hub configurado.
-- [ ] Resource group y App Service Plan F1 creados.
+- [ ] Resource group y App Service Plan B1 creados.
 - [ ] Web App de API creada.
 - [ ] Web App del portal creada.
 - [ ] App Settings de API configurados.
 - [ ] App Settings y WebSockets del portal configurados.
+- [ ] Always On activo en la API y en el portal.
 - [ ] Atlas M0 accesible desde Azure.
 - [ ] Publish profiles guardados como secretos.
-- [ ] Variables de Azure configuradas.
+- [ ] Variables de Azure configuradas: `AZURE_API_APP_NAME`, `AZURE_WEB_APP_NAME`, `AZURE_API_URL`, `AZURE_WEB_URL` y `AZURE_DEPLOY_ENABLED`.
+- [ ] URLs reales de API y portal verificadas y cargadas sin barra final.
 - [ ] Jobs `deploy-api` y `deploy-web` agregados.
 - [ ] Deploy automático desde `main` probado.
 - [ ] Smoke tests pasan.
