@@ -23,8 +23,14 @@ jobs:
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      sha: ${{ steps.sha.outputs.value }}
 
     steps:
+      - name: Resolver SHA validado
+        id: sha
+        run: echo "value=${{ github.event.workflow_run.head_sha || github.sha }}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout del commit validado
         uses: actions/checkout@v4
         with:
@@ -74,3 +80,109 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/facturar-web:${{ github.event.workflow_run.head_sha || github.sha }}
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
+
+  deploy-api:
+    name: Desplegar API en Azure
+    needs: publish-images
+    if: vars.AZURE_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: ${{ vars.AZURE_API_URL }}
+
+    steps:
+      - name: Verificar secretos y variables de Azure
+        env:
+          PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_API }}
+          APP_NAME: ${{ vars.AZURE_API_APP_NAME }}
+          API_URL: ${{ vars.AZURE_API_URL }}
+        run: |
+          if [ -z "$PUBLISH_PROFILE" ]; then
+            echo "::error::Falta el secreto AZURE_WEBAPP_PUBLISH_PROFILE_API. Descargá el publish profile de la Web App de la API y guardalo como secreto."
+            exit 1
+          fi
+          if [ -z "$APP_NAME" ]; then
+            echo "::error::Falta la variable AZURE_API_APP_NAME con el nombre corto de la Web App de la API."
+            exit 1
+          fi
+          if [ -z "$API_URL" ]; then
+            echo "::error::Falta la variable AZURE_API_URL con la URL pública completa de la API."
+            exit 1
+          fi
+
+      - name: Desplegar API
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_API_APP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_API }}
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/facturar-api:${{ needs.publish-images.outputs.sha }}
+
+      - name: Smoke test de la API
+        env:
+          API_URL: ${{ vars.AZURE_API_URL }}
+        shell: bash
+        run: |
+          for intento in $(seq 1 18); do
+            if curl -fsS --max-time 10 "$API_URL/health" > /dev/null; then
+              echo "API saludable en el intento $intento."
+              exit 0
+            fi
+            echo "Intento $intento/18 sin respuesta de $API_URL/health; reintentando en 10s."
+            sleep 10
+          done
+          echo "::error::La API no respondió $API_URL/health después de 18 intentos. Revisá el Log stream de la Web App."
+          exit 1
+
+  deploy-web:
+    name: Desplegar portal en Azure
+    needs: [publish-images, deploy-api]
+    if: vars.AZURE_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: ${{ vars.AZURE_WEB_URL }}
+
+    steps:
+      - name: Verificar secretos y variables de Azure
+        env:
+          PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_WEB }}
+          APP_NAME: ${{ vars.AZURE_WEB_APP_NAME }}
+          WEB_URL: ${{ vars.AZURE_WEB_URL }}
+        run: |
+          if [ -z "$PUBLISH_PROFILE" ]; then
+            echo "::error::Falta el secreto AZURE_WEBAPP_PUBLISH_PROFILE_WEB. Descargá el publish profile de la Web App del portal y guardalo como secreto."
+            exit 1
+          fi
+          if [ -z "$APP_NAME" ]; then
+            echo "::error::Falta la variable AZURE_WEB_APP_NAME con el nombre corto de la Web App del portal."
+            exit 1
+          fi
+          if [ -z "$WEB_URL" ]; then
+            echo "::error::Falta la variable AZURE_WEB_URL con la URL pública completa del portal."
+            exit 1
+          fi
+
+      - name: Desplegar portal
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEB_APP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_WEB }}
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/facturar-web:${{ needs.publish-images.outputs.sha }}
+
+      - name: Smoke test del portal
+        env:
+          WEB_URL: ${{ vars.AZURE_WEB_URL }}
+        shell: bash
+        run: |
+          for intento in $(seq 1 18); do
+            if curl -fsS --max-time 10 "$WEB_URL/" > /dev/null; then
+              echo "Portal saludable en el intento $intento."
+              exit 0
+            fi
+            echo "Intento $intento/18 sin respuesta de $WEB_URL/; reintentando en 10s."
+            sleep 10
+          done
+          echo "::error::El portal no respondió $WEB_URL/ después de 18 intentos. Revisá el Log stream de la Web App."
+          exit 1
