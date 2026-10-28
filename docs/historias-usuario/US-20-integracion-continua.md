@@ -29,11 +29,11 @@ Para que las reglas de GitHub funcionen, la rama default debe ser `development` 
 - [x] CI sube los resultados de tests como artefacto.
 - [x] CI no publica imágenes ni despliega.
 - [x] El repositorio remoto está conectado y CI se ejecuta en GitHub Actions.
-- [ ] La rama default del repositorio es `development`.
+- [x] La rama default del repositorio es `development`.
 - [ ] Existe un ruleset activo para `main` con PR, aprobación, checks, conversaciones resueltas y bloqueo de force push/borrado.
 - [ ] Existe un ruleset activo para `development` con PR, checks y bloqueo de force push/borrado.
 - [ ] Los checks `CI / Validar nombre de rama` y `CI / Build y tests` están seleccionados como requeridos.
-- [ ] Se validó un pull request real de una rama `feature/us-XX-slug` hacia `development`.
+- [x] Se validó un pull request real de una rama `feature/us-XX-slug` hacia `development`.
 - [ ] Se validó el bloqueo de merge cuando CI falla.
 
 ## Escenarios Gherkin
@@ -80,29 +80,46 @@ Scenario: CI falla
 - [x] Publicar `TestResults` como artefacto.
 - [x] Conectar el repositorio remoto.
 - [x] Verificar CI en `main` y `development`.
-- [ ] Cambiar la rama default a `development`.
-- [ ] Crear el ruleset de `main`.
-- [ ] Crear el ruleset de `development`.
+- [x] Cambiar la rama default a `development`.
+- [x] Crear el ruleset de `main`.
+- [x] Crear el ruleset de `development`.
 - [ ] Validar un PR real y el bloqueo por CI fallida.
-- [ ] Documentar la evidencia de la configuración de GitHub en esta historia.
+- [x] Documentar la evidencia de la configuración de GitHub en esta historia.
 
 ## Definition of Done
 
 - [x] CI compila y ejecuta tests en GitHub Actions.
 - [x] CI no publica imágenes ni despliega.
 - [x] El README y esta historia explican CI y el flujo de ramas.
-- [ ] La rama default es `development`.
-- [ ] Los rulesets de `main` y `development` están activos.
+- [x] La rama default es `development`.
+- [x] Los rulesets de `main` y `development` están activos.
 - [ ] Los checks requeridos aparecen y bloquean merges inválidos.
-- [ ] La evidencia de la configuración de GitHub está registrada.
+- [x] La evidencia de la configuración de GitHub está registrada.
 
 ## Evidencia
 
 - `.github/workflows/ci.yml` contiene validación de rama, build, tests, MongoDB 8 y artefacto.
-- CI en `main` con MongoDB 8: https://github.com/FT-Key/FacturAR/actions/runs/40243514062 (success).
-- CI en `development` con MongoDB 8: https://github.com/FT-Key/FacturAR/actions/runs/40243508964 (success).
+- CI en `main` con MongoDB 8 como servicio: https://github.com/FT-Key/FacturAR/actions/runs/40639636114 (success).
+- CI en `development`: https://github.com/FT-Key/FacturAR/actions/runs/40637265953 (success).
+- CI del PR #2 `development` → `main`: https://github.com/FT-Key/FacturAR/actions/runs/40637531339 (attempt 1 falló por infraestructura: `Failed to initialize container mongo:8`; attempt 2 success).
+- Rama default verificada por API: `GET /repos/FT-Key/FacturAR` devuelve `default_branch=development`.
+- Rulesets activos (API):
+  - `main-protection` (id 26004120): `enforcement=active`, `ref_name include refs/heads/main`, creado 2026-10-28T01:18:11Z; reglas `deletion`, `non_fast_forward`, `pull_request` (required_approving_review_count=1, required_review_thread_resolution=true, dismiss_stale_reviews_on_push=true) y `required_status_checks` (strict_required_status_checks_policy=true).
+  - `development-protection` (id 26004163): `enforcement=active`, `ref_name include refs/heads/development`, creado 2026-10-28T01:19:59Z; mismas reglas con `strict_required_status_checks_policy=false`.
+- Pull request real validado: PR #1 `feature/us-31-entrega-continua` → `development`, CI https://github.com/FT-Key/FacturAR/actions/runs/40634705545 con los jobs "Validar nombre de rama" (success) y "Build y tests" (success); mergeado 2026-10-28T05:18:52Z (merge commit `4ae84a2`).
 - La validación de rama omite `main` y `development` para permitir la promoción.
-- Pendiente: configuración de rama default, rulesets y evidencia de un PR real.
+- La CI no publica imágenes ni despliega: eso es US-31.
+
+### Pendiente de verificación
+
+Motivo común: `required_status_checks` con `required_status_checks: []` en los rulesets `main-protection` y `development-protection`; hay que seleccionar los checks "Validar nombre de rama" y "Build y tests" y después validar el bloqueo con un PR en rojo.
+
+- "Existe un ruleset activo para `main` con PR, aprobación, checks, conversaciones resueltas y bloqueo de force push/borrado." → el ruleset existe y está activo, pero la regla `required_status_checks` tiene la lista `required_status_checks` vacía.
+- "Existe un ruleset activo para `development` con PR, checks y bloqueo de force push/borrado." → el ruleset existe y está activo, pero la regla `required_status_checks` tiene la lista `required_status_checks` vacía.
+- "Los checks `CI / Validar nombre de rama` y `CI / Build y tests` están seleccionados como requeridos." → la lista de checks requeridos está vacía en ambos rulesets.
+- "Se validó el bloqueo de merge cuando CI falla." → falta la validación con checks requeridos configurados.
+- Tarea técnica "Validar un PR real y el bloqueo por CI fallida." → el PR real está validado; el bloqueo por CI fallida todavía no.
+- DoD "Los checks requeridos aparecen y bloquean merges inválidos." → los checks requeridos aún no están seleccionados y no se validó el bloqueo de un merge inválido.
 
 ## Notas de alcance
 
