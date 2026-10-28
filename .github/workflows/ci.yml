@@ -17,7 +17,7 @@ jobs:
   branch-name:
     name: Validar nombre de rama
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Validar convención
@@ -36,14 +36,14 @@ jobs:
 
   build-test:
     name: Build y tests
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       MONGO_CONNECTION_STRING: mongodb://localhost:27017
 
     services:
       mongo:
-        image: mongo:8
+        image: mongo:8.2
         ports:
           - 27017:27017
         options: >-
