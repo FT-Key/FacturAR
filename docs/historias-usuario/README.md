@@ -6,41 +6,59 @@ Las US-27 a US-30 completan el onboarding profesional: solicitud pública, aprob
 
 > El proceso completo está documentado en [`docs/proceso-alta-empresa.md`](../proceso-alta-empresa.md). El manual para integradores está en [`docs/manual-integracion.md`](../manual-integracion.md).
 
+## Documentos de referencia
+
+| Documento | Para qué sirve |
+| --- | --- |
+| [`docs/contratos-api.md`](../contratos-api.md) | **Contrato transversal normativo**: catálogo de errores, roles, autenticación, idempotencia, paginación, emisión y endpoints. Si una historia y este documento se contradicen, manda el contrato. |
+| [`docs/plan-implementacion.md`](../plan-implementacion.md) | **Plan maestro**: orden de ejecución por fases, paralelismo, prerrequisitos de infraestructura y checklists de demo y de entrega. |
+| [`docs/modelos.md`](../modelos.md) | Forma de los datos en MongoDB: entidades, campos, colecciones e índices. |
+| [`docs/requisitos-funcionales.md`](../requisitos-funcionales.md) | Qué debe hacer el sistema, con la trazabilidad RF ↔ US. |
+
 ## Índice
 
-| ID | Historia | Épica | Prioridad | Días | Requisito | Estado |
-| --- | --- | --- | --- | --- | --- | --- |
-| [US-01](US-01-alta-contribuyente.md) | Solicitud pública de alta de empresa | Registro | Alta | 2 | RF-23 | Pendiente |
-| [US-02](US-02-api-keys.md) | Gestión de API keys | Integraciones | Alta | 2 | RF-02 | Pendiente |
-| [US-03](US-03-autenticacion-api-key.md) | Autenticación por API key | Integraciones | Alta | 1 | RF-03 | Pendiente |
-| [US-04](US-04-login-multiempresa.md) | Autenticación, roles y aislamiento multiempresa | Registro | Alta | 3 | RF-11 | Pendiente |
-| [US-05](US-05-emision-facturas.md) | Emisión de facturas A, B y C | Emisión | Alta | 3 | RF-04 | Pendiente |
-| [US-06](US-06-idempotencia.md) | Idempotencia de emisión | Emisión | Alta | 1 | RF-05 | Pendiente |
-| [US-07](US-07-numeracion-atomica.md) | Numeración atómica | Emisión | Alta | 1 | RF-06 | Pendiente |
-| [US-08](US-08-notas-credito-debito.md) | Notas de crédito y débito | Emisión | Alta | 2 | RF-07 | Pendiente |
-| [US-09](US-09-consultas-comprobantes.md) | Consultas y último autorizado | Consultas | Alta | 1 | RF-08 | Pendiente |
-| [US-10](US-10-pdf-qr.md) | PDF con código QR | Documentos | Alta | 2 | RF-09 | Pendiente |
-| [US-11](US-11-verificacion-publica.md) | Verificación pública por CAE | Consultas | Alta | 2 | RF-10 | Base implementada |
-| [US-12](US-12-dashboard-listado.md) | Dashboard y listado | Portal | Media | 2 | RF-13 | Pendiente |
-| [US-13](US-13-emision-manual.md) | Emisión manual desde el portal | Portal | Media | 2 | RF-12 | Pendiente |
-| [US-14](US-14-api-keys-portal.md) | API keys desde el portal | Portal | Media | 1 | RF-14 | Pendiente |
-| [US-15](US-15-soap-emision.md) | SOAP de emisión | Interoperabilidad | Alta | 2 | RF-15 | Pendiente |
-| [US-16](US-16-soap-consultas.md) | SOAP de consultas | Interoperabilidad | Media | 1 | RF-16 | Pendiente |
-| [US-17](US-17-auditoria-outbox.md) | Auditoría y outbox | Operación | Media | 2 | RF-17 | Pendiente |
-| [US-18](US-18-parametros-seed.md) | Parámetros y datos semilla | Operación | Media | 1 | RF-18 | Pendiente |
-| [US-19](../historias-usuario-terminadas/US-19-docker-compose.md) | Docker y Docker Compose | Infraestructura | Alta | 2 | RF-21 | Completada |
-| [US-20](../historias-usuario-terminadas/US-20-integracion-continua.md) | Integración continua (CI) | Infraestructura | Alta | 1 | RF-21 | Completada |
-| [US-21](US-21-tests-documentacion.md) | Tests, Postman y documentación | Calidad | Alta | 2 | RNF-13/17/18 | Parcial |
-| [US-22](US-22-mvc-anulacion.md) | Anulación administrativa MVC | Administración | Baja | 2 | RF-19 | Stretch |
-| [US-23](US-23-webhooks.md) | Webhooks de eventos | Integraciones | Baja | 2 | RF-20 | Stretch |
-| [US-24](US-24-afip-real.md) | Adaptador AFIP real | Interoperabilidad | Baja | 3 | RF-22 | Stretch |
-| [US-25](US-25-grpc-graphql.md) | gRPC o GraphQL | Interoperabilidad | Baja | 3 | RNF-15 | Stretch |
-| [US-26](US-26-kubernetes.md) | Despliegue en Kubernetes | Infraestructura | Baja | 3 | RNF-10 | Stretch |
-| [US-27](US-27-aprobacion-solicitudes.md) | Revisión y aprobación de solicitudes | Registro | Alta | 3 | RF-24 | Pendiente |
-| [US-28](US-28-invitacion-cuenta.md) | Activación de cuenta por invitación | Registro | Alta | 2 | RF-25 | Pendiente |
-| [US-29](US-29-emails-transaccionales.md) | Notificaciones transaccionales por email | Registro | Alta | 2 | RF-26 | Pendiente |
-| [US-30](US-30-manual-integracion.md) | Manual online de integración | Portal | Media | 1 | RF-27 | Pendiente |
-| [US-31](../historias-usuario-terminadas/US-31-entrega-continua-azure.md) | Entrega continua y despliegue en Azure | Infraestructura | Alta | 3 | RNF-20 / RF-21 | Completada |
+La columna **Contrato** indica si la historia ya tiene definido el contrato técnico completo (modelo de datos, endpoints, validaciones, casos de prueba y dependencias). Todas las historias del MVP lo tienen.
+
+| ID | Historia | Épica | Prioridad | Días | Requisito | Estado | Contrato |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| [US-01](US-01-alta-contribuyente.md) | Solicitud pública de alta de empresa | Registro | Alta | 2 | RF-23 | Pendiente | Sí |
+| [US-02](US-02-api-keys.md) | Gestión de API keys | Integraciones | Alta | 2 | RF-02 | Pendiente | Sí |
+| [US-03](US-03-autenticacion-api-key.md) | Autenticación por API key | Integraciones | Alta | 1 | RF-03 | Pendiente | Sí |
+| [US-04](US-04-login-multiempresa.md) | Autenticación, roles y aislamiento multiempresa | Registro | Alta | 3 | RF-11 | Pendiente | Sí |
+| [US-05](US-05-emision-facturas.md) | Emisión de facturas A, B y C | Emisión | Alta | 3 | RF-04 | Pendiente | Sí |
+| [US-06](US-06-idempotencia.md) | Idempotencia de emisión | Emisión | Alta | 1 | RF-05 | Pendiente | Sí |
+| [US-07](US-07-numeracion-atomica.md) | Numeración atómica | Emisión | Alta | 1 | RF-06 | Pendiente | Sí |
+| [US-08](US-08-notas-credito-debito.md) | Notas de crédito y débito | Emisión | Alta | 2 | RF-07 | Pendiente | Sí |
+| [US-09](US-09-consultas-comprobantes.md) | Consultas y último autorizado | Consultas | Alta | 1 | RF-08 | Pendiente | Sí |
+| [US-10](US-10-pdf-qr.md) | PDF con código QR | Documentos | Alta | 2 | RF-09 | Pendiente | Sí |
+| [US-11](US-11-verificacion-publica.md) | Verificación pública por CAE | Consultas | Alta | 2 | RF-10 | Base implementada | Sí |
+| [US-12](US-12-dashboard-listado.md) | Dashboard y listado | Portal | Media | 2 | RF-13 | Pendiente | Sí |
+| [US-13](US-13-emision-manual.md) | Emisión manual desde el portal | Portal | Media | 2 | RF-12 | Pendiente | Sí |
+| [US-14](US-14-api-keys-portal.md) | API keys desde el portal | Portal | Media | 1 | RF-14 | Pendiente | Sí |
+| [US-15](US-15-soap-emision.md) | SOAP de emisión | Interoperabilidad | Alta | 2 | RF-15 | Pendiente | Sí |
+| [US-16](US-16-soap-consultas.md) | SOAP de consultas | Interoperabilidad | Media | 1 | RF-16 | Pendiente | Sí |
+| [US-17](US-17-auditoria-outbox.md) | Auditoría y outbox | Operación | Media | 2 | RF-17 | Pendiente | Sí |
+| [US-18](US-18-parametros-seed.md) | Parámetros y datos semilla | Operación | Media | 1 | RF-18 | Pendiente | Sí |
+| [US-19](../historias-usuario-terminadas/US-19-docker-compose.md) | Docker y Docker Compose | Infraestructura | Alta | 2 | RF-21 | Completada | — |
+| [US-20](../historias-usuario-terminadas/US-20-integracion-continua.md) | Integración continua (CI) | Infraestructura | Alta | 1 | RF-21 | Completada | — |
+| [US-21](US-21-tests-documentacion.md) | Tests, Postman y documentación | Calidad | Alta | 2 | RNF-13/17/18 | Parcial | Sí |
+| [US-22](US-22-mvc-anulacion.md) | Anulación administrativa MVC | Administración | Baja | 2 | RF-19 | Stretch | No |
+| [US-23](US-23-webhooks.md) | Webhooks de eventos | Integraciones | Baja | 2 | RF-20 | Stretch | No |
+| [US-24](US-24-afip-real.md) | Adaptador AFIP real | Interoperabilidad | Baja | 3 | RF-22 | Stretch | No |
+| [US-25](US-25-grpc-graphql.md) | gRPC o GraphQL | Interoperabilidad | Baja | 3 | RNF-15 | Stretch | No |
+| [US-26](US-26-kubernetes.md) | Despliegue en Kubernetes | Infraestructura | Baja | 3 | RNF-10 | Stretch | No |
+| [US-27](US-27-aprobacion-solicitudes.md) | Revisión y aprobación de solicitudes | Registro | Alta | 3 | RF-24 | Pendiente | Sí |
+| [US-28](US-28-invitacion-cuenta.md) | Activación de cuenta por invitación | Registro | Alta | 2 | RF-25 | Pendiente | Sí |
+| [US-29](US-29-emails-transaccionales.md) | Notificaciones transaccionales por email | Registro | Alta | 2 | RF-26 | Pendiente | Sí |
+| [US-30](US-30-manual-integracion.md) | Manual online de integración | Portal | Media | 1 | RF-27 | Pendiente | Sí |
+| [US-31](../historias-usuario-terminadas/US-31-entrega-continua-azure.md) | Entrega continua y despliegue en Azure | Infraestructura | Alta | 3 | RNF-20 / RF-21 | Completada | — |
+
+### Estado real de la implementación
+
+Al día de hoy **solo US-11 tiene comportamiento implementado**: la API expone `GET /`, `GET /health`, `GET /health/live` y `GET /v1/comprobantes/verificar/{cae}`, y el portal expone la página `/verificar`.
+
+El resto de las historias tiene el **modelo de dominio y los índices de MongoDB preparados**, pero sin casos de uso, endpoints ni pantallas. Eso no cuenta como avance: una historia está terminada cuando entrega comportamiento verificable con test.
+
 
 ## Dependencias
 
@@ -89,6 +107,8 @@ Las US-27 a US-30 completan el onboarding profesional: solicitud pública, aprob
 7. **Calidad y despliegue:** US-20, US-31, US-21.
 8. **Stretch:** US-22 a US-26.
 
+El plan detallado por fases, con paralelismo, prerrequisitos de infraestructura y checklists, está en [`docs/plan-implementacion.md`](../plan-implementacion.md).
+
 ## Grafo simplificado
 
 ```mermaid
@@ -122,18 +142,20 @@ flowchart TD
     US19[US-19 Docker] --> US20[US-20 CI]
     US20 --> US31[US-31 CD Azure]
     US20 --> US21[US-21 Tests]
-    US31 --> US26[US-26 Kubernetes]
 ```
+
+US-26 (Kubernetes) queda fuera del grafo: es stretch y hay una decisión de plataforma fechada que la descarta para el MVP. Ver [`docs/historias-usuario/US-26-kubernetes.md`](US-26-kubernetes.md).
 
 ## Reglas de lectura
 
-1. Leer esta índice y solo la historia solicitada.
+1. Leer este índice y solo la historia solicitada.
 2. Verificar las dependencias antes de implementar.
 3. Si falta una dependencia, detenerse y reportar el bloqueo; no inventar un atajo.
 4. Implementar solo el alcance de la historia.
-5. Marcar un checkbox solo con evidencia verificable.
-6. Al completar todos los criterios y el Definition of Done, mover el archivo a `historias-usuario-terminadas/` y actualizar este índice.
-7. No implementar historias stretch sin pedido explícito.
+5. Respetar [`docs/contratos-api.md`](../contratos-api.md): si la historia y el contrato se contradicen, manda el contrato.
+6. Marcar un checkbox solo con evidencia verificable.
+7. Al completar todos los criterios y el Definition of Done, mover el archivo a `historias-usuario-terminadas/` y actualizar este índice.
+8. No implementar historias stretch sin pedido explícito.
 
 ## Leyenda de estado
 
@@ -142,3 +164,5 @@ flowchart TD
 - **Parcial:** parte de la historia está cubierta.
 - **Completada:** todos los criterios y el Definition of Done están verificados.
 - **Stretch:** fuera del alcance obligatorio.
+
+La columna **Contrato** es independiente del estado: `Sí` significa que la historia tiene su contrato técnico definido y listo para implementar, no que la funcionalidad exista.
