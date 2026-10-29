@@ -19,22 +19,22 @@ El envío directo es suficiente para el MVP. US-17 puede agregar outbox y reinte
 
 ## Criterios de aceptación
 
-- [ ] Existe una abstracción `IEmailSender` en Application.
-- [ ] Existe un remitente de desarrollo que escribe el email completo en un archivo local; el log solo registra metadatos sin tokens.
-- [ ] Existe un remitente SMTP configurable por variables de entorno.
-- [ ] El remitente se elige por configuración sin recompilar.
-- [ ] Las plantillas incluyen asunto, cuerpo HTML y texto plano.
-- [ ] Los datos dinámicos se codifican para evitar inyección HTML.
-- [ ] Las plantillas son: solicitud recibida, nueva solicitud para administración, solicitud aprobada con invitación, solicitud rechazada e invitación reenviada.
-- [ ] El email de invitación incluye el link completo con token y la fecha de expiración.
-- [ ] El token no se escribe en logs ni en errores.
-- [ ] El email de rechazo incluye el motivo.
-- [ ] El remitente y la URL base del portal se configuran por variables de entorno.
-- [ ] Un fallo de envío devuelve un resultado controlado; no lanza una excepción que revierta la operación de negocio.
-- [ ] El panel muestra una advertencia si el email no se pudo enviar y permite reenviar.
-- [ ] Se puede enviar una notificación opcional al email de administración cuando entra una solicitud.
-- [ ] Los emails de desarrollo no se versionan ni se incluyen en la imagen de producción.
-- [ ] Hay tests unitarios de composición y tests de integración del remitente de desarrollo.
+- [x] Existe una abstracción `IEmailSender` en Application.
+- [x] Existe un remitente de desarrollo que escribe el email completo en un archivo local; el log solo registra metadatos sin tokens.
+- [x] Existe un remitente SMTP configurable por variables de entorno.
+- [x] El remitente se elige por configuración sin recompilar.
+- [x] Las plantillas incluyen asunto, cuerpo HTML y texto plano.
+- [x] Los datos dinámicos se codifican para evitar inyección HTML.
+- [x] Las plantillas son: solicitud recibida, nueva solicitud para administración, solicitud aprobada con invitación, solicitud rechazada e invitación reenviada.
+- [x] El email de invitación incluye el link completo con token y la fecha de expiración.
+- [x] El token no se escribe en logs ni en errores.
+- [x] El email de rechazo incluye el motivo.
+- [x] El remitente y la URL base del portal se configuran por variables de entorno.
+- [x] Un fallo de envío devuelve un resultado controlado; no lanza una excepción que revierta la operación de negocio.
+- [ ] El panel muestra una advertencia si el email no se pudo enviar y permite reenviar. *(pendiente: requiere US-27 — no existe panel de solicitudes)*
+- [x] Se puede enviar una notificación opcional al email de administración cuando entra una solicitud.
+- [x] Los emails de desarrollo no se versionan ni se incluyen en la imagen de producción.
+- [x] Hay tests unitarios de composición y tests de integración del remitente de desarrollo.
 
 ## Escenarios Gherkin
 
@@ -47,6 +47,8 @@ Scenario: Email de solicitud recibida en desarrollo
   And el cuerpo incluye el próximo paso
 ```
 
+> Estado: pendiente — el envío end-to-end se dispara al crear la solicitud y requiere US-01; la composición y el archivo están cubiertos por `EmailServiceTests` y `EmailServiceFileSenderTests`.
+
 ```gherkin
 Scenario: Invitación con link de activación
   Given una solicitud aprobada
@@ -55,6 +57,8 @@ Scenario: Invitación con link de activación
   And el link usa la URL base configurada del portal
   And el email indica que vence en 48 horas
 ```
+
+> Estado: pendiente — el envío vía endpoint requiere US-27; la composición del link y de la expiración está cubierta por `EmailServiceTests` y `PlantillasEmailTests`.
 
 ```gherkin
 Scenario: Fallo de SMTP
@@ -65,6 +69,8 @@ Scenario: Fallo de SMTP
   And el administrador puede reenviar la invitación
 ```
 
+> Estado: pendiente — requiere US-27 (aprobación desde el panel y acción de reenvío); no hay panel de solicitudes.
+
 ```gherkin
 Scenario: Token no logueado
   Given un email de invitación con token
@@ -72,27 +78,45 @@ Scenario: Token no logueado
   Then el log no contiene el token completo
 ```
 
+> Estado: cubierto por test — `FileEmailSenderTests.EnviarAsync_EscribeUnDocumentoHtmlCompletoSinLoguearElToken` y `EmailServiceFileSenderTests.SolicitudAprobada_EscribeElLinkCompletoSinLoguearElToken`.
+
 ## Tareas técnicas
 
-- [ ] Crear `IEmailSender`, `EmailMessage` y `EmailResult` en Application.
-- [ ] Crear `FileEmailSender` y `SmtpEmailSender` en Infrastructure.
-- [ ] Registrar el remitente según `Email__Provider`.
-- [ ] Crear plantillas HTML y texto para los cinco emails.
-- [ ] Implementar `EmailService` con composición y codificación segura.
-- [ ] Configurar `Email__From`, `Email__Host`, `Email__Port`, `Email__User`, `Email__Password`, `Email__UseSsl` y `Portal__BaseUrl`.
-- [ ] Configurar `Admin__NotificationEmail` opcional.
-- [ ] Integrar el envío en US-01, US-27 y US-28.
-- [ ] Agregar tests de plantillas y del remitente de desarrollo.
-- [ ] Documentar configuración y carpeta de emails de desarrollo.
+- [x] Crear `IEmailSender`, `EmailMessage` y `EmailResult` en Application.
+- [x] Crear `FileEmailSender` y `SmtpEmailSender` en Infrastructure.
+- [x] Registrar el remitente según `Email__Provider`.
+- [x] Crear plantillas HTML y texto para los cinco emails.
+- [x] Implementar `EmailService` con composición y codificación segura.
+- [x] Configurar `Email__From`, `Email__Host`, `Email__Port`, `Email__User`, `Email__Password`, `Email__UseSsl` y `Portal__BaseUrl`.
+- [x] Configurar `Admin__NotificationEmail` opcional.
+- [ ] Integrar el envío en US-01, US-27 y US-28. *(pendiente: US-01, US-27 y US-28 están pendientes)*
+- [x] Agregar tests de plantillas y del remitente de desarrollo.
+- [x] Documentar configuración y carpeta de emails de desarrollo.
 
 ## Definition of Done
 
-- [ ] El flujo de onboarding funciona sin SMTP en desarrollo.
-- [ ] El flujo funciona con SMTP configurado en staging.
-- [ ] Un fallo de email no revierte la aprobación ni la creación de la empresa.
-- [ ] Los tokens y contraseñas no aparecen en logs.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el proceso de alta.
+- [ ] El flujo de onboarding funciona sin SMTP en desarrollo. *(pendiente: requiere US-01/US-27; el remitente de archivo está implementado y probado)*
+- [ ] El flujo funciona con SMTP configurado en staging. *(pendiente: requiere US-01/US-27 y un servidor SMTP real)*
+- [ ] Un fallo de email no revierte la aprobación ni la creación de la empresa. *(pendiente: requiere US-27)*
+- [x] Los tokens y contraseñas no aparecen en logs.
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el proceso de alta.
+
+## Evidencia
+
+Comandos ejecutados (2026-10-29):
+
+- `dotnet build FacturAR.slnx -c Release` → 0 errores, 0 advertencias.
+- `dotnet test FacturAR.slnx -c Release --no-build` → UnitTests 85/85; IntegrationTests 23 pasan, 19 omitidos (`MongoFact` sin connection string), 0 fallos.
+- `dotnet format FacturAR.slnx --verify-no-changes` → sin cambios.
+- QA manual: la API arranca en `Development` con `Email__Provider=File`; `GET /health/live` → 200. Con `ASPNETCORE_ENVIRONMENT=Staging` + `Email__Provider=File` la app no arranca (`InvalidOperationException: Email:Provider=File solo está permitido en Development.`). `git check-ignore` confirma que `emails/` está ignorada.
+
+Tests que respaldan los criterios:
+
+- Unit: `PlantillasEmailTests`, `EmailServiceTests`, `NotificacionesConfigurationValidatorTests`.
+- Integración: `FileEmailSenderTests`, `SmtpEmailSenderTests`, `EmailSenderProviderTests`, `EmailServiceFileSenderTests`.
+
+Pendiente de integración: el disparo desde los endpoints de US-01 y US-27 y la advertencia/reenvío en el panel de US-27.
 
 ## Contrato técnico
 
@@ -301,6 +325,26 @@ Orden: US-29 → US-01 → US-27 → US-28. US-29 no depende de ninguna otra his
 | CP-29-08 | SMTP inaccesible | Enviar cualquier plantilla | `EmailResult.Exitoso = false` con `Error` sanitizado; **no** se lanza excepción; el token no aparece en `Error` |
 | CP-29-09 | Dos entornos con distinta configuración | Arrancar con `Email__Provider = File` y luego con `Smtp` | Se instancia el remitente correspondiente sin recompilar; con `Provider = File` fuera de `Development` la API falla al arrancar |
 | CP-29-10 | Plantillas de las 5 plantillas | Renderizar todas y revisar el resultado | Cada una produce HTML y texto plano con el mismo contenido; ninguna contiene API keys, contraseñas ni hashes |
+
+> Estado: CP-29-01 cubierto por test, no E2E — `EmailServiceFileSenderTests.SolicitudRecibida_GeneraArchivoConProximoPasoYLogueaMetadatos` y `FileEmailSenderTests.EnviarAsync_EscribeUnDocumentoHtmlCompletoSinLoguearElToken`.
+
+> Estado: CP-29-02 cubierto por test, no E2E — `FileEmailSenderTests.EnviarAsync_EscribeUnDocumentoHtmlCompletoSinLoguearElToken` y `EmailServiceFileSenderTests.SolicitudAprobada_EscribeElLinkCompletoSinLoguearElToken`.
+
+> Estado: CP-29-03 no ejecutable end-to-end — requiere US-01; composición cubierta por `EmailServiceTests.EnviarNuevaSolicitudAsync_SinAdminConfigurado_DevuelveFallidoSinEnviar`.
+
+> Estado: CP-29-04 no ejecutable end-to-end — requiere US-01; composición cubierta por `EmailServiceTests.EnviarNuevaSolicitudAsync_ConAdminConfigurado_EnviaAlAdministrador` y `PlantillasEmailTests.CrearNuevaSolicitud_IncluyeAsuntoConRazonSocialYLinkAlPanel`.
+
+> Estado: CP-29-05 ejecutado — `PlantillasEmailTests.CrearSolicitudRechazada_EscapaElMotivoEnHtmlYLoConservaEnTexto` y `EmailServiceFileSenderTests.SolicitudRechazada_ConservaElMotivoEscapadoEnElArchivo`.
+
+> Estado: CP-29-06 ejecutado en composición — `PlantillasEmailTests.CrearSolicitudAprobada_IncluyeLinkYFechaDeExpiracion` y `EmailServiceTests.EnviarSolicitudAprobadaAsync_ArmaElLinkConLaBaseSinBarraFinal`.
+
+> Estado: CP-29-07 ejecutado — `PlantillasEmailTests.CrearInvitacionReenviada_IncluyeLinkNuevoYAvisoDelAnterior`.
+
+> Estado: CP-29-08 ejecutado — `SmtpEmailSenderTests.EmailService_ConSmtpInaccesible_DevuelveFallidoSinTokenEnElError` y `SmtpEmailSenderTests.EnviarAsync_ConHostInexistente_DevuelveFallidoSinPropagar`.
+
+> Estado: CP-29-09 ejecutado — `EmailSenderProviderTests` (File en Development, Smtp sin recompilar, File fuera de Development falla al arrancar) más QA manual de arranque.
+
+> Estado: CP-29-10 ejecutado — `PlantillasEmailTests.Plantillas_RenderizanHtmlYTextoConElMismoContenidoSinSecretos` y `PlantillasEmailTests.Plantillas_NoContienenEtiquetasEnElTextoPlano`.
 
 ## Notas de alcance
 

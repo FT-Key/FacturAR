@@ -4,12 +4,14 @@ using FacturAR.Api.Security;
 using FacturAR.Application.Abstractions;
 using FacturAR.Application.Auth;
 using FacturAR.Application.Comprobantes;
+using FacturAR.Application.Notificaciones;
 using FacturAR.Contracts.Comunes;
 using FacturAR.Contracts.Comprobantes;
 using FacturAR.Contracts.Sistema;
 using FacturAR.Domain.Validation;
 using FacturAR.Infrastructure.LoginIntent;
 using FacturAR.Infrastructure.Mongo;
+using FacturAR.Infrastructure.Notificaciones;
 using FacturAR.Infrastructure.Password;
 using FacturAR.Infrastructure.Repositories;
 using Microsoft.AspNetCore.RateLimiting;
@@ -37,6 +39,23 @@ var buildInformation = new BuildInformation(
     builder.Configuration[BuildInformation.VersionKey] ?? BuildInformation.DefaultVersion,
     builder.Configuration[BuildInformation.CommitKey] ?? BuildInformation.UnknownCommit);
 
+var emailOptions = builder.Configuration
+    .GetSection(EmailOptions.SectionName)
+    .Get<EmailOptions>() ?? new EmailOptions();
+
+if (string.IsNullOrWhiteSpace(emailOptions.Provider))
+{
+    emailOptions.Provider = builder.Environment.IsDevelopment() ? "File" : "Smtp";
+}
+
+var notificacionesOptions = new NotificacionesOptions
+{
+    PortalBaseUrl = builder.Configuration["Portal:BaseUrl"] ?? "http://localhost:5116",
+    AdminNotificationEmail = builder.Configuration["Admin:NotificationEmail"]
+};
+
+NotificacionesConfigurationValidator.Validar(emailOptions, notificacionesOptions, builder.Environment.IsDevelopment());
+
 MongoSerialization.Configure();
 
 builder.Services.AddHttpContextAccessor();
@@ -44,6 +63,19 @@ builder.Services.AddSingleton(mongoOptions);
 builder.Services.AddSingleton(authOptions);
 builder.Services.AddSingleton(bootstrapAdminOptions);
 builder.Services.AddSingleton(buildInformation);
+builder.Services.AddSingleton(emailOptions);
+builder.Services.AddSingleton(notificacionesOptions);
+
+if (string.Equals(emailOptions.Provider, "Smtp", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+}
+else
+{
+    builder.Services.AddSingleton<IEmailSender, FileEmailSender>();
+}
+
+builder.Services.AddScoped<EmailService>();
 builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient(mongoOptions.ConnectionString));
 builder.Services.AddSingleton(sp =>
     sp.GetRequiredService<IMongoClient>().GetDatabase(mongoOptions.DatabaseName));

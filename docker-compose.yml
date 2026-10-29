@@ -12,6 +12,14 @@ services:
       Mongo__ConnectionString: ${MONGO_CONNECTION_STRING:-mongodb://host.docker.internal:27017/?serverSelectionTimeoutMS=3000}
       Mongo__DatabaseName: ${MONGO_DATABASE:-facturar_dev}
       Mongo__InitializeIndexes: ${MONGO_INITIALIZE_INDEXES:-true}
+      Email__Provider: ${EMAIL_PROVIDER:-File}
+      Email__From: ${EMAIL_FROM:-facturar@localhost}
+      Email__FromName: ${EMAIL_FROM_NAME:-FacturAR}
+      Email__DirectorioSalida: ${EMAIL_DIRECTORIO_SALIDA:-emails}
+      Portal__BaseUrl: ${PORTAL_BASEURL:-http://localhost:8081}
+      Admin__NotificationEmail: ${ADMIN_NOTIFICATION_EMAIL:-}
+    volumes:
+      - emails-dev:/app/emails
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
@@ -30,3 +38,6 @@ services:
       - "8081:8080"
     depends_on:
       - api
+
+volumes:
+  emails-dev:
