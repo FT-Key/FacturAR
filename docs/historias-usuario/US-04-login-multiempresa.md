@@ -22,25 +22,25 @@ Un administrador global no es un usuario de empresa. Un usuario de empresa no pu
 
 ## Criterios de aceptación
 
-- [ ] El login de empresa valida email, contraseña y estado del usuario contra el hash almacenado.
-- [ ] Un usuario inactivo o de un contribuyente inactivo no puede iniciar sesión.
-- [ ] El login global valida email, contraseña y estado del administrador.
-- [ ] Los administradores globales usan un esquema de cookie y rutas separadas de los usuarios de empresa.
-- [ ] Las contraseñas se almacenan con un hash robusto y nunca se devuelven ni se loguean.
-- [ ] La sesión de empresa usa una cookie `HttpOnly`, `Secure` en producción y `SameSite=Lax`, con expiración absoluta de 8 horas.
-- [ ] La sesión global usa una cookie `HttpOnly`, `Secure` en producción y `SameSite=Strict`, con expiración absoluta de 2 horas.
-- [ ] Logout invalida la sesión y redirige al login correspondiente.
-- [ ] `GET /v1/auth/me` devuelve el usuario, rol y contribuyente de la sesión de empresa.
-- [ ] `GET /v1/admin/auth/me` devuelve el administrador global y su rol.
+- [x] El login de empresa valida email, contraseña y estado del usuario contra el hash almacenado.
+- [x] Un usuario inactivo o de un contribuyente inactivo no puede iniciar sesión.
+- [x] El login global valida email, contraseña y estado del administrador.
+- [x] Los administradores globales usan un esquema de cookie y rutas separadas de los usuarios de empresa.
+- [x] Las contraseñas se almacenan con un hash robusto y nunca se devuelven ni se loguean.
+- [x] La sesión de empresa usa una cookie `HttpOnly`, `Secure` en producción y `SameSite=Lax`, con expiración absoluta de 8 horas.
+- [x] La sesión global usa una cookie `HttpOnly`, `Secure` en producción y `SameSite=Strict`, con expiración absoluta de 2 horas.
+- [x] Logout invalida la sesión y redirige al login correspondiente.
+- [x] `GET /v1/auth/me` devuelve el usuario, rol y contribuyente de la sesión de empresa.
+- [x] `GET /v1/admin/auth/me` devuelve el administrador global y su rol.
 - [ ] Las políticas de autorización distinguen `EmpresaAdministrador`, `EmpresaEmisor`, `EmpresaConsulta`, `AdminGlobal` y `AdminSuper`.
 - [ ] Un usuario `Consulta` no puede emitir ni administrar API keys.
 - [ ] Un administrador global `Soporte` puede ver solicitudes y reenviar invitaciones, pero no aprobar ni rechazar.
 - [ ] Todas las consultas de negocio se filtran por el `ContribuyenteId` de la sesión.
 - [ ] Un usuario no puede ver datos de otro contribuyente cambiando un id en la URL o en el body.
 - [ ] El acceso cruzado devuelve `404` o `403` sin revelar la existencia del recurso.
-- [ ] Los intentos de login tienen rate limit y bloqueo temporal por usuario/IP.
-- [ ] El administrador global inicial se crea de forma idempotente desde configuración y se hashea al iniciar.
-- [ ] Las acciones de login, logout y acceso denegado relevantes se registran en auditoría.
+- [x] Los intentos de login tienen rate limit y bloqueo temporal por usuario/IP.
+- [x] El administrador global inicial se crea de forma idempotente desde configuración y se hashea al iniciar.
+- [x] Las acciones de login, logout y acceso denegado relevantes se registran en auditoría.
 
 ## Escenarios Gherkin
 
@@ -96,30 +96,30 @@ Scenario: Rate limit de login
 ## Tareas técnicas
 
 - [ ] Crear `AdministradorFacturar`, `RolGlobal` y `EstadoSolicitud` en Domain si no existen.
-- [ ] Extender `Usuario` con `UltimoAcceso` y `EmailVerificadoAt` si el modelo lo requiere.
-- [ ] Configurar autenticación por cookies con dos esquemas: empresa y admin global.
-- [ ] Implementar `PasswordHasher` para usuarios y administradores.
-- [ ] Crear `ITenantContext` y resolverlo desde los claims de la sesión.
-- [ ] Crear políticas de autorización por rol.
-- [ ] Implementar `POST /v1/auth/login`, `POST /v1/auth/logout` y `GET /v1/auth/me`.
-- [ ] Implementar `POST /v1/admin/auth/login`, `POST /v1/admin/auth/logout` y `GET /v1/admin/auth/me`.
-- [ ] Implementar el bootstrap idempotente del administrador global.
-- [ ] Agregar rate limit y bloqueo temporal de login.
-- [ ] Crear páginas `/login`, `/logout`, `/admin/login` y `/admin/logout`.
-- [ ] Proteger las rutas del portal y del panel global.
+- [x] Extender `Usuario` con `UltimoAcceso` y `EmailVerificadoAt` si el modelo lo requiere.
+- [x] Configurar autenticación por cookies con dos esquemas: empresa y admin global.
+- [x] Implementar `PasswordHasher` para usuarios y administradores.
+- [x] Crear `ITenantContext` y resolverlo desde los claims de la sesión.
+- [x] Crear políticas de autorización por rol.
+- [x] Implementar `POST /v1/auth/login`, `POST /v1/auth/logout` y `GET /v1/auth/me`.
+- [x] Implementar `POST /v1/admin/auth/login`, `POST /v1/admin/auth/logout` y `GET /v1/admin/auth/me`.
+- [x] Implementar el bootstrap idempotente del administrador global.
+- [x] Agregar rate limit y bloqueo temporal de login.
+- [x] Crear páginas `/login`, `/logout`, `/admin/login` y `/admin/logout`.
+- [x] Proteger las rutas del portal y del panel global.
 - [ ] Agregar filtros de tenant en repositorios y consultas.
 - [ ] Agregar tests de login, roles, aislamiento y acceso cruzado.
-- [ ] Documentar cookies, roles, códigos de error y variables de configuración.
+- [x] Documentar cookies, roles, códigos de error y variables de configuración.
 
 ## Definition of Done
 
-- [ ] El portal redirige al login cuando no hay sesión.
-- [ ] El panel global solo es accesible por administradores globales.
+- [x] El portal redirige al login cuando no hay sesión.
+- [x] El panel global solo es accesible por administradores globales.
 - [ ] El aislamiento multiempresa está cubierto por tests de integración.
-- [ ] Los roles se aplican en API y portal.
+- [x] Los roles se aplican en API y portal.
 - [ ] No se puede acceder a datos de otra empresa manipulando ids.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el proceso de alta.
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el proceso de alta.
 
 ## Contrato técnico
 
@@ -492,3 +492,26 @@ Antes de empezar US-04 tiene que existir:
 - No implementa recuperación de contraseña ni doble factor.
 - No implementa gestión de administradores globales desde el portal; el bootstrap es por configuración.
 - No usar JWT para el portal en el MVP; cookies de sesión son suficientes y más seguras para Blazor Server.
+
+## Estado de implementación
+
+**Estado:** Base implementada.
+
+Evidencia ejecutada:
+
+- `dotnet build FacturAR.slnx -c Release` → 0 errores, 0 advertencias.
+- `dotnet test FacturAR.slnx -c Release --no-build` con `MONGO_CONNECTION_STRING` → **86 tests correctos, 0 fallos, 0 omitidos** (58 unitarios + 28 de integración).
+- `dotnet format FacturAR.slnx --verify-no-changes` → sin cambios.
+- Tests unitarios: `PasswordHasherTests`, `LoginIntentStoreTests`, `AutenticarEmpresaServiceTests`, `AutenticarAdminGlobalServiceTests`.
+- Tests de integración con MongoDB: `AuthEndpointsTests` (CP-01 a CP-07, CP-10 a CP-14, auditoría) y `AdminBootstrapTests` (CP-14, bootstrap idempotente e índice único).
+
+Pendiente (depende de historias posteriores, no de US-04):
+
+- CP-08, CP-09 y CP-15 requieren endpoints de negocio de US-02, US-05 y US-09; no son verificables todavía.
+- Los criterios de aislamiento multiempresa (consultas filtradas por `ContribuyenteId`, acceso cruzado `404`) se completan cuando existan esos endpoints.
+- Las políticas `EmpresaAdministrador`, `EmpresaEmisor` y `EmpresaConsulta` están registradas en API y portal, pero solo se ejercitan con los endpoints de esas historias.
+
+Notas de implementación:
+
+- `EstadoSolicitud` no se creó: pertenece al modelo de US-01 y esta historia no lo usa.
+- La sesión por cookie es sin estado; el logout borra la cookie del navegador y no revoca el ticket en el servidor. La revocación server-side no está en el alcance del MVP de una sola instancia.
