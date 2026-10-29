@@ -505,11 +505,24 @@ Evidencia ejecutada:
 - Tests unitarios: `PasswordHasherTests`, `LoginIntentStoreTests`, `AutenticarEmpresaServiceTests`, `AutenticarAdminGlobalServiceTests`.
 - Tests de integración: `AuthEndpointsTests` (CP-01 a CP-07, CP-10 a CP-14, auditoría), `AdminBootstrapTests` (bootstrap idempotente e índice único) y `AuthorizationPolicyTests` (matriz de políticas por rol y por plano).
 
-Pendiente (depende de historias posteriores, no de US-04):
+### Criterios pendientes y su bloqueo
 
-- CP-08, CP-09 y CP-15 requieren endpoints de negocio de US-02, US-05 y US-09; no son verificables todavía.
-- Los criterios de aislamiento multiempresa (consultas filtradas por `ContribuyenteId`, acceso cruzado `404`) se completan cuando existan esos endpoints.
-- Las políticas `EmpresaAdministrador`, `EmpresaEmisor` y `EmpresaConsulta` están registradas y cubiertas por `AuthorizationPolicyTests`; se ejercitan de punta a punta cuando existan los endpoints de esas historias.
+Los 10 ítems sin marcar no son deuda de US-04: dependen de endpoints o entidades que todavía no existen.
+
+| Criterio o tarea pendiente | Bloqueado por |
+| --- | --- |
+| `Consulta` no puede emitir ni administrar API keys (CP-15) | US-02 y US-05 |
+| `Soporte` ve solicitudes y reenvía invitaciones, pero no aprueba ni rechaza | US-27 |
+| Las consultas de negocio se filtran por el `ContribuyenteId` de la sesión | US-05 y US-09 |
+| Un usuario no ve datos de otro contribuyente cambiando un id | US-05 y US-09 |
+| El acceso cruzado devuelve `404` o `403` sin revelar existencia (CP-08, CP-09) | US-05 y US-09 (el `403` entre planos ya está cubierto) |
+| Crear `EstadoSolicitud` en Domain | US-01 |
+| Filtros de tenant en repositorios de negocio | US-05 y US-09 |
+| Tests de aislamiento multiempresa | US-05 y US-09 |
+| DoD: aislamiento cubierto por tests de integración | US-05 y US-09 |
+| DoD: no acceder a datos de otra empresa manipulando ids | US-05 y US-09 |
+
+Por eso la historia permanece en `docs/historias-usuario/` con estado **Base implementada**. Se mueve a `docs/historias-usuario-terminadas/` recién cuando esos criterios se cierren en sus historias de origen.
 
 Notas de implementación:
 
