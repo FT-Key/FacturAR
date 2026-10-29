@@ -24,6 +24,42 @@ public sealed class CaeTests
         Assert.False(CaeValidator.IsValid("1234567890123A"));
     }
 
+    [Theory]
+    [InlineData("12345678901234", "12345678901234")]
+    [InlineData(" 12345678901234 ", "12345678901234")]
+    [InlineData("12-3456-78901234", "12345678901234")]
+    [InlineData("12.3456.78901234", "12345678901234")]
+    [InlineData("12 3456 78901234", "12345678901234")]
+    [InlineData("1234567890123-", "1234567890123")]
+    public void Normalize_QuitaEspaciosYSeparadores(string entrada, string esperado)
+    {
+        Assert.Equal(esperado, CaeValidator.Normalize(entrada));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Normalize_DevuelveVacioSiNoHayDigitos(string? entrada)
+    {
+        Assert.Equal(string.Empty, CaeValidator.Normalize(entrada));
+    }
+
+    [Fact]
+    public void Normalize_NoEliminaLetras()
+    {
+        Assert.Equal("1234567890123A", CaeValidator.Normalize("1234567890123A"));
+        Assert.False(CaeValidator.IsValid(CaeValidator.Normalize("1234567890123A")));
+    }
+
+    [Fact]
+    public void CaeNormalizadoEsValido()
+    {
+        var normalizado = CaeValidator.Normalize("12-3456-78901234");
+
+        Assert.True(CaeValidator.IsValid(normalizado));
+    }
+
     [Fact]
     public void CalcularVencimiento_SumaDiezDias()
     {
