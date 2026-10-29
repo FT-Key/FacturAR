@@ -515,3 +515,4 @@ Notas de implementación:
 
 - `EstadoSolicitud` no se creó: pertenece al modelo de US-01 y esta historia no lo usa.
 - La sesión por cookie es sin estado; el logout borra la cookie del navegador y no revoca el ticket en el servidor. La revocación server-side no está en el alcance del MVP de una sola instancia.
+- `MongoSerialization.Configure()` registra `Guid` como `Standard` y **debe ejecutarse antes de crear cualquier `MongoClient`**. Es idempotente y thread-safe porque cada host de pruebas lo invoca al arrancar; crear un cliente antes de arrancar el host fija `GuidRepresentation.Unspecified` y rompe la serialización.

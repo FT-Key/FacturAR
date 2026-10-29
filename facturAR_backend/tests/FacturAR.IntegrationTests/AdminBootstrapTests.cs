@@ -1,6 +1,7 @@
 using FacturAR.Domain.Entities;
 using FacturAR.Domain.Enums;
 using FacturAR.Infrastructure.Mongo;
+using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 
 namespace FacturAR.IntegrationTests;
@@ -15,19 +16,15 @@ public sealed class AdminBootstrapTests
     public async Task Bootstrap_CreaElSuperAdminUnaSolaVezYNoPisaLaCuenta()
     {
         var databaseName = $"facturar_it_{Guid.NewGuid():N}"[..28];
-        var mongoClient = new MongoClient(MongoTestSettings.GetConnectionStringWithTimeout());
-        var administradores = mongoClient
-            .GetDatabase(databaseName)
-            .GetCollection<AdministradorFacturar>(MongoCollections.Administradores);
+
+        using var primera = CrearFactory(databaseName);
+        using var primerCliente = primera.CreateClient();
+        var mongoClient = primera.Services.GetRequiredService<IMongoClient>();
+        var administradores = Administradores(mongoClient, databaseName);
 
         try
         {
-            using (var primera = CrearFactory(databaseName))
-            {
-                using var client = primera.CreateClient();
-                var creados = await administradores.CountDocumentsAsync(_ => true);
-                Assert.Equal(1, creados);
-            }
+            Assert.Equal(1, await administradores.CountDocumentsAsync(_ => true));
 
             var inicial = await administradores.Find(_ => true).SingleAsync();
             Assert.Equal(BootstrapEmail, inicial.Email);
@@ -38,9 +35,8 @@ public sealed class AdminBootstrapTests
 
             using (var segunda = CrearFactory(databaseName))
             {
-                using var client = segunda.CreateClient();
-                var restantes = await administradores.CountDocumentsAsync(_ => true);
-                Assert.Equal(1, restantes);
+                using var segundoCliente = segunda.CreateClient();
+                Assert.Equal(1, await administradores.CountDocumentsAsync(_ => true));
             }
 
             var final = await administradores.Find(_ => true).SingleAsync();
@@ -67,23 +63,21 @@ public sealed class AdminBootstrapTests
     public async Task Bootstrap_SinEmailConfigurado_NoCreaNingunAdministrador()
     {
         var databaseName = $"facturar_it_{Guid.NewGuid():N}"[..28];
-        var mongoClient = new MongoClient(MongoTestSettings.GetConnectionStringWithTimeout());
-        var administradores = mongoClient
-            .GetDatabase(databaseName)
-            .GetCollection<AdministradorFacturar>(MongoCollections.Administradores);
+
+        using var factory = new ConfiguredWebApplicationFactory(new Dictionary<string, string>
+        {
+            ["Mongo:ConnectionString"] = MongoTestSettings.GetConnectionStringWithTimeout(),
+            ["Mongo:DatabaseName"] = databaseName,
+            ["Mongo:InitializeIndexes"] = "true",
+            ["BootstrapAdmin:Email"] = string.Empty
+        });
+
+        using var client = factory.CreateClient();
+        var mongoClient = factory.Services.GetRequiredService<IMongoClient>();
+        var administradores = Administradores(mongoClient, databaseName);
 
         try
         {
-            using var factory = new ConfiguredWebApplicationFactory(new Dictionary<string, string>
-            {
-                ["Mongo:ConnectionString"] = MongoTestSettings.GetConnectionStringWithTimeout(),
-                ["Mongo:DatabaseName"] = databaseName,
-                ["Mongo:InitializeIndexes"] = "true",
-                ["BootstrapAdmin:Email"] = string.Empty
-            });
-
-            using var client = factory.CreateClient();
-
             Assert.Equal(0, await administradores.CountDocumentsAsync(_ => true));
         }
         finally
@@ -102,4 +96,11 @@ public sealed class AdminBootstrapTests
             ["BootstrapAdmin:Nombre"] = BootstrapNombre,
             ["BootstrapAdmin:Password"] = BootstrapPassword
         });
+
+    private static IMongoCollection<AdministradorFacturar> Administradores(
+        IMongoClient mongoClient,
+        string databaseName)
+        => mongoClient
+            .GetDatabase(databaseName)
+            .GetCollection<AdministradorFacturar>(MongoCollections.Administradores);
 }
