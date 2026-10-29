@@ -41,7 +41,7 @@ FacturAR es un TFI desarrollado por 4-5 personas en 3 semanas. Los requisitos no
 - MongoDB como única base de datos.
 - Docker para desarrollo y producción.
 - GitHub Actions y Docker Hub con workflows separados de CI y CD.
-- Sin Kubernetes, RabbitMQ ni SQL Server en el alcance obligatorio.
+- Sin Kubernetes, RabbitMQ ni SQL Server en el alcance obligatorio. La decisión de plataforma está en [`docs/plan-implementacion.md`](plan-implementacion.md) §2: el proyecto es académico, lo consumen 1 a 3 aplicaciones externas y Azure App Service cubre el auto-restart, el health check, el escalado y el rollback sin costo de orquestación.
 - Sin proveedor de email obligatorio en desarrollo; SMTP es opcional en producción.
 
 ## Métricas de aceptación del TFI

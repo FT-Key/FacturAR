@@ -2,6 +2,7 @@ using FacturAR.Application.Abstractions;
 using FacturAR.Application.Comprobantes;
 using FacturAR.Contracts.Comunes;
 using FacturAR.Contracts.Comprobantes;
+using FacturAR.Contracts.Sistema;
 using FacturAR.Domain.Validation;
 using FacturAR.Infrastructure.Mongo;
 using FacturAR.Infrastructure.Repositories;
@@ -18,9 +19,14 @@ var mongoOptions = builder.Configuration
     .GetSection(MongoOptions.SectionName)
     .Get<MongoOptions>() ?? new MongoOptions();
 
+var buildInformation = new BuildInformation(
+    builder.Configuration[BuildInformation.VersionKey] ?? BuildInformation.DefaultVersion,
+    builder.Configuration[BuildInformation.CommitKey] ?? BuildInformation.UnknownCommit);
+
 MongoSerialization.Configure();
 
 builder.Services.AddSingleton(mongoOptions);
+builder.Services.AddSingleton(buildInformation);
 builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient(mongoOptions.ConnectionString));
 builder.Services.AddSingleton(sp =>
     sp.GetRequiredService<IMongoClient>().GetDatabase(mongoOptions.DatabaseName));
@@ -53,15 +59,19 @@ if (mongoOptions.InitializeIndexes)
     }
 }
 
-app.MapGet("/", () => Results.Ok(new
+app.MapGet("/", (BuildInformation build) => Results.Ok(new
 {
     servicio = "FacturAR API",
-    version = "0.1.0",
+    version = build.Version,
+    commit = build.Commit,
     documentacion = "/openapi/v1.json"
 }))
 .WithTags("Sistema");
 
-app.MapGet("/health", async (IMongoDatabase database, CancellationToken cancellationToken) =>
+app.MapGet("/health", async (
+    IMongoDatabase database,
+    BuildInformation build,
+    CancellationToken cancellationToken) =>
 {
     try
     {
@@ -69,38 +79,51 @@ app.MapGet("/health", async (IMongoDatabase database, CancellationToken cancella
             new BsonDocument("ping", 1),
             cancellationToken: cancellationToken);
 
-        return Results.Ok(new
-        {
-            status = "ok",
-            database = "ok",
-            timestamp = DateTime.UtcNow
-        });
+        return Results.Ok(new EstadoSaludResponse(
+            "ok",
+            "ok",
+            DateTime.UtcNow,
+            build.Version,
+            build.Commit));
     }
     catch
     {
-        return Results.Json(new
-        {
-            status = "degraded",
-            database = "unavailable",
-            timestamp = DateTime.UtcNow
-        }, statusCode: StatusCodes.Status503ServiceUnavailable);
+        return Results.Json(
+            new EstadoSaludResponse(
+                "degraded",
+                "unavailable",
+                DateTime.UtcNow,
+                build.Version,
+                build.Commit),
+            statusCode: StatusCodes.Status503ServiceUnavailable);
     }
 })
-.WithTags("Sistema");
+.WithTags("Sistema")
+.Produces<EstadoSaludResponse>()
+.Produces<EstadoSaludResponse>(StatusCodes.Status503ServiceUnavailable);
+
+app.MapGet("/health/live", (BuildInformation build) => Results.Ok(new EstadoVivoResponse(
+    "ok",
+    build.Version,
+    build.Commit)))
+.WithTags("Sistema")
+.Produces<EstadoVivoResponse>();
 
 app.MapGet("/v1/comprobantes/verificar/{cae}", async (
     string cae,
     VerificarComprobanteService service,
     CancellationToken cancellationToken) =>
 {
-    if (!CaeValidator.IsValid(cae))
+    var caeNormalizado = CaeValidator.Normalize(cae);
+
+    if (!CaeValidator.IsValid(caeNormalizado))
     {
         return Results.BadRequest(new ErrorResponse(
             "CAE_INVALIDO",
             "El CAE debe contener exactamente 14 dígitos."));
     }
 
-    var comprobante = await service.VerificarAsync(cae, cancellationToken);
+    var comprobante = await service.VerificarAsync(caeNormalizado, cancellationToken);
     return comprobante is null
         ? Results.NotFound(new ErrorResponse(
             "COMPROBANTE_NO_ENCONTRADO",

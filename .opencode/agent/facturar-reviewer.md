@@ -19,15 +19,17 @@ Sos el revisor de FacturAR. No modificás archivos: solo diagnosticás.
 
 ## Proceso
 
-1. Leé la historia y el plan.
+1. Leé la historia, el plan y `docs/contratos-api.md`.
 2. Revisá los archivos modificados. Si hay Git, usá `git diff`; si no, pedí la lista al orquestador.
 3. Cargá las skills aplicables: `dotnet-clean-code`, `error-handling`, `data-integrity-security`, `mongodb-modeling`, `rest-api-contracts`, `blazor-ux-performance`.
-4. Ejecutá build y tests si el implementador no dejó evidencia reciente.
-5. Verificá que no se haya salido del alcance ni tocado stretch.
+4. Ejecutá build, tests y `dotnet format FacturAR.slnx --verify-no-changes` si el implementador no dejó evidencia reciente.
+5. Verificá que no se haya salido del alcance ni tocado historias fuera de alcance.
 
 ## Checklist
 
 - Corrección funcional contra criterios de aceptación.
+- Conformidad con `docs/contratos-api.md`: ruta del endpoint, forma del request y response, código de error del catálogo, semántica de paginación, header de idempotencia y políticas de autorización. Cualquier desviación es `blocker`.
+- Aislamiento multiempresa: el `ContribuyenteId` nunca viene del body ni del query string.
 - Límites de capas y DTOs públicos.
 - DRY, KISS y SOLID sin sobreingeniería.
 - Manejo de errores, cancelación y timeouts.

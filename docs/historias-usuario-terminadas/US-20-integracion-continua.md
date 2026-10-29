@@ -5,7 +5,7 @@
 **Estimación:** 1 día  
 **Requisito:** RF-21 / RNF-13  
 **Depende de:** US-19  
-**Habilita:** US-21, US-26, US-31  
+**Habilita:** US-21, US-31  
 **Estado:** Completada
 
 ## Historia
@@ -18,7 +18,7 @@ La integración continua vive en `.github/workflows/ci.yml` y no publica ni desp
 
 La CI se ejecuta en pushes y pull requests a `main` y `development`, levanta MongoDB 8 como servicio y ejecuta los tests unitarios y los tests `MongoFact`.
 
-Para que las reglas de GitHub funcionen, la rama default debe ser `development` y los rulesets deben exigir los checks de CI. El paso a paso está en [`docs/despliegue-azure.md`](../../despliegue-azure.md), secciones 4.1 a 4.3.
+Para que las reglas de GitHub funcionen, la rama default debe ser `development` y los rulesets deben exigir los checks de CI. El paso a paso está en [`docs/despliegue-azure.md`](../despliegue-azure.md), secciones 4.1 a 4.3.
 
 ## Criterios de aceptación
 
@@ -122,6 +122,6 @@ Scenario: CI falla
 ## Notas de alcance
 
 - Esta historia termina en CI. La publicación de imágenes y el despliegue en Azure son US-31.
-- No implementa Kubernetes; eso es stretch US-26.
+- No implementa Kubernetes; la decisión de plataforma está en [`docs/plan-implementacion.md`](../plan-implementacion.md) §2 (Azure App Service).
 - No crea ambientes de staging.
 - Los tags de release quedan fuera de esta historia.

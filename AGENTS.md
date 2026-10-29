@@ -2,7 +2,7 @@
 
 ## Contexto
 
-FacturAR es un simulador de facturación electrónica argentina con onboarding de empresas. El alcance obligatorio está en `docs/historias-usuario/` (US-01 a US-21 y US-27 a US-31); US-19, US-20 y US-31 están completadas y archivadas en `docs/historias-usuario-terminadas/`. Las US-22 a US-26 son stretch y no se implementan sin pedido explícito.
+FacturAR es un simulador de facturación electrónica argentina con onboarding de empresas. El alcance obligatorio está en `docs/historias-usuario/` (US-01 a US-21 y US-27 a US-30) y se implementa en un único sprint; US-19, US-20 y US-31 están completadas y archivadas en `docs/historias-usuario-terminadas/`. Las US-22 a US-25 quedan fuera del alcance del proyecto, están archivadas en `docs/historias-usuario-fuera-de-alcance/` y no se implementan sin pedido explícito.
 
 Stack: .NET 10, ASP.NET Core Minimal API, Blazor Web App (Server) + Razor Pages, MongoDB 8+ con `MongoDB.Driver`, xUnit, Docker Compose y GitHub Actions.
 
@@ -22,7 +22,11 @@ facturAR_frontend/src/FacturAR.Web/  Blazor Server + Razor Pages. Nunca accede a
 docs/
   historias-usuario/
   historias-usuario-terminadas/
+  historias-usuario-fuera-de-alcance/
   postman/
+  contratos-api.md
+  plan-implementacion.md
+  despliegue-azure.md
   proceso-alta-empresa.md
   manual-integracion.md
   requisitos-funcionales.md
@@ -35,6 +39,7 @@ docs/
 ```powershell
 dotnet build FacturAR.slnx -c Release
 dotnet test FacturAR.slnx -c Release --no-build --logger "console;verbosity=minimal"
+dotnet format FacturAR.slnx --verify-no-changes
 docker compose --env-file .env up --build -d
 docker compose ps
 ```
@@ -44,12 +49,14 @@ docker compose ps
 - API Docker: `http://localhost:8080`
 - Portal Docker: `http://localhost:8081`
 - OpenAPI: `/openapi/v1.json` en Development
-- Health: `/health` (503 si MongoDB no responde)
+- Health: `/health` (503 si MongoDB no responde) y `/health/live` (siempre 200, no consulta MongoDB)
+- `/` y `/health` informan `version` y `commit` de la build
 
 Los tests con `MongoFact` se omiten si no existe `MONGO_CONNECTION_STRING` o `Mongo__ConnectionString`. Cuando corren, usan una base temporal corta (`facturar_it_*`, máximo 38 bytes) y la eliminan al final.
 
 ## Reglas de código
 
+- `docs/contratos-api.md` es el contrato transversal normativo: catálogo de errores, roles, autenticación, idempotencia, paginación, emisión y endpoints. Si una historia y ese documento se contradicen, manda el contrato.
 - No agregar comentarios al código salvo que el usuario lo pida.
 - Mantener límites de capas: Domain no conoce Infrastructure; Application no conoce el driver de Mongo; Web no conoce Mongo.
 - DTOs públicos en `FacturAR.Contracts`. No exponer entidades ni campos internos.
@@ -64,6 +71,14 @@ Los tests con `MongoFact` se omiten si no existe `MONGO_CONNECTION_STRING` o `Mo
 - No agregar paquetes nuevos sin justificar la necesidad y verificar que no exista una alternativa en el stack.
 - Respetar el formato y los patrones existentes. Evitar sobreingeniería y abstracciones sin uso real.
 - Nunca imprimir, loguear ni commitear secretos, connection strings, tokens ni datos personales.
+
+## Despliegue
+
+- Plataforma objetivo: Azure App Service con contenedores de Docker Hub. **No se usa Kubernetes**; la decisión está en `docs/plan-implementacion.md` §2.
+- La CI valida build, formato y tests, y construye las imágenes sin publicarlas. La CD publica en Docker Hub y despliega en Azure solo si la CI del mismo commit fue exitosa.
+- El smoke test del CD compara el `commit` de `/health/live` con el SHA esperado: si no coinciden, el deploy falla.
+- El rollback automático está configurado en el job `rollback` del CD. El rollback manual se dispara con `workflow_dispatch` y `modo=rollback` + `image_tag=<sha>`.
+- El plan completo de despliegue está en `docs/despliegue-azure.md`.
 
 ## Historias de usuario
 

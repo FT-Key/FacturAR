@@ -1,11 +1,11 @@
 # US-23 — Webhooks de eventos
 
 **Épica:** Integraciones  
-**Prioridad:** Baja (stretch)  
+**Prioridad:** Fuera de alcance  
 **Estimación:** 2 días  
 **Requisito:** RF-20  
 **Depende de:** US-02, US-05, US-17  
-**Estado:** Stretch
+**Estado:** Fuera de alcance
 
 ## Historia
 

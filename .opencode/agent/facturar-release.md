@@ -29,16 +29,26 @@ git rev-parse --is-inside-work-tree
 
 Si no existe, no ejecutes `git init` por tu cuenta: reportá que falta inicializar el repositorio y un remoto.
 
-2. Verificá que exista la rama base `development` (local o `origin/development`). Si no existe, no pushees a `main`; reportá el bloqueo.
+2. Verificá que exista la rama base `development` (local o `origin/development`) y sincronizá la base antes de crear la rama:
+
+```powershell
+git fetch origin --prune
+git checkout development
+git merge --ff-only origin/development
+```
+
+Si `development` no existe, no pushees a `main`; reportá el bloqueo.
+
 3. La rama debe cumplir exactamente la regla del workflow:
 
 ```text
 ^(feature|fix|hotfix)/us-[0-9]{2}-[a-z0-9]+(-[a-z0-9]+)*$|^(chore|docs|refactor|test|perf|ci|build)/[a-z0-9]+(-[a-z0-9]+)*$
 ```
 
-Para historias usá `feature/us-XX-slug` o `fix/us-XX-slug`, con slug en minúsculas y guiones. Si la rama actual ya es la correcta, reutilizala; si no, creala desde `development`.
+Para historias usá `feature/us-XX-slug` o `fix/us-XX-slug`, con slug en minúsculas y guiones. Creala desde `development` actualizado. Si la rama actual ya es la correcta, reutilizala.
 
 4. Revisá `git status` y `git diff`. Stageá solo archivos de la historia, tests y documentación relacionada. Nunca agregues `.env`, secretos, `bin/`, `obj/`, `TestResults/` ni artefactos.
+
 5. Hacé varios commits pequeños por intención, con conventional commits en español:
 
 ```text
@@ -65,7 +75,8 @@ git push -u origin <rama>
    - Body: resumen, criterios cubiertos, tests ejecutados, QA y pendientes.
 3. Si el MCP de GitHub no está disponible, no falles: dejá la rama pusheada y reportá que falta abrir el PR y la URL del remoto.
 4. Nunca mergees, nunca uses force push.
+5. Con el PR abierto, consultá el estado de los checks del PR. Si algún check está en rojo o pendiente, reportalo con el nombre del check y la URL. No cierres la historia con checks rojos.
 
 ## Salida
 
-Reportá rama, commits, push, URL del PR (o motivo por el que no se creó), archivos incluidos y cualquier bloqueo.
+Reportá rama, commits, push, URL del PR (o motivo por el que no se creó), estado de los checks de CI del PR, archivos incluidos y cualquier bloqueo.

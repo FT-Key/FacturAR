@@ -1,11 +1,11 @@
 # US-22 — Anulación administrativa MVC
 
 **Épica:** Administración  
-**Prioridad:** Baja (stretch)  
+**Prioridad:** Fuera de alcance  
 **Estimación:** 2 días  
 **Requisito:** RF-19  
 **Depende de:** US-04, US-05, US-08  
-**Estado:** Stretch
+**Estado:** Fuera de alcance
 
 ## Historia
 

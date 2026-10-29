@@ -1,8 +1,119 @@
 # Manual de integración
 
+## Estado de la API
+
+> **Diseño objetivo del MVP.** Este manual describe el contrato que la API de FacturAR va a exponer. **Casi nada de eso existe todavía en el código**: las historias US-XX que lo habilitan están pendientes o en curso. Lo único que responde hoy es lo que figura en "Endpoints disponibles hoy".
+
+Qué describe este documento: cómo un tercero pide acceso, activa su cuenta, crea una API key, emite comprobantes, los consulta, usa idempotencia y verifica un comprobante por su CAE.
+
+- **Contrato normativo:** [`docs/contratos-api.md`](contratos-api.md) fija los códigos de error, los roles, la autenticación y el contrato de cada endpoint. Si el manual y el contrato se contradicen, manda el contrato.
+- **Estado real de cada historia:** [`docs/historias-usuario/README.md`](historias-usuario/README.md).
+
+### Endpoints disponibles hoy
+
+Base URL local: `http://localhost:5171`. En Docker: `http://localhost:8080`.
+
+| Método | Ruta | Qué hace |
+| --- | --- | --- |
+| `GET` | `/` | Nombre del servicio, versión y commit. |
+| `GET` | `/health` | Readiness: verifica MongoDB. `200` si responde, `503` si no. |
+| `GET` | `/health/live` | Liveness: no consulta MongoDB. Siempre `200`. |
+| `GET` | `/v1/comprobantes/verificar/{cae}` | Verificación pública de un comprobante por CAE. No requiere autenticación. |
+
+Todo lo demás que aparece en este manual está **especificado pero no implementado**: esas rutas responden `404` hasta que su historia se complete.
+
+### Endpoints del MVP y su estado
+
+| Método | Ruta | Autenticación | Estado |
+| --- | --- | --- | --- |
+| `GET` | `/` | — | disponible hoy |
+| `GET` | `/health` | — | disponible hoy |
+| `GET` | `/health/live` | — | disponible hoy |
+| `GET` | `/v1/comprobantes/verificar/{cae}` | ninguna | disponible hoy |
+| `POST` | `/v1/solicitudes-alta` | público, con rate limit | especificado, pendiente de implementar (US-01) |
+| `GET` | `/v1/admin/solicitudes` | cookie de consola global | especificado, pendiente de implementar (US-27) |
+| `POST` | `/v1/admin/solicitudes/{id}/aprobar` | cookie de consola global | especificado, pendiente de implementar (US-27) |
+| `POST` | `/v1/admin/solicitudes/{id}/rechazar` | cookie de consola global | especificado, pendiente de implementar (US-27) |
+| `POST` | `/v1/admin/solicitudes/{id}/reenviar-invitacion` | cookie de consola global | especificado, pendiente de implementar (US-27) |
+| `GET` | `/v1/invitaciones/{token}` | público, con rate limit | especificado, pendiente de implementar (US-28) |
+| `POST` | `/v1/invitaciones/{token}/aceptar` | público, con rate limit | especificado, pendiente de implementar (US-28) |
+| `GET` | `/v1/api-keys` | cookie de empresa | especificado, pendiente de implementar (US-02) |
+| `POST` | `/v1/api-keys` | cookie de empresa | especificado, pendiente de implementar (US-02) |
+| `DELETE` | `/v1/api-keys/{id}` | cookie de empresa | especificado, pendiente de implementar (US-02) |
+| `POST` | `/v1/api-keys/{id}/regenerar` | cookie de empresa | especificado, pendiente de implementar (US-02) |
+| `POST` | `/v1/comprobantes` | API key | especificado, pendiente de implementar (US-05) |
+| `GET` | `/v1/comprobantes` | API key | especificado, pendiente de implementar (US-09) |
+| `GET` | `/v1/comprobantes/{id}` | API key | especificado, pendiente de implementar (US-09) |
+| `GET` | `/v1/comprobantes/ultimo-autorizado` | API key | especificado, pendiente de implementar (US-09) |
+| `GET` | `/v1/comprobantes/{id}/pdf` | API key | especificado, pendiente de implementar (US-10) |
+
+La API key viaja en el header `X-Api-Key`. La sesión del portal usa cookies con esquemas separados: `cookies.contribuyente` para empresas y `cookies.admin` para la consola global. Ver `docs/contratos-api.md` §4.
+
+### Headers
+
+| Header | Dónde | Regla |
+| --- | --- | --- |
+| `X-Api-Key` | Endpoints de negocio | Obligatorio. Formato `^fak_[0-9a-f]{12}_[A-Za-z0-9_-]{43}$`. Si falta: `401 API_KEY_AUSENTE`. Si no existe, está revocada o no coincide el hash: `401 API_KEY_INVALIDA`. |
+| `Idempotency-Key` | `POST /v1/comprobantes` | Obligatorio. Máximo 128 caracteres. Alcance `(empresa, clave)`. La misma clave con otro payload: `409 IDEMPOTENCIA_CONFLICTO`. |
+
+### Códigos de error
+
+El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente puede hacer switch sobre los códigos: son parte del contrato público.
+
+| Código | HTTP | Cuándo |
+| --- | --- | --- |
+| `VALIDACION` | `400` | El cuerpo o un parámetro no cumple el contrato. Es el código genérico de validación. |
+| `CUIT_INVALIDO` | `400` | El CUIT no supera la validación de dígito verificador. |
+| `CAE_INVALIDO` | `400` | El CAE no tiene 14 dígitos válidos. |
+| `PASSWORD_DEBIL` | `400` | La contraseña no cumple la política de contraseñas. |
+| `EMISION_INVALIDA` | `400` | El comprobante a emitir no supera las reglas de negocio. |
+| `TIPO_NOTA_INCOMPATIBLE` | `400` | Una nota de crédito o débito apunta a un comprobante de otro tipo base. |
+| `IMPORTE_EXCEDIDO` | `400` | El importe de la nota supera el saldo ajustable del comprobante original. |
+| `API_KEY_AUSENTE` | `401` | No se envió el header `X-Api-Key`. |
+| `API_KEY_INVALIDA` | `401` | La API key no existe, está revocada o el hash no coincide. |
+| `CREDENCIALES_INVALIDAS` | `401` | Email o contraseña incorrectos, o la cuenta está inactiva. |
+| `SIN_PERMISOS` | `403` | El rol no alcanza para la operación. |
+| `CUENTA_INACTIVA` | `403` | El contribuyente o el usuario está desactivado. |
+| `EMPRESA_NO_ASOCIADA` | `403` | El usuario no tiene empresa activa asociada. |
+| `SOLICITUD_NO_ENCONTRADA` | `404` | No existe la solicitud. |
+| `INVITACION_NO_ENCONTRADA` | `404` | No existe la invitación. |
+| `COMPROBANTE_NO_ENCONTRADO` | `404` | No existe un comprobante con el CAE o el id indicado. |
+| `SOLICITUD_PENDIENTE` | `409` | Ya existe una solicitud en estado `Pendiente` para el mismo CUIT o email. |
+| `CUIT_YA_REGISTRADO` | `409` | Al aprobar, el CUIT de la solicitud ya pertenece a otro contribuyente. |
+| `SOLICITUD_YA_PROCESADA` | `409` | La solicitud ya fue aprobada o rechazada. |
+| `INVITACION_USADA` | `409` | El token de invitación ya fue aceptado. |
+| `IDEMPOTENCIA_CONFLICTO` | `409` | La misma `Idempotency-Key` llegó con un payload diferente. |
+| `COMPROBANTE_ANULADO` | `409` | El comprobante está anulado y no admite la operación. |
+| `PUNTO_VENTA_INACTIVO` | `409` | El punto de venta no está activo. |
+| `INVITACION_VENCIDA` | `410` | El token de invitación superó las 48 horas. |
+| `RATE_LIMIT` | `429` | Se superó el límite de peticiones del endpoint. |
+| `EMAIL_NO_ENVIADO` | `502` | Falló el envío del email. La operación de negocio no se revierte. |
+| `MONGO_NO_DISPONIBLE` | `503` | No hay conexión con MongoDB. |
+| `ERROR_INTERNO` | `500` | Falla inesperada. El detalle queda en el log, nunca en la respuesta. |
+
+### Qué historia implementa qué parte de este manual
+
+| Historia | Qué parte del manual describe | Estado |
+| --- | --- | --- |
+| US-01 | §1 Solicitar acceso: formulario público de alta | Pendiente |
+| US-02 | §3 Crear una API key | Pendiente |
+| US-03 | §4 Autenticar requests con API key | Pendiente |
+| US-04 | §2 Activar la cuenta: login de empresa y roles | Pendiente |
+| US-05 | §5 Emitir una factura | Pendiente |
+| US-06 | §6 Idempotencia | Pendiente |
+| US-07 | Numeración correlativa del comprobante (reglas de §5) | Pendiente |
+| US-09 | §7 Consultar comprobantes | Pendiente |
+| US-10 | Descarga del PDF (`GET /v1/comprobantes/{id}/pdf`) | Pendiente |
+| US-11 | §8 Verificar un comprobante por CAE | Base implementada |
+| US-27 | §1 Revisión y aprobación del administrador global | Pendiente |
+| US-28 | §2 Activar la cuenta: invitación por token | Pendiente |
+| US-29 | Emails de onboarding de §1 y §2 | Pendiente |
+| US-21 | Veracidad documental de este manual | Parcial |
+| US-30 | Publicación del manual online en el portal | Pendiente |
+
 ## Qué es FacturAR
 
-FacturAR es un simulador de facturación electrónica argentina. Permite solicitar el alta de una empresa, activar una cuenta, crear API keys, emitir comprobantes con CAE simulado y verificar un comprobante por su CAE.
+FacturAR es un simulador de facturación electrónica argentina. El diseño del MVP permite solicitar el alta de una empresa, activar una cuenta, crear API keys, emitir comprobantes con CAE simulado y verificar un comprobante por su CAE. De ese recorrido, hoy solo la verificación por CAE está implementada: ver [Estado de la API](#estado-de-la-api).
 
 > Importante: el CAE es simulado y los comprobantes no tienen validez fiscal. No se realizan llamadas reales a AFIP/ARCA.
 
@@ -15,9 +126,11 @@ FacturAR es un simulador de facturación electrónica argentina. Permite solicit
 
 OpenAPI en Development: `GET /openapi/v1.json`.
 
-Salud: `GET /health`. Devuelve `200` si la API y MongoDB responden; `503` si MongoDB no está disponible.
+Salud: `GET /health` (readiness, verifica MongoDB) y `GET /health/live` (liveness, no consulta MongoDB). El health check de Azure App Service apunta a `/health/live`.
 
 ## 1. Solicitar acceso
+
+> **Diseño objetivo — US-01, US-27, US-29.** El formulario público de alta, la consola del administrador global y los emails de onboarding **todavía no están implementados**. Las rutas `POST /v1/solicitudes-alta` y `/v1/admin/solicitudes/**` responden `404` hasta que US-01, US-27 y US-29 se completen.
 
 1. Ingresar al portal y abrir la solicitud de alta de empresa.
 2. Completar razón social, CUIT, condición frente al IVA, datos del solicitante, email, teléfono y domicilio.
@@ -28,7 +141,11 @@ La solicitud queda pendiente de revisión. No se crea la empresa ni la cuenta en
 
 Un administrador global de FacturAR revisa la información, puede corregirla y aprueba o rechaza la solicitud. Si se aprueba, se crea la empresa, el punto de venta `1 Casa Central` y una invitación para el email del solicitante.
 
+Errores del flujo: `400 VALIDACION` y `400 CUIT_INVALIDO` por datos inválidos, `409 SOLICITUD_PENDIENTE` si ya hay una solicitud pendiente con el mismo CUIT o email, `429 RATE_LIMIT` por exceso de peticiones y `404 SOLICITUD_NO_ENCONTRADA` / `409 SOLICITUD_YA_PROCESADA` / `409 CUIT_YA_REGISTRADO` en la consola global.
+
 ## 2. Activar la cuenta
+
+> **Diseño objetivo — US-28, US-04, US-29.** La invitación, la activación y el login de empresa **todavía no están implementados**. `GET /v1/invitaciones/{token}` y `POST /v1/invitaciones/{token}/aceptar` responden `404` hasta que US-28 se complete.
 
 1. Abrir el link del email de invitación.
 2. Verificar la razón social y el email.
@@ -40,12 +157,16 @@ La invitación vence a las 48 horas, es de un solo uso y solo es válida para el
 
 Política de contraseña:
 
-- Mínimo 10 caracteres.
+- Mínimo 10 caracteres y máximo 128.
 - Al menos una letra y un número.
-- No se aceptan contraseñas triviales o iguales al email.
+- No se aceptan contraseñas triviales ni predecibles.
 - La contraseña nunca se devuelve por la API.
 
+Errores del flujo: `404 INVITACION_NO_ENCONTRADA`, `410 INVITACION_VENCIDA`, `409 INVITACION_USADA`, `400 PASSWORD_DEBIL` y `400 VALIDACION` si la confirmación no coincide.
+
 ## 3. Crear una API key
+
+> **Diseño objetivo — US-02 y US-14.** La gestión de API keys **todavía no está implementada**. `GET|POST /v1/api-keys`, `DELETE /v1/api-keys/{id}` y `POST /v1/api-keys/{id}/regenerar` responden `404` hasta que US-02 se complete.
 
 1. Iniciar sesión en el portal como administrador de la empresa.
 2. Abrir la sección API keys.
@@ -57,29 +178,35 @@ El valor completo se muestra una sola vez. Después solo se ve el prefijo. Si se
 Formato de referencia:
 
 ```text
-fak_7f3a9c2e_<secreto>
+fak_9f3a1c7b2e40_<secreto>
 ```
 
+La expresión regular de validación es `^fak_[0-9a-f]{12}_[A-Za-z0-9_-]{43}$`.
+
 - `fak` identifica una key de FacturAR.
-- `7f3a9c2e` es el prefijo visible.
-- `<secreto>` es la parte aleatoria que no se puede recuperar.
+- `9f3a1c7b2e40` son los 12 caracteres hexadecimales del prefijo visible.
+- `<secreto>` son los 43 caracteres base64url de la parte aleatoria, que no se puede recuperar.
+
+En la base se guarda el prefijo y el hash SHA-256 del valor completo, nunca el valor completo.
 
 La key pertenece a una única empresa. No se comparte entre empresas ni se envía por email.
 
 ## 4. Autenticar requests
+
+> **Diseño objetivo — US-03.** La autenticación por API key **todavía no está implementada**. Sin ella, los endpoints de negocio responden `404`.
 
 Enviar la API key en el header `X-Api-Key`:
 
 ```http
 GET /v1/comprobantes/9 HTTP/1.1
 Host: localhost:5171
-X-Api-Key: fak_7f3a9c2e_<secreto>
+X-Api-Key: fak_9f3a1c7b2e40_<secreto>
 Accept: application/json
 ```
 
 Reglas:
 
-- Sin key: `401 API_KEY_REQUERIDA`.
+- Sin key: `401 API_KEY_AUSENTE`.
 - Key inválida o revocada: `401 API_KEY_INVALIDA`.
 - La key resuelve la empresa; nunca se envía `contribuyenteId` en el body.
 - La verificación pública por CAE no requiere API key.
@@ -88,12 +215,12 @@ La API actualiza `UltimoUso` en cada autenticación exitosa.
 
 ## 5. Emitir una factura
 
-> Este contrato se habilita con US-05. Hasta que la emisión esté implementada, el endpoint responde `404`.
+> **Diseño objetivo — US-05 y US-07.** La emisión **todavía no está implementada**. `POST /v1/comprobantes` responde `404` hasta que US-05 se complete.
 
 ```http
 POST /v1/comprobantes HTTP/1.1
 Host: localhost:5171
-X-Api-Key: fak_7f3a9c2e_<secreto>
+X-Api-Key: fak_9f3a1c7b2e40_<secreto>
 Idempotency-Key: pedido-2026-0001
 Content-Type: application/json
 ```
@@ -131,8 +258,8 @@ Respuesta esperada `201`:
   "cae": "12345678901234",
   "caeVencimiento": "2026-11-04T00:00:00Z",
   "importeNeto": 10000,
-  "importeIva": 2100,
-  "importeTotal": 12100,
+  "importeIva": 0,
+  "importeTotal": 10000,
   "moneda": "ARS",
   "estado": "Emitido"
 }
@@ -155,15 +282,19 @@ Códigos de tipo de comprobante:
 Reglas de importes:
 
 - `subtotal = cantidad × precioUnitario`.
-- `importeIva = subtotal × alicuotaIva / 100`.
-- `importeTotal = importeNeto + importeIva`.
-- En Factura A el IVA se discrimina.
-- En Factura B el IVA se incluye y no se discrimina.
-- En Factura C no se discrimina IVA.
+- En Factura A el IVA se discrimina: `importeIva = subtotal × alicuotaIva / 100` y `importeTotal = importeNeto + importeIva`.
+- En Factura B el IVA se incluye y no se discrimina: `importeIva = 0` y `importeTotal = importeNeto`.
+- En Factura C no se discrimina IVA: `importeIva = 0` y `importeTotal = importeNeto`.
+- Alícuotas admitidas: `0`, `5`, `10,5`, `21`, `27`.
+- El cálculo es con `decimal` y se redondea a 2 decimales.
 
-La emisión asigna número y CAE dentro de una transacción. El CAE tiene 14 dígitos y vence a los 10 días.
+La emisión asigna número y CAE dentro de una transacción. El número es correlativo por empresa, punto de venta y tipo. El CAE tiene 14 dígitos y vence a los 10 días.
+
+Errores del flujo: `400 VALIDACION`, `400 EMISION_INVALIDA`, `400 CUIT_INVALIDO`, `409 PUNTO_VENTA_INACTIVO` y `404 COMPROBANTE_NO_ENCONTRADO` si el punto de venta no existe o es de otra empresa.
 
 ## 6. Idempotencia
+
+> **Diseño objetivo — US-06.** La idempotencia **todavía no está implementada**: viene con el endpoint de emisión de US-05.
 
 Enviar un header `Idempotency-Key` único por operación:
 
@@ -171,17 +302,19 @@ Enviar un header `Idempotency-Key` único por operación:
 Idempotency-Key: pedido-2026-0001
 ```
 
-Si el mismo request se repite con la misma key, la API devuelve el comprobante original sin volver a numerar ni generar un CAE nuevo. La clave es única por empresa.
+El header es obligatorio en `POST /v1/comprobantes` y admite hasta 128 caracteres. La clave es única por empresa: la misma clave en otra empresa es una operación distinta.
+
+Si el mismo request se repite con la misma key, la API devuelve el comprobante original sin volver a numerar ni generar un CAE nuevo. Si la misma clave llega con otro payload, responde `409 IDEMPOTENCIA_CONFLICTO`.
 
 Usar una key distinta para cada operación real. No reutilizar la key de un pedido exitoso para otro pedido.
 
 ## 7. Consultar comprobantes
 
-> Este contrato se habilita con US-09.
+> **Diseño objetivo — US-09.** Las consultas **todavía no están implementadas**. `GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` y `GET /v1/comprobantes/ultimo-autorizado` responden `404` hasta que US-09 se complete.
 
 ```http
 GET /v1/comprobantes?desde=2026-10-01&hasta=2026-10-31&page=1&pageSize=20
-X-Api-Key: fak_7f3a9c2e_<secreto>
+X-Api-Key: fak_9f3a1c7b2e40_<secreto>
 ```
 
 La respuesta incluye los comprobantes de la empresa autenticada, con paginación. Nunca se pueden consultar comprobantes de otra empresa.
@@ -189,11 +322,13 @@ La respuesta incluye los comprobantes de la empresa autenticada, con paginación
 Último número autorizado:
 
 ```http
-GET /v1/comprobantes/ultimo-autorizado?puntoVenta=1&tipoComprobante=11
-X-Api-Key: fak_7f3a9c2e_<secreto>
+GET /v1/comprobantes/ultimo-autorizado?tipo=11&puntoVenta=1
+X-Api-Key: fak_9f3a1c7b2e40_<secreto>
 ```
 
 ## 8. Verificar un comprobante
+
+> **Disponible hoy — US-11 (base implementada).** Este es el único endpoint de negocio que responde: no requiere API key.
 
 La verificación es pública y no requiere API key:
 
@@ -231,11 +366,13 @@ La respuesta no expone datos internos, secretos ni API keys.
 
 ## 9. Ejemplos
 
+> **Diseño objetivo — US-05.** Los ejemplos de emisión funcionan cuando exista `POST /v1/comprobantes`. Hoy no hay forma de emitir una factura desde la API.
+
 ### curl
 
 ```bash
 curl -X POST "http://localhost:5171/v1/comprobantes" \
-  -H "X-Api-Key: fak_7f3a9c2e_<secreto>" \
+  -H "X-Api-Key: fak_9f3a1c7b2e40_<secreto>" \
   -H "Idempotency-Key: pedido-2026-0001" \
   -H "Content-Type: application/json" \
   -d '{
@@ -336,29 +473,17 @@ Formato general:
 ```json
 {
   "codigo": "VALIDACION",
-  "mensaje": "El CUIT no es válido.",
-  "detalles": {
-    "cuit": ["Debe tener 11 dígitos y dígito verificador válido."]
-  }
+  "mensaje": "El CUIT no es válido."
 }
 ```
 
-| Código | HTTP | Significado |
-| --- | --- | --- |
-| `API_KEY_REQUERIDA` | `401` | Falta el header `X-Api-Key`. |
-| `API_KEY_INVALIDA` | `401` | La key no existe, está revocada o tiene formato inválido. |
-| `CREDENCIALES_INVALIDAS` | `401` | Email o contraseña incorrectos. |
-| `NO_AUTORIZADO` | `401` | No hay sesión de portal válida. |
-| `SIN_PERMISO` | `403` | El rol no permite la acción. |
-| `VALIDACION` | `400` | Datos inválidos. |
-| `PASSWORD_DEBIL` | `400` | La contraseña no cumple la política. |
-| `NO_ENCONTRADO` | `404` | El recurso no existe o no pertenece a la empresa. |
-| `INVITACION_VENCIDA` | `410` | El token de invitación expiró. |
-| `CONFLICTO` | `409` | Duplicado, estado incompatible o idempotencia en conflicto. |
-| `SOLICITUD_PENDIENTE` | `409` | Ya existe una solicitud pendiente para el CUIT o email. |
-| `INVITACION_USADA` | `409` | El token de invitación ya fue utilizado. |
-| `RATE_LIMIT` | `429` | Demasiados intentos. |
-| `ERROR_INTERNO` | `500` | Error inesperado. |
+El cuerpo es el DTO `ErrorResponse` con los campos `codigo` y `mensaje`. No hay un campo `detalles`: los errores de validación no enumeran los campos que fallaron.
+
+El catálogo cerrado de códigos está en [Estado de la API](#estado-de-la-api) y es el mismo de `docs/contratos-api.md` §2.1. Reglas generales:
+
+- El `mensaje` es para humanos y puede cambiar sin romper clientes.
+- El `codigo` no cambia.
+- Nunca se devuelve un `500` por datos inválidos del cliente: es un `400` con código específico.
 
 ## 11. Seguridad
 
@@ -373,20 +498,23 @@ Formato general:
 
 ## 12. Preguntas frecuentes
 
-**¿Puedo registrarme solo con el CUIT?**  
+**¿Qué puedo consumir hoy?**
+Solo la verificación pública por CAE (`GET /v1/comprobantes/verificar/{cae}`) y los endpoints de salud. El resto del contrato está especificado en `docs/contratos-api.md` y pendiente de implementación.
+
+**¿Puedo registrarme solo con el CUIT?**
 No. El CUIT es público. La cuenta se activa con una invitación enviada al email del solicitante y aprobada por un administrador global.
 
-**¿Qué pasa si mi invitación vence?**  
+**¿Qué pasa si mi invitación vence?**
 Solicitar el reenvío al administrador global. La invitación anterior se revoca y se genera una nueva.
 
-**¿Puedo recuperar una API key?**  
+**¿Puedo recuperar una API key?**
 No. Solo se muestra una vez. Si se pierde, se regenera o se crea otra.
 
-**¿La API key sirve para varias empresas?**  
+**¿La API key sirve para varias empresas?**
 No. Cada key pertenece a una única empresa.
 
-**¿Puedo usar la API desde el navegador?**  
+**¿Puedo usar la API desde el navegador?**
 No se recomienda. La API key quedaría expuesta. Usar un backend propio.
 
-**¿El CAE es real?**  
+**¿El CAE es real?**
 No. Es un CAE simulado de 14 dígitos con vencimiento a 10 días. No tiene validez fiscal.

@@ -1,11 +1,11 @@
 # US-25 — gRPC o GraphQL
 
 **Épica:** Interoperabilidad  
-**Prioridad:** Baja (stretch)  
+**Prioridad:** Fuera de alcance  
 **Estimación:** 3 días  
 **Requisito:** RNF-15  
 **Depende de:** US-05, US-09  
-**Estado:** Stretch
+**Estado:** Fuera de alcance
 
 ## Historia
 

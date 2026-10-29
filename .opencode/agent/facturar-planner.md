@@ -41,4 +41,4 @@ Devolvé un plan de máximo 100 líneas con estas secciones:
 - **Tests**: unitarios, integración, Mongo y QA manual.
 - **Riesgos**: solo riesgos reales y cómo mitigarlos.
 
-No propongas paquetes nuevos salvo que sean imprescindibles y justificalo. No agregues alcance stretch.
+No propongas paquetes nuevos salvo que sean imprescindibles y justificalo. No agregues alcance de historias fuera de alcance (US-22 a US-25).

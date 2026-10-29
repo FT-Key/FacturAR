@@ -27,7 +27,7 @@ public sealed class VerificarModel : PageModel
             return;
         }
 
-        Cae = Cae.Trim();
+        Cae = Normalizar(Cae);
         if (Cae.Length != 14 || !Cae.All(char.IsAsciiDigit))
         {
             Error = "El CAE debe contener exactamente 14 dígitos.";
@@ -46,5 +46,15 @@ public sealed class VerificarModel : PageModel
         {
             Error = "No se pudo consultar el servicio de verificación. Intentá nuevamente.";
         }
+    }
+
+    private static string Normalizar(string? cae)
+    {
+        if (string.IsNullOrWhiteSpace(cae))
+        {
+            return string.Empty;
+        }
+
+        return new string(cae.Trim().Where(c => c is not ('-' or '.' or '/' or ' ')).ToArray());
     }
 }
