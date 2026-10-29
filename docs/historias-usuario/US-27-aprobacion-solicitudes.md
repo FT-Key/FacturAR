@@ -1,4 +1,4 @@
-# US-27 — Revisión y aprobación de solicitudes de empresa
+﻿# US-27 — Revisión y aprobación de solicitudes de empresa
 
 **Épica:** Registro y multiempresa  
 **Prioridad:** Alta  
@@ -195,7 +195,7 @@ Todos requieren cookie de sesión de la consola global (`cookies.admin`, de US-0
 | `GET` | `/v1/admin/solicitudes` | `AdminGlobal` | — (query: `page`, `pageSize`, `estado`, `cuit`, `razonSocial`, `email`) | `200` con `{ items, page, pageSize, total, totalPages }` | `400 VALIDACION`, `403 SIN_PERMISOS` |
 | `GET` | `/v1/admin/solicitudes/{id}` | `AdminGlobal` | — | `200` con `SolicitudAltaDetalleResponse` | `403 SIN_PERMISOS`, `404 SOLICITUD_NO_ENCONTRADA` |
 | `PUT` | `/v1/admin/solicitudes/{id}` | `AdminSuper` | `EditarSolicitudRequest` | `200` con la solicitud actualizada | `400 VALIDACION`, `403 SIN_PERMISOS`, `404 SOLICITUD_NO_ENCONTRADA`, `409 SOLICITUD_YA_PROCESADA` |
-| `POST` | `/v1/admin/solicitudes/{id}/aprobar` | `AdminSuper` | — (sin body) | `200` con `AprobarSolicitudResponse` | `403 SIN_PERMISOS`, `404 SOLICITUD_NO_ENCONTRADA`, `409 SOLICITUD_YA_PROCESADA`, `409 SOLICITUD_PENDIENTE` (CUIT ya en uso) |
+| `POST` | `/v1/admin/solicitudes/{id}/aprobar` | `AdminSuper` | — (sin body) | `200` con `AprobarSolicitudResponse` | `403 SIN_PERMISOS`, `404 SOLICITUD_NO_ENCONTRADA`, `409 SOLICITUD_YA_PROCESADA`, `409 CUIT_YA_REGISTRADO` |
 | `POST` | `/v1/admin/solicitudes/{id}/rechazar` | `AdminSuper` | `RechazarSolicitudRequest { motivo }` | `200` con `RechazarSolicitudResponse` | `400 VALIDACION` (motivo vacío), `403 SIN_PERMISOS`, `404 SOLICITUD_NO_ENCONTRADA`, `409 SOLICITUD_YA_PROCESADA` |
 | `POST` | `/v1/admin/solicitudes/{id}/reenviar-invitacion` | `AdminGlobal` | — (sin body) | `200` con `ReenviarInvitacionResponse` | `403 SIN_PERMISOS`, `404 SOLICITUD_NO_ENCONTRADA`, `404 INVITACION_NO_ENCONTRADA`, `502 EMAIL_NO_ENVIADO` |
 
@@ -274,7 +274,7 @@ La operación de negocio de "aprobar" es una **única transacción de MongoDB**.
 Dentro de `session.WithTransactionAsync(...)`:
 
 1. Se relee la solicitud y se exige `Estado == Pendiente`.
-2. Se exige que no exista un `Contribuyente` con ese CUIT. Si existe → se aborta la transacción y se responde `409 SOLICITUD_PENDIENTE` (el mensaje aclara que el CUIT ya está en uso; la respuesta es para un administrador global autenticado, no para el visitante).
+2. Se exige que no exista un `Contribuyente` con ese CUIT. Si existe → se aborta la transacción y se responde `409 CUIT_YA_REGISTRADO` (el mensaje aclara que el CUIT ya está en uso; la respuesta es para un administrador global autenticado, no para el visitante).
 3. Se inserta el `Contribuyente` (`Cuit` normalizado, `RazonSocial`, `CondicionIva`, `Email`, `Activo = true`).
 4. Se inserta el `PuntoVenta` (`ContribuyenteId`, `Numero = 1`, `Descripcion = "Casa Central"`, `Activo = true`).
 5. Se genera el token y se inserta la `Invitacion` (`ContribuyenteId`, `SolicitudId`, `Email`, `Rol = Administrador`, `TokenHash`, `TokenPrefix`, `ExpiraAt = now + 48 h`, `CreadaPorAdministradorId`, `Estado = Pendiente`).
@@ -313,7 +313,7 @@ Después del commit se envía `InvitacionReenviada`. Si el envío falla, se resp
 | El CUIT de la solicitud se valida y normaliza antes de aprobar | `El CUIT de la solicitud no es válido.` | `AprobarSolicitudService` | `VALIDACION` (400) |
 | La solicitud existe | `No existe la solicitud indicada.` | Endpoint | `SOLICITUD_NO_ENCONTRADA` (404) |
 | La solicitud ya fue aprobada o rechazada | `La solicitud ya fue resuelta.` | Endpoint | `SOLICITUD_YA_PROCESADA` (409) |
-| El CUIT ya pertenece a un contribuyente | `El CUIT ya está en uso por otra empresa.` | Endpoint | `SOLICITUD_PENDIENTE` (409) |
+| El CUIT ya pertenece a un contribuyente | `El CUIT ya está en uso por otra empresa.` | Endpoint | `CUIT_YA_REGISTRADO` (409) |
 | El rol no alcanza | `No tenés permisos para realizar esta acción.` | Política | `SIN_PERMISOS` (403) |
 | No hay invitación para reenviar | `No hay una invitación para reenviar.` | Endpoint | `INVITACION_NO_ENCONTRADA` (404) |
 | El envío del email falló | `No se pudo enviar el email. Podés reenviar la invitación.` | Endpoint | `EMAIL_NO_ENVIADO` (502) |
@@ -407,7 +407,7 @@ Invitación (`Invitacion`):
 | --- | --- | --- | --- |
 | CP-27-01 | Solicitud `Pendiente` con CUIT `20123456786` y email `solicitante@demo.com`; `SuperAdmin` autenticado | `POST /v1/admin/solicitudes/{id}/aprobar` | `200`; se crea 1 contribuyente con ese CUIT, 1 `PuntoVenta` `1 Casa Central` activo y 1 `Invitacion` de rol `Administrador` con `ExpiraAt` a 48 h; la solicitud queda `Aprobada` con `RevisadaPorAdministradorId` y `RevisadaAt`; se envía `SolicitudAprobada` con el link; se registra auditoría `solicitud.aprobada` con el administrador global |
 | CP-27-02 | Solicitud ya `Aprobada` | `POST .../aprobar` de nuevo | `409 SOLICITUD_YA_PROCESADA`; no se crea otro contribuyente, ni otro punto de venta, ni otra invitación; no se envía email |
-| CP-27-03 | Existe un `Contribuyente` con el CUIT de la solicitud | `POST .../aprobar` | `409 SOLICITUD_PENDIENTE`; la solicitud sigue `Pendiente`; no se crea invitación ni punto de venta; no se envía email |
+| CP-27-03 | Existe un `Contribuyente` con el CUIT de la solicitud | `POST .../aprobar` | `409 CUIT_YA_REGISTRADO`; la solicitud sigue `Pendiente`; no se crea invitación ni punto de venta; no se envía email |
 | CP-27-04 | Solicitud `Pendiente` | `POST .../rechazar` con motivo `Datos fiscales incompletos` | `200`; la solicitud queda `Rechazada` con el motivo; se envía `SolicitudRechazada` con ese motivo; **no** se crea contribuyente, punto de venta ni invitación |
 | CP-27-05 | Solicitud `Pendiente` | `POST .../rechazar` con motivo vacío o de menos de 10 caracteres | `400 VALIDACION` con mensaje del motivo; la solicitud sigue `Pendiente`; no se envía email |
 | CP-27-06 | Administrador global con rol `Soporte` | `POST .../aprobar` y `POST .../rechazar` | Ambos devuelven `403 SIN_PERMISOS`; la solicitud sigue `Pendiente`; no se crea nada |

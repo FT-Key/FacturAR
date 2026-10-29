@@ -298,7 +298,7 @@ Códigos previstos para onboarding y autenticación:
 | `SOLICITUD_YA_PROCESADA` | `409` | La solicitud ya fue aprobada o rechazada. |
 | `CUIT_YA_REGISTRADO` | `409` | Al aprobar, el CUIT ya pertenece a un contribuyente. |
 | `CREDENCIALES_INVALIDAS` | `401` | Email o contraseña incorrectos. |
-| `SIN_PERMISO` | `403` | El rol no permite la acción. |
+| `SIN_PERMISOS` | `403` | El rol no permite la acción. |
 | `INVITACION_VENCIDA` | `410` | El token expiró. |
 | `INVITACION_USADA` | `409` | El token ya fue utilizado. |
 | `PASSWORD_DEBIL` | `400` | La contraseña no cumple la política. |

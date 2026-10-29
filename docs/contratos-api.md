@@ -55,7 +55,8 @@ Los códigos son `UPPER_SNAKE_CASE`, estables y parte del contrato público. Un 
 | `SOLICITUD_NO_ENCONTRADA` | 404 | No existe la solicitud. |
 | `INVITACION_NO_ENCONTRADA` | 404 | No existe la invitación. |
 | `COMPROBANTE_NO_ENCONTRADO` | 404 | No existe un comprobante con el CAE o el id indicado. |
-| `SOLICITUD_PENDIENTE` | 409 | Ya existe una solicitud en estado `Pendiente` para el mismo CUIT o email. |
+| `SOLICITUD_PENDIENTE` | 409 | Ya existe una solicitud en estado `Pendiente` para el mismo CUIT o email. Lo devuelve `POST /v1/solicitudes-alta` al visitante. |
+| `CUIT_YA_REGISTRADO` | 409 | El CUIT de la solicitud ya pertenece a otro contribuyente. Lo devuelve `POST /v1/admin/solicitudes/{id}/aprobar` al administrador global. |
 | `SOLICITUD_YA_PROCESADA` | 409 | La solicitud ya fue aprobada o rechazada. |
 | `INVITACION_USADA` | 409 | El token de invitación ya fue aceptado. |
 | `IDEMPOTENCIA_CONFLICTO` | 409 | La misma `Idempotency-Key` llegó con un payload diferente. |
@@ -67,7 +68,7 @@ Los códigos son `UPPER_SNAKE_CASE`, estables y parte del contrato público. Un 
 | `MONGO_NO_DISPONIBLE` | 503 | No hay conexión con MongoDB. |
 | `ERROR_INTERNO` | 500 | Falla inesperada. Se registra el detalle en el log, nunca en la respuesta. |
 
-Los códigos `VALIDACION`, `SOLICITUD_PENDIENTE`, `RATE_LIMIT`, `SOLICITUD_YA_PROCESADA`, `INVITACION_VENCIDA`, `INVITACION_USADA`, `PASSWORD_DEBIL`, `TIPO_NOTA_INCOMPATIBLE`, `IMPORTE_EXCEDIDO`, `CREDENCIALES_INVALIDAS`, `CAE_INVALIDO` y `COMPROBANTE_NO_ENCONTRADO` están fijados por los escenarios Gherkin de US-01, US-04, US-08, US-11, US-27 y US-28. Son intocables.
+Los códigos `VALIDACION`, `SOLICITUD_PENDIENTE`, `CUIT_YA_REGISTRADO`, `RATE_LIMIT`, `SOLICITUD_YA_PROCESADA`, `INVITACION_VENCIDA`, `INVITACION_USADA`, `PASSWORD_DEBIL`, `TIPO_NOTA_INCOMPATIBLE`, `IMPORTE_EXCEDIDO`, `CREDENCIALES_INVALIDAS`, `CAE_INVALIDO` y `COMPROBANTE_NO_ENCONTRADO` están fijados por los escenarios Gherkin de US-01, US-04, US-08, US-11, US-27 y US-28. Son intocables.
 
 ### 2.2 Reglas de la respuesta de error
 

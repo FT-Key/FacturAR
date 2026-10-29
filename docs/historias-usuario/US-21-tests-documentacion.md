@@ -189,11 +189,8 @@ Reglas obligatorias:
 
 2. **No se inventan endpoints.** Un endpoint solo puede aparecer en la documentación si existe en el código o si pertenece a una historia aprobada, y en ese caso con su marca de "diseño objetivo". No se agregan rutas, headers, campos ni códigos que no estén en `docs/contratos-api.md` o en el código.
 
-3. **Los códigos de error son los canónicos.** La tabla de `docs/manual-integracion.md` §10 usa hoy `API_KEY_REQUERIDA`, `NO_AUTORIZADO`, `SIN_PERMISO`, `NO_ENCONTRADO` y `CONFLICTO`, y un campo `detalles` en el cuerpo del error que no existe en `ErrorResponse`. US-21 debe corregirlo:
-
-   - Reemplazar cada código por su equivalente canónico de `docs/contratos-api.md` §2.1: `API_KEY_AUSENTE`, `API_KEY_INVALIDA`, `CREDENCIALES_INVALIDAS`, `SIN_PERMISOS`, `COMPROBANTE_NO_ENCONTRADO`, `IDEMPOTENCIA_CONFLICTO`, entre otros.
-   - Eliminar los códigos que no existen en la lista canónica, entre ellos `CUIT_YA_REGISTRADO` del README.
-   - Corregir el cuerpo del error a `ErrorResponse(codigo, mensaje)`, sin `detalles`. Los errores de validación no enumeran campos salvo que la historia lo pida.
+3. **Los códigos de error son los canónicos.** La tabla de `docs/manual-integracion.md` §10 y la del README ya usan los códigos de `docs/contratos-api.md` §2.1 (`API_KEY_AUSENTE`, `API_KEY_INVALIDA`, `CREDENCIALES_INVALIDAS`, `SIN_PERMISOS`, `COMPROBANTE_NO_ENCONTRADO`, `IDEMPOTENCIA_CONFLICTO`, `CUIT_YA_REGISTRADO`, entre otros). US-21 debe verificar que siga siendo así en cada cambio:   - Cada código documentado tiene que existir en el catálogo canónico. Ningún código nuevo aparece sin agregarse primero al catálogo.
+   - El cuerpo del error es `ErrorResponse(codigo, mensaje)`, sin `detalles`. Los errores de validación no enumeran campos salvo que la historia lo pida.
 
 4. **El README también se corrige.** La sección "Códigos de error" debe usar la lista canónica y marcar como planificados los endpoints que aún no existen, como ya hace con la tabla de endpoints planificados.
 
@@ -239,7 +236,7 @@ US-21 no agrega claves de configuración. La única clave que aparece en los art
 | CP-21.07 | `docs/manual-integracion.md` leído | Comparar su tabla de errores con `docs/contratos-api.md` §2.1 | Todos los códigos documentados son canónicos; no quedan `API_KEY_REQUERIDA`, `NO_AUTORIZADO`, `SIN_PERMISO`, `NO_ENCONTRADO` ni `CONFLICTO` |
 | CP-21.08 | `docs/manual-integracion.md` leído | Revisar la sección de emisión, de PDF y de API keys | Cada una lleva el bloque "Diseño objetivo" con su `US-XX` y aclara que el endpoint todavía no existe |
 | CP-21.09 | `docs/proceso-alta-empresa.md` leído | Revisar la sección "Endpoints previstos" | Cada ruta prevista lleva su `US-XX` y está marcada como no implementada |
-| CP-21.10 | README leído | Revisar la sección "Códigos de error" y la de endpoints | Usa los códigos canónicos, no incluye `CUIT_YA_REGISTRADO` y separa lo implementado de lo planificado |
+| CP-21.10 | README leído | Revisar la sección "Códigos de error" y la de endpoints | Usa los códigos canónicos de `docs/contratos-api.md` §2.1 y separa lo implementado de lo planificado |
 | CP-21.11 | Repositorio completo | Buscar secretos (`fak_` seguidos de un secreto real, connection strings, contraseñas) | No hay secretos en el código, la documentación, la colección ni el `.http` |
 | CP-21.12 | Pull request válido | Ejecutar el workflow de CI | Build y tests pasan y el check bloquea el merge |
 | CP-21.13 | README y `.env.example` | Ejecutar el seed siguiendo el README | El README describe las claves correctas (`Seed__Enabled`, `Seed__Password`) y el seed se puede ejecutar en un entorno limpio |

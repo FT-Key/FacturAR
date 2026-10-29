@@ -79,6 +79,7 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 | `INVITACION_NO_ENCONTRADA` | `404` | No existe la invitación. |
 | `COMPROBANTE_NO_ENCONTRADO` | `404` | No existe un comprobante con el CAE o el id indicado. |
 | `SOLICITUD_PENDIENTE` | `409` | Ya existe una solicitud en estado `Pendiente` para el mismo CUIT o email. |
+| `CUIT_YA_REGISTRADO` | `409` | Al aprobar, el CUIT de la solicitud ya pertenece a otro contribuyente. |
 | `SOLICITUD_YA_PROCESADA` | `409` | La solicitud ya fue aprobada o rechazada. |
 | `INVITACION_USADA` | `409` | El token de invitación ya fue aceptado. |
 | `IDEMPOTENCIA_CONFLICTO` | `409` | La misma `Idempotency-Key` llegó con un payload diferente. |
@@ -140,7 +141,7 @@ La solicitud queda pendiente de revisión. No se crea la empresa ni la cuenta en
 
 Un administrador global de FacturAR revisa la información, puede corregirla y aprueba o rechaza la solicitud. Si se aprueba, se crea la empresa, el punto de venta `1 Casa Central` y una invitación para el email del solicitante.
 
-Errores del flujo: `400 VALIDACION` y `400 CUIT_INVALIDO` por datos inválidos, `409 SOLICITUD_PENDIENTE` si ya hay una solicitud pendiente con el mismo CUIT o email, `429 RATE_LIMIT` por exceso de peticiones y `404 SOLICITUD_NO_ENCONTRADA` / `409 SOLICITUD_YA_PROCESADA` en la consola global.
+Errores del flujo: `400 VALIDACION` y `400 CUIT_INVALIDO` por datos inválidos, `409 SOLICITUD_PENDIENTE` si ya hay una solicitud pendiente con el mismo CUIT o email, `429 RATE_LIMIT` por exceso de peticiones y `404 SOLICITUD_NO_ENCONTRADA` / `409 SOLICITUD_YA_PROCESADA` / `409 CUIT_YA_REGISTRADO` en la consola global.
 
 ## 2. Activar la cuenta
 
