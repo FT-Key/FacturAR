@@ -28,6 +28,7 @@ ENV APP_VERSION=$APP_VERSION
 EXPOSE 8080
 
 COPY --from=build /app/publish .
+RUN mkdir -p /app/emails && chown app:app /app/emails
 USER app
 
 ENTRYPOINT ["dotnet", "FacturAR.Api.dll"]

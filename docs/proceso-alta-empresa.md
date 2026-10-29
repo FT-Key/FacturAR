@@ -36,7 +36,7 @@ Ningún endpoint del onboarding existe hoy: `POST /v1/solicitudes-alta`, `/v1/ad
 | US-02 | §4 Gestión de API keys desde el portal | Pendiente |
 | US-27 | §2 Revisión y aprobación del administrador global | Pendiente |
 | US-28 | §3 Invitación y activación de la cuenta | Pendiente |
-| US-29 | Emails transaccionales del onboarding | Pendiente |
+| US-29 | Emails transaccionales del onboarding | Parcial |
 | US-30 | §5 Manual de integración online | Pendiente |
 | US-17 | Auditoría de las acciones del onboarding | Pendiente |
 | US-21 | Veracidad documental de este documento | Parcial |
@@ -261,6 +261,8 @@ El manual online explica:
 | `InvitacionReenviada` | Solicitante | Al regenerar la invitación. |
 
 En desarrollo se usa un remitente que escribe el email completo en un archivo local; el log solo registra metadatos sin tokens. En producción se configura SMTP por variables de entorno. Un fallo de email no debe perder la solicitud ni la empresa: el administrador puede reenviar la invitación. El cuerpo con token no se persiste en claro.
+
+> **Estado de US-29:** el servicio de email ya está implementado y probado con remitente de archivo en desarrollo y SMTP configurable en producción. El disparo desde los endpoints y el reenvío desde el panel se habilitan cuando se implementen US-01 y US-27.
 
 ## Endpoints previstos
 

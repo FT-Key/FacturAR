@@ -124,24 +124,36 @@ El frontend lee:
 | `Api__BaseUrl` | URL interna de la API | `http://localhost:5171` |
 | `ASPNETCORE_ENVIRONMENT` | Entorno de ejecución | `Development` |
 
-Variables previstas para el onboarding (US-04, US-27 y US-29):
+Variables de entorno para Docker y onboarding:
 
 | Variable | Descripción | Ejemplo |
 | --- | --- | --- |
 | `Admin__Email` | Email del administrador global inicial | `admin@facturar.local` |
 | `Admin__Password` | Contraseña inicial; solo para bootstrap | `CambiarEstaClave123` |
 | `Admin__Nombre` | Nombre visible del administrador | `Administrador` |
-| `Admin__NotificationEmail` | Destino de avisos de nuevas solicitudes | `admin@facturar.local` |
+| `Admin__NotificationEmail` | Destino opcional de avisos de nuevas solicitudes | `admin@facturar.local` |
 | `Email__Provider` | `File` en desarrollo o `Smtp` en producción | `File` |
-| `Email__From` | Remitente | `no-reply@facturar.local` |
+| `Email__From` | Remitente | `facturar@localhost` |
+| `Email__FromName` | Nombre visible del remitente | `FacturAR` |
 | `Email__Host` | Host SMTP | `smtp.example.com` |
 | `Email__Port` | Puerto SMTP | `587` |
 | `Email__User` | Usuario SMTP | `no-reply@example.com` |
 | `Email__Password` | Contraseña SMTP | `***` |
 | `Email__UseSsl` | Usar TLS | `true` |
-| `Portal__BaseUrl` | URL pública del portal para links | `http://localhost:5116` |
+| `Email__DirectorioSalida` | Carpeta del remitente de archivo en desarrollo | `emails` |
+| `Email__TimeoutSegundos` | Límite del envío SMTP | `15` |
+| `Portal__BaseUrl` | URL pública del portal para links | `http://localhost:5116` (local) / `http://localhost:8081` (Docker) |
 
-No se deben commitear archivos `.env` reales. Usar `.env.example` y `.env.production.example` como plantillas. Las variables de onboarding se incorporarán a esas plantillas al implementar las historias correspondientes.
+No se deben commitear archivos `.env` reales. Usar `.env.example` y `.env.production.example` como plantillas.
+
+Con `Email__Provider=File` cada email se escribe completo en `emails/` (por defecto relativa a la raíz de la aplicación). Esa carpeta contiene los links de activación con tokens, así que es un secreto local: está excluida de git (`.gitignore`) y de la imagen de Docker (`.dockerignore`), y no debe versionarse ni publicarse.
+
+En Docker, `emails/` se respalda con el volumen nombrado `emails-dev` (declarado en `docker-compose.yml`), no con un bind mount al host. Para inspeccionar los archivos generados:
+
+```powershell
+docker compose exec api ls /app/emails
+docker compose cp api:/app/emails ./emails-export
+```
 
 ## Ejecución local
 

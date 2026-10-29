@@ -1,5 +1,4 @@
 @page "/admin"
-@attribute [Authorize(Policy = "AdminGlobal")]
 
 <PageTitle>Consola global - FacturAR</PageTitle>
 
@@ -15,9 +14,11 @@
         <div class="alert alert-info" role="status">
             La gestión de solicitudes de alta se habilita en la historia US-27.
         </div>
+        <div class="mt-3">
+            <a class="btn btn-outline-secondary btn-sm" href="/admin/logout">Cerrar sesión global</a>
+        </div>
     </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
 </AuthorizeView>
-
-<div class="mt-3">
-    <a class="btn btn-outline-secondary btn-sm" href="/admin/logout">Cerrar sesión global</a>
-</div>
