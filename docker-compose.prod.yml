@@ -10,6 +10,17 @@ services:
       Mongo__ConnectionString: ${MONGO_CONNECTION_STRING:?Definí MONGO_CONNECTION_STRING}
       Mongo__DatabaseName: ${MONGO_DATABASE:?Definí MONGO_DATABASE}
       Mongo__InitializeIndexes: ${MONGO_INITIALIZE_INDEXES:-true}
+      Email__Provider: ${EMAIL_PROVIDER:-Smtp}
+      Email__From: ${EMAIL_FROM:?Definí EMAIL_FROM}
+      Email__FromName: ${EMAIL_FROM_NAME:-FacturAR}
+      Email__Host: ${EMAIL_HOST:?Definí EMAIL_HOST}
+      Email__Port: ${EMAIL_PORT:-587}
+      Email__User: ${EMAIL_USER:-}
+      Email__Password: ${EMAIL_PASSWORD:-}
+      Email__UseSsl: ${EMAIL_USE_SSL:-true}
+      Email__TimeoutSegundos: ${EMAIL_TIMEOUT_SEGUNDOS:-15}
+      Portal__BaseUrl: ${PORTAL_BASEURL:?Definí PORTAL_BASEURL}
+      Admin__NotificationEmail: ${ADMIN_NOTIFICATION_EMAIL:-}
     ports:
       - "8080:8080"
 

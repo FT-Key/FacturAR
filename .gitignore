@@ -16,3 +16,4 @@ appsettings.*.local.json
 !.env.production.example
 
 *.log
+emails/
