@@ -39,10 +39,10 @@ Definir el comportamiento funcional de FacturAR, un simulador de facturación el
 | RF-16 | SOAP de consultas | Exponer `FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy`. | Media | US-16 |
 | RF-17 | Auditoría y outbox | Registrar eventos y encolar notificaciones de forma confiable. | Media | US-17 |
 | RF-18 | Parámetros y seed | Proveer datos iniciales de prueba y parámetros del sistema. | Media | US-18 |
-| RF-19 | Anulación administrativa | Anular comprobantes desde una vista MVC. | Baja (stretch) | US-22 |
-| RF-20 | Webhooks | Notificar eventos a sistemas externos. | Baja (stretch) | US-23 |
+| RF-19 | Anulación administrativa | Anular comprobantes desde una vista MVC. | Fuera de alcance | US-22 |
+| RF-20 | Webhooks | Notificar eventos a sistemas externos. | Fuera de alcance | US-23 |
 | RF-21 | OpenAPI y salud | Publicar OpenAPI y endpoints de health check. | Alta | US-19, US-20, US-31 |
-| RF-22 | Adaptador AFIP real | Permitir cambiar el simulador por el web service real. | Baja (stretch) | US-24 |
+| RF-22 | Adaptador AFIP real | Permitir cambiar el simulador por el web service real. | Fuera de alcance | US-24 |
 | RF-23 | Solicitud pública de alta | Registrar una solicitud de empresa sin crear contribuyente ni usuario. | Alta | US-01 |
 | RF-24 | Aprobación de solicitudes | Revisar, corregir, aprobar o rechazar solicitudes y crear la empresa. | Alta | US-27 |
 | RF-25 | Invitación y activación | Activar la cuenta del solicitante con un token de un solo uso. | Alta | US-28 |

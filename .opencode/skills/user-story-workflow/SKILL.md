@@ -10,7 +10,7 @@ description: Gestiona historias US-XX de FacturAR con alcance estricto, dependen
 1. Leé `docs/historias-usuario/README.md` y solo la historia solicitada.
 2. Verificá dependencias y bloqueos. Si falta una historia previa, detenete y reportá el ID exacto.
 3. Confirmá el alcance: criterios de aceptación, tareas técnicas y Definition of Done.
-4. No toques stretch (US-22 a US-26) ni historias fuera de la solicitada.
+4. No toques las historias fuera de alcance (US-22 a US-25, en `docs/historias-usuario-fuera-de-alcance/`) ni historias fuera de la solicitada.
 
 ## Implementación
 
@@ -36,7 +36,7 @@ Si no hay evidencia, dejá el checkbox sin marcar y listá el pendiente. No infi
 - `Base implementada`: esqueleto funcional, falta completar.
 - `Parcial`: parte de los criterios está cubierta.
 - `Completada`: todos los criterios y el DoD están verificados.
-- `Stretch`: fuera del alcance obligatorio.
+- `Fuera de alcance`: archivada en `docs/historias-usuario-fuera-de-alcance/`; no se implementa sin pedido explícito.
 
 ## Cierre
 

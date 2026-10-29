@@ -18,6 +18,7 @@ jobs:
     name: Validar nombre de rama
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Validar convención
@@ -43,7 +44,7 @@ jobs:
 
     services:
       mongo:
-        image: mongo:8
+        image: mongo:8.2
         ports:
           - 27017:27017
         options: >-
@@ -75,6 +76,9 @@ jobs:
       - name: Compilar
         run: dotnet build FacturAR.slnx -c Release --no-restore
 
+      - name: Verificar formato y analizadores
+        run: dotnet format FacturAR.slnx --verify-no-changes --verbosity minimal
+
       - name: Ejecutar tests
         run: dotnet test FacturAR.slnx -c Release --no-build --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
 
@@ -85,3 +89,44 @@ jobs:
           name: test-results
           path: TestResults
           if-no-files-found: ignore
+
+  build-images:
+    name: Construir imágenes Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Construir la imagen de la API
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: facturAR_backend/Dockerfile
+          platforms: linux/amd64
+          push: false
+          build-args: |
+            SOURCE_COMMIT=${{ github.sha }}
+            APP_VERSION=0.1.0
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Construir la imagen del portal
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: facturAR_frontend/Dockerfile
+          platforms: linux/amd64
+          push: false
+          build-args: |
+            SOURCE_COMMIT=${{ github.sha }}
+            APP_VERSION=0.1.0
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web

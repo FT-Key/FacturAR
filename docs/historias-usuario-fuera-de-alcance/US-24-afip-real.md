@@ -1,11 +1,11 @@
 # US-24 — Adaptador AFIP real
 
 **Épica:** Interoperabilidad  
-**Prioridad:** Baja (stretch)  
+**Prioridad:** Fuera de alcance  
 **Estimación:** 3 días  
 **Requisito:** RF-22  
 **Depende de:** US-05, US-15  
-**Estado:** Stretch
+**Estado:** Fuera de alcance
 
 ## Historia
 
