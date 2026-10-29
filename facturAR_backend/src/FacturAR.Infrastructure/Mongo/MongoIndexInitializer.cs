@@ -7,6 +7,13 @@ public static class MongoIndexInitializer
 {
     public static async Task InitializeAsync(MongoDbContext context, CancellationToken cancellationToken = default)
     {
+        await context.Administradores.Indexes.CreateManyAsync(
+        [
+            new CreateIndexModel<AdministradorFacturar>(
+                Builders<AdministradorFacturar>.IndexKeys.Ascending(a => a.Email),
+                new CreateIndexOptions { Unique = true, Name = "ux_administradores_email" })
+        ], cancellationToken);
+
         await context.Contribuyentes.Indexes.CreateManyAsync(
         [
             new CreateIndexModel<Contribuyente>(

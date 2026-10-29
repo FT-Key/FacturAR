@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\FacturAR.Domain\FacturAR.Domain.csproj" />
     <ProjectReference Include="..\..\src\FacturAR.Application\FacturAR.Application.csproj" />
+    <ProjectReference Include="..\..\src\FacturAR.Infrastructure\FacturAR.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

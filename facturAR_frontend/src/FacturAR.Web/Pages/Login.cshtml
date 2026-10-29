@@ -1,0 +1,49 @@
+@page "/login"
+@model FacturAR.Web.Pages.LoginModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ingresar - FacturAR</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/app.css" />
+</head>
+<body class="bg-light">
+    <main class="container py-5" style="max-width: 460px;">
+        <h1 class="h3 mb-1">Ingresar</h1>
+        <p class="text-muted">Acceso de usuarios de empresa.</p>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Error))
+        {
+            <div class="alert alert-danger" role="alert">@Model.Error</div>
+        }
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input id="email" name="Email" value="@Model.Email" type="email"
+                               class="form-control" autocomplete="username" required maxlength="256" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Contraseña</label>
+                        <input id="password" name="Password" type="password"
+                               class="form-control" autocomplete="current-password" required maxlength="128" />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Ingresar</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-3 small">
+            <a href="/verificar">Verificar comprobante</a>
+            <a href="/admin/login">Consola global</a>
+        </div>
+    </main>
+</body>
+</html>

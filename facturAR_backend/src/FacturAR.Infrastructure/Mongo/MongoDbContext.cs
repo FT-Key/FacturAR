@@ -18,6 +18,9 @@ public sealed class MongoDbContext
     public IMongoCollection<Usuario> Usuarios
         => _database.GetCollection<Usuario>(MongoCollections.Usuarios);
 
+    public IMongoCollection<AdministradorFacturar> Administradores
+        => _database.GetCollection<AdministradorFacturar>(MongoCollections.Administradores);
+
     public IMongoCollection<ApiKey> ApiKeys
         => _database.GetCollection<ApiKey>(MongoCollections.ApiKeys);
 

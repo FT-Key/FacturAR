@@ -26,7 +26,7 @@ La columna **Orden** es la posición dentro del sprint. La columna **Contrato** 
 
 | Orden | ID | Historia | Épica | Fase | Prioridad | Días | Requisito | Estado | Contrato |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | [US-04](US-04-login-multiempresa.md) | Autenticación, roles y aislamiento multiempresa | Registro | 1 | Alta | 3 | RF-11 | Pendiente | Sí |
+| 1 | [US-04](US-04-login-multiempresa.md) | Autenticación, roles y aislamiento multiempresa | Registro | 1 | Alta | 3 | RF-11 | Base implementada | Sí |
 | 2 | [US-29](US-29-emails-transaccionales.md) | Notificaciones transaccionales por email | Registro | 1 | Alta | 2 | RF-26 | Pendiente | Sí |
 | 3 | [US-01](US-01-alta-contribuyente.md) | Solicitud pública de alta de empresa | Registro | 2 | Alta | 2 | RF-23 | Pendiente | Sí |
 | 4 | [US-27](US-27-aprobacion-solicitudes.md) | Revisión y aprobación de solicitudes | Registro | 2 | Alta | 3 | RF-24 | Pendiente | Sí |
@@ -55,7 +55,7 @@ La columna **Orden** es la posición dentro del sprint. La columna **Contrato** 
 
 ### Estado real de la implementación
 
-Al día de hoy **solo US-11 tiene comportamiento implementado**: la API expone `GET /`, `GET /health`, `GET /health/live` y `GET /v1/comprobantes/verificar/{cae}`, y el portal expone la página `/verificar`.
+Al día de hoy **US-11 y US-04 tienen comportamiento implementado**: la API expone `GET /`, `GET /health`, `GET /health/live`, `GET /v1/comprobantes/verificar/{cae}`, `POST /v1/auth/login`, `POST /v1/auth/logout`, `GET /v1/auth/me`, `POST /v1/admin/auth/login`, `POST /v1/admin/auth/logout` y `GET /v1/admin/auth/me`; el portal expone `/verificar`, `/login`, `/logout`, `/admin/login`, `/admin/logout` y `/admin`. US-04 queda en **Base implementada** porque el aislamiento multiempresa se completa con los endpoints de negocio de US-02, US-05 y US-09.
 
 El resto de las historias tiene el **modelo de dominio y los índices de MongoDB preparados**, pero sin casos de uso, endpoints ni pantallas. Eso no cuenta como avance: una historia está terminada cuando entrega comportamiento verificable con test.
 
