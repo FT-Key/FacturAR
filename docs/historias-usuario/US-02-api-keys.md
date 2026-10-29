@@ -156,10 +156,10 @@ fak_<prefix 12 hex>_<secret 43 base64url>
 - `_`: separador fijo.
 - `secret`: 43 caracteres base64url sin padding = 32 bytes de `RandomNumberGenerator.GetBytes(32)` codificados con `Base64UrlEncoder` (`System.Buffers.Text`). Entropía: 256 bits.
 
-Ejemplo de valor completo (solo ilustrativo):
+Ejemplo de valor completo (solo ilustrativo, el secret es un placeholder):
 
 ```text
-fak_9f3a1c7b2e40_kR7YpQm2Vb9XtL4Nc8Z1Hs6Df3Gj0Wa5Ui2Ee7Ro
+fak_9f3a1c7b2e40_<secreto>
 ```
 
 `ApiKey.Prefix` guarda **solo los 12 hex** (`9f3a1c7b2e40`), sin `fak_` y sin el separador. El valor visible al usuario y al soporte es `fak_<Prefix>`, y el valor completo se reconstruye como `fak_` + `Prefix` + `_` + `secret`.
@@ -206,7 +206,7 @@ Cuerpos de respuesta:
   "id": "5d4c3b2a-1908-7f6e-5d4c-3b2a19087f6e",
   "nombre": "Ecommerce",
   "prefix": "fak_9f3a1c7b2e40",
-  "valor": "fak_9f3a1c7b2e40_kR7YpQm2Vb9XtL4Nc8Z1Hs6Df3Gj0Wa5Ui2Ee7Ro",
+  "valor": "fak_9f3a1c7b2e40_<secreto>",
   "createdAt": "2026-10-28T15:30:00Z"
 }
 ```
