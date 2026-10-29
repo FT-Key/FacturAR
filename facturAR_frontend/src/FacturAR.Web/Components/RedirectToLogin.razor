@@ -1,0 +1,13 @@
+@inject NavigationManager Navigation
+
+@code {
+    protected override void OnInitialized()
+    {
+        var ruta = Navigation.ToBaseRelativePath(Navigation.Uri);
+        var destino = ruta.StartsWith("admin", StringComparison.OrdinalIgnoreCase)
+            ? "/admin/login"
+            : "/login";
+
+        Navigation.NavigateTo(destino);
+    }
+}

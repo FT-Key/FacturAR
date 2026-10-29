@@ -32,7 +32,7 @@ Ningún endpoint del onboarding existe hoy: `POST /v1/solicitudes-alta`, `/v1/ad
 | Historia | Qué parte del documento describe | Estado |
 | --- | --- | --- |
 | US-01 | §1 Solicitud pública de alta | Pendiente |
-| US-04 | §4 Login de empresa y sesión | Pendiente |
+| US-04 | §4 Login de empresa y sesión | Base implementada |
 | US-02 | §4 Gestión de API keys desde el portal | Pendiente |
 | US-27 | §2 Revisión y aprobación del administrador global | Pendiente |
 | US-28 | §3 Invitación y activación de la cuenta | Pendiente |
@@ -96,7 +96,7 @@ Etapas y su estado:
 | 1. Solicitud pública | El solicitante completa el formulario y la solicitud queda `Pendiente`. | US-01, US-29 | Pendiente |
 | 2. Revisión del administrador global | El administrador consulta, corrige, aprueba o rechaza. | US-27 | Pendiente |
 | 3. Invitación y activación | El solicitante acepta la invitación y define su contraseña. | US-28, US-29 | Pendiente |
-| 4. Login y API key | El usuario de empresa inicia sesión y crea su API key. | US-04, US-02 | Pendiente |
+| 4. Login y API key | El usuario de empresa inicia sesión y crea su API key. | US-04, US-02 | Parcial |
 | 5. Manual de integración | El integrador lee la guía y consume la API. | US-30 | Pendiente |
 
 ### 1. Solicitud pública
@@ -184,7 +184,7 @@ Errores del flujo: `404 INVITACION_NO_ENCONTRADA`, `410 INVITACION_VENCIDA`, `40
 
 ### 4. Login y API key
 
-> **Diseño objetivo — US-04 y US-02.** `POST /v1/auth/login`, `GET /v1/auth/me` y los endpoints de `/v1/api-keys` **todavía no están implementados**.
+> **US-04 y US-02.** El login de empresa y global, `POST /v1/auth/login`, `POST /v1/auth/logout`, `GET /v1/auth/me` y sus equivalentes en `/v1/admin/auth` **están implementados**. Los endpoints de `/v1/api-keys` **todavía no**.
 
 El usuario de empresa inicia sesión en `/login`. La sesión usa cookie `HttpOnly`, `Secure` en producción y `SameSite=Lax`, con expiración absoluta de 8 horas. Las acciones que modifican datos requieren antiforgery.
 
@@ -264,13 +264,13 @@ En desarrollo se usa un remitente que escribe el email completo en un archivo lo
 
 ## Endpoints previstos
 
-Todos los endpoints de esta tabla están **especificados pero no implementados**. Responden `404` hasta que su historia se complete.
+Todos los endpoints de esta tabla están **especificados**. La columna Estado indica si ya están implementados o si responden `404` hasta que su historia se complete.
 
 | Método | Ruta | Acceso | Historia | Estado |
 | --- | --- | --- | --- | --- |
 | `POST` | `/v1/solicitudes-alta` | Público con rate limit. | US-01 | No implementado |
-| `POST` | `/v1/admin/auth/login` | Público con rate limit. | US-04 | No implementado |
-| `POST` | `/v1/admin/auth/logout` | Administrador global. | US-04 | No implementado |
+| `POST` | `/v1/admin/auth/login` | Público con rate limit. | US-04 | Implementado |
+| `POST` | `/v1/admin/auth/logout` | Administrador global. | US-04 | Implementado |
 | `GET` | `/v1/admin/solicitudes` | Administrador global. | US-27 | No implementado |
 | `GET` | `/v1/admin/solicitudes/{id}` | Administrador global. | US-27 | No implementado |
 | `PUT` | `/v1/admin/solicitudes/{id}` | Administrador global. | US-27 | No implementado |
@@ -279,9 +279,9 @@ Todos los endpoints de esta tabla están **especificados pero no implementados**
 | `POST` | `/v1/admin/solicitudes/{id}/reenviar-invitacion` | Administrador global. | US-27 | No implementado |
 | `GET` | `/v1/invitaciones/{token}` | Público con rate limit. | US-28 | No implementado |
 | `POST` | `/v1/invitaciones/{token}/aceptar` | Público con rate limit. | US-28 | No implementado |
-| `POST` | `/v1/auth/login` | Público con rate limit. | US-04 | No implementado |
-| `POST` | `/v1/auth/logout` | Usuario autenticado. | US-04 | No implementado |
-| `GET` | `/v1/auth/me` | Usuario autenticado. | US-04 | No implementado |
+| `POST` | `/v1/auth/login` | Público con rate limit. | US-04 | Implementado |
+| `POST` | `/v1/auth/logout` | Usuario autenticado. | US-04 | Implementado |
+| `GET` | `/v1/auth/me` | Usuario autenticado. | US-04 | Implementado |
 | `POST` | `/v1/api-keys` | Administrador de empresa. | US-02 | No implementado |
 | `GET` | `/v1/api-keys` | Administrador de empresa. | US-02 | No implementado |
 | `DELETE` | `/v1/api-keys/{id}` | Administrador de empresa. | US-02 | No implementado |

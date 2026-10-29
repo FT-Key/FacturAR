@@ -10,5 +10,6 @@ public static class MongoCollections
     public const string Comprobantes = "comprobantes";
     public const string Outbox = "outbox";
     public const string Eventos = "eventos";
+    public const string Administradores = "administradores";
     public const string Webhooks = "webhooks";
 }

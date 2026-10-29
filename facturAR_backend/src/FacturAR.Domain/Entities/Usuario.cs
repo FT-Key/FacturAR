@@ -10,5 +10,7 @@ public sealed class Usuario
     public string PasswordHash { get; set; } = string.Empty;
     public RolUsuario Rol { get; set; } = RolUsuario.Emisor;
     public bool Activo { get; set; } = true;
+    public DateTime? EmailVerificadoAt { get; set; }
+    public DateTime? UltimoAcceso { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

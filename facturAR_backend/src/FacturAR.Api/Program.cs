@@ -1,12 +1,18 @@
+using System.Threading.RateLimiting;
+using FacturAR.Api.Auth;
+using FacturAR.Api.Security;
 using FacturAR.Application.Abstractions;
+using FacturAR.Application.Auth;
 using FacturAR.Application.Comprobantes;
 using FacturAR.Contracts.Comunes;
 using FacturAR.Contracts.Comprobantes;
 using FacturAR.Contracts.Sistema;
 using FacturAR.Domain.Validation;
+using FacturAR.Infrastructure.LoginIntent;
 using FacturAR.Infrastructure.Mongo;
+using FacturAR.Infrastructure.Password;
 using FacturAR.Infrastructure.Repositories;
-using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.RateLimiting;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -19,24 +25,89 @@ var mongoOptions = builder.Configuration
     .GetSection(MongoOptions.SectionName)
     .Get<MongoOptions>() ?? new MongoOptions();
 
+var authOptions = builder.Configuration
+    .GetSection("Auth")
+    .Get<AuthOptions>() ?? new AuthOptions();
+
+var bootstrapAdminOptions = builder.Configuration
+    .GetSection("BootstrapAdmin")
+    .Get<BootstrapAdminOptions>() ?? new BootstrapAdminOptions();
+
 var buildInformation = new BuildInformation(
     builder.Configuration[BuildInformation.VersionKey] ?? BuildInformation.DefaultVersion,
     builder.Configuration[BuildInformation.CommitKey] ?? BuildInformation.UnknownCommit);
 
 MongoSerialization.Configure();
 
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton(mongoOptions);
+builder.Services.AddSingleton(authOptions);
+builder.Services.AddSingleton(bootstrapAdminOptions);
 builder.Services.AddSingleton(buildInformation);
 builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient(mongoOptions.ConnectionString));
 builder.Services.AddSingleton(sp =>
     sp.GetRequiredService<IMongoClient>().GetDatabase(mongoOptions.DatabaseName));
 builder.Services.AddSingleton<MongoDbContext>();
+
 builder.Services.AddScoped<IComprobanteRepository, ComprobanteRepository>();
 builder.Services.AddScoped<VerificarComprobanteService>();
+builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+builder.Services.AddScoped<IAdministradorRepository, AdministradorRepository>();
+builder.Services.AddScoped<IContribuyenteRepository, ContribuyenteRepository>();
+builder.Services.AddScoped<IEventoAuditoriaRepository, EventoAuditoriaRepository>();
+builder.Services.AddSingleton<IPasswordHasher>(_ => new PasswordHasher(authOptions.PasswordHashIterations));
+builder.Services.AddSingleton<ILoginIntentStore>(_ =>
+    new LoginIntentStore(authOptions.Login.MaxIntentosFallidos, TimeSpan.FromMinutes(authOptions.Login.MinutosBloqueo)));
+builder.Services.AddScoped<ITenantContext, TenantContext>();
+builder.Services.AddScoped<AutenticarEmpresaService>();
+builder.Services.AddScoped<AutenticarAdminGlobalService>();
+builder.Services.AddScoped<RegistrarAccesoService>();
+builder.Services.AddScoped<AdminGlobalBootstrapService>();
+builder.Services.AddHostedService<AdminGlobalBootstrapHostedService>();
+
+builder.Services.AddFacturarCookies(authOptions, builder.Environment.IsDevelopment());
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("login", context =>
+    {
+        var ip = context.Connection.RemoteIpAddress?.ToString() ?? "desconocido";
+
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = authOptions.Login.RateLimitPorIp,
+            Window = TimeSpan.FromMinutes(authOptions.Login.VentanaRateLimitMinutos),
+            QueueLimit = 0
+        });
+    });
+
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        if (context.HttpContext.Response.HasStarted)
+        {
+            return;
+        }
+
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new ErrorResponse("RATE_LIMIT", "Se superó el límite de intentos de inicio de sesión."),
+            cancellationToken);
+    };
+});
 
 var app = builder.Build();
 
-app.UseExceptionHandler();
+app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
+{
+    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsJsonAsync(new ErrorResponse(
+        "ERROR_INTERNO",
+        "Ocurrió un error inesperado."));
+}));
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {
@@ -135,6 +206,8 @@ app.MapGet("/v1/comprobantes/verificar/{cae}", async (
 .Produces<VerificacionResponse>()
 .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
 .Produces<ErrorResponse>(StatusCodes.Status404NotFound);
+
+app.MapAuthEndpoints();
 
 app.Run();
 

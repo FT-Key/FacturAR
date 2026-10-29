@@ -6,3 +6,9 @@ public enum RolUsuario
     Emisor = 2,
     Consulta = 3
 }
+
+public enum RolGlobal
+{
+    SuperAdmin = 1,
+    Soporte = 2
+}
