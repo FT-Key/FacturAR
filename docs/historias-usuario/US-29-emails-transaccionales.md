@@ -304,7 +304,7 @@ Orden: US-29 → US-01 → US-27 → US-28. US-29 no depende de ninguna otra his
 
 ## Notas de alcance
 
-- No implementa outbox, reintentos automáticos ni webhooks; eso corresponde a US-17 y US-23.
+- No implementa outbox ni reintentos automáticos; eso corresponde a US-17. Los webhooks están fuera de alcance (US-23).
 - No implementa plantillas editables desde el portal.
 - No implementa email marketing ni notificaciones masivas.
 - No se envían API keys por email.

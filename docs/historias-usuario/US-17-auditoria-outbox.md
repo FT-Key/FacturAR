@@ -5,7 +5,7 @@
 **Estimación:** 2 días  
 **Requisito:** RF-17  
 **Depende de:** US-05, US-27, US-28  
-**Habilita:** US-23, US-30
+**Habilita:** US-30
 
 ## Historia
 
@@ -245,7 +245,7 @@ Todas se leen con el prefijo `Outbox__` y se pueden sobrescribir por variable de
 | US-27 | Aporta la aprobación y el rechazo: eventos de `Administrador` |
 | US-28 | Aporta la activación: evento `CuentaActivada` |
 | US-29 | **Opcional**: los emails pueden migrar a la outbox. No bloquea el cierre de US-17 |
-| US-23 (stretch) | Los webhooks reutilizarán la outbox como mecanismo de entrega |
+| US-23 (fuera de alcance) | Los webhooks reutilizarán la outbox como mecanismo de entrega |
 | US-30 | El manual online documentará los eventos de auditoría relevantes para integradores |
 
 ### Documentación a sincronizar

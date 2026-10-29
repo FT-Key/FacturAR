@@ -5,7 +5,7 @@
 **Estimación:** 2 días  
 **Requisito:** RF-15  
 **Depende de:** US-03, US-05  
-**Habilita:** US-16, US-21, US-24
+**Habilita:** US-16, US-21
 
 ## Historia
 
@@ -196,7 +196,7 @@ Los valores se leen con el prefijo `Soap__` y se pueden sobrescribir por variabl
 | US-07 | Aporta la numeración atómica que el SOAP consume sin cambios |
 | US-16 | Comparte el mismo endpoint y el mismo WSDL: agrega operaciones de consulta |
 | US-21 | Debe incluir el WSDL y ejemplos de request/response en la documentación y en la colección Postman |
-| US-24 (stretch) | El contrato XML desacopla el simulador del futuro adaptador AFIP real |
+| US-24 (fuera de alcance) | El contrato XML desacopla el simulador del futuro adaptador AFIP real |
 
 ### Documentación a sincronizar
 

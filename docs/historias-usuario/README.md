@@ -1,6 +1,8 @@
 # Historias de usuario
 
-El alcance obligatorio tiene **26 historias y 47 días ideales de trabajo**, y **se implementan en un único sprint**. US-19, US-20 y US-31 están completadas y archivadas; quedan 23 historias activas. Las US-22 a US-25 son mejoras opcionales (stretch) y quedan en el Product Backlog.
+El alcance obligatorio tiene **26 historias y 47 días ideales de trabajo**, y **se implementan en un único sprint**. US-19, US-20 y US-31 están completadas y archivadas; quedan 23 historias activas.
+
+Las US-22 a US-25 **quedan fuera del alcance del proyecto** y están archivadas en [`docs/historias-usuario-fuera-de-alcance/`](../historias-usuario-fuera-de-alcance/README.md). No se implementan ni se cuentan para el avance del MVP.
 
 El sprint se ejecuta en **6 fases** que son, al mismo tiempo, el orden de implementación: las historias de una fase dependen de las anteriores. Dentro de una fase, las historias sin dependencia mutua se pueden tomar en paralelo.
 
@@ -16,6 +18,7 @@ Las US-27 a US-30 completan el onboarding profesional: solicitud pública, aprob
 | [`docs/plan-implementacion.md`](../plan-implementacion.md) | **Plan maestro**: fases del sprint, paralelismo, prerrequisitos de infraestructura, condición de salida y checklists de demo y de entrega. |
 | [`docs/modelos.md`](../modelos.md) | Forma de los datos en MongoDB: entidades, campos, colecciones e índices. |
 | [`docs/requisitos-funcionales.md`](../requisitos-funcionales.md) | Qué debe hacer el sistema, con la trazabilidad RF ↔ US. |
+| [`docs/historias-usuario-fuera-de-alcance/README.md`](../historias-usuario-fuera-de-alcance/README.md) | Historias archivadas que **no entran** en el alcance del proyecto (US-22 a US-25). |
 
 ## Índice
 
@@ -49,10 +52,6 @@ La columna **Orden** es la posición dentro del sprint. La columna **Contrato** 
 | — | [US-19](../historias-usuario-terminadas/US-19-docker-compose.md) | Docker y Docker Compose | Infraestructura | — | Alta | 2 | RF-21 | Completada | — |
 | — | [US-20](../historias-usuario-terminadas/US-20-integracion-continua.md) | Integración continua (CI) | Infraestructura | — | Alta | 1 | RF-21 | Completada | — |
 | — | [US-31](../historias-usuario-terminadas/US-31-entrega-continua-azure.md) | Entrega continua y despliegue en Azure | Infraestructura | — | Alta | 3 | RNF-20 / RF-21 | Completada | — |
-| — | [US-22](US-22-mvc-anulacion.md) | Anulación administrativa MVC | Administración | Stretch | Baja | 2 | RF-19 | Stretch | No |
-| — | [US-23](US-23-webhooks.md) | Webhooks de eventos | Integraciones | Stretch | Baja | 2 | RF-20 | Stretch | No |
-| — | [US-24](US-24-afip-real.md) | Adaptador AFIP real | Interoperabilidad | Stretch | Baja | 3 | RF-22 | Stretch | No |
-| — | [US-25](US-25-grpc-graphql.md) | gRPC o GraphQL | Interoperabilidad | Stretch | Baja | 3 | RNF-15 | Stretch | No |
 
 ### Estado real de la implementación
 
@@ -84,7 +83,7 @@ Ese recorrido es el criterio de avance del sprint. Si alguna historia del recorr
 | US-02 | US-04, US-28 | US-03, US-14, US-18 |
 | US-03 | US-02 | US-05, US-09, US-15, US-16 |
 | US-04 | — | US-02, US-05, US-07, US-12, US-13, US-14, US-27, US-28 |
-| US-05 | US-03, US-07 | US-06, US-08, US-09, US-11, US-13, US-17, US-18, US-21, US-24 |
+| US-05 | US-03, US-07 | US-06, US-08, US-09, US-11, US-13, US-17, US-18, US-21 |
 | US-06 | US-05 | US-21 |
 | US-07 | US-04 | US-05, US-08, US-18 |
 | US-08 | US-05 | US-09, US-10, US-12, US-13 |
@@ -94,17 +93,13 @@ Ese recorrido es el criterio de avance del sprint. Si alguna historia del recorr
 | US-12 | US-04, US-09, US-10 | US-21 |
 | US-13 | US-04, US-05, US-10 | US-21 |
 | US-14 | US-02, US-04, US-28 | US-21, US-30 |
-| US-15 | US-03, US-05 | US-16, US-21, US-24 |
+| US-15 | US-03, US-05 | US-16, US-21 |
 | US-16 | US-03, US-09 | US-21 |
-| US-17 | US-05, US-27, US-28 | US-23, US-30 |
+| US-17 | US-05, US-27, US-28 | US-30 |
 | US-18 | US-02, US-04, US-07 | US-11, US-21 |
 | US-19 | — | US-20 |
 | US-20 | US-19 | US-21, US-31 |
 | US-21 | Todas las implementadas; CI depende de US-20 y CD de US-31 | — |
-| US-22 | US-04, US-05, US-08 | — |
-| US-23 | US-02, US-05, US-17 | — |
-| US-24 | US-05, US-15 | — |
-| US-25 | US-05, US-09 | — |
 | US-27 | US-01, US-04, US-29 | US-28 |
 | US-28 | US-04, US-27, US-29 | US-02, US-14 |
 | US-29 | US-19 | US-01, US-27, US-28 |
@@ -170,7 +165,7 @@ flowchart TD
 5. Respetar [`docs/contratos-api.md`](../contratos-api.md): si la historia y el contrato se contradicen, manda el contrato.
 6. Marcar un checkbox solo con evidencia verificable.
 7. Al completar todos los criterios y el Definition of Done, mover el archivo a `historias-usuario-terminadas/` y actualizar este índice.
-8. No implementar historias stretch sin pedido explícito.
+8. No implementar historias fuera de alcance sin pedido explícito; están archivadas en `docs/historias-usuario-fuera-de-alcance/`.
 
 ## Leyenda de estado
 
@@ -178,6 +173,6 @@ flowchart TD
 - **Base implementada:** existe el esqueleto funcional, falta completar la historia.
 - **Parcial:** parte de la historia está cubierta.
 - **Completada:** todos los criterios y el Definition of Done están verificados.
-- **Stretch:** fuera del alcance obligatorio.
+- **Fuera de alcance:** archivada en `docs/historias-usuario-fuera-de-alcance/`; no se implementa salvo pedido explícito.
 
 La columna **Contrato** es independiente del estado: `Sí` significa que la historia tiene su contrato técnico definido y listo para implementar, no que la funcionalidad exista.

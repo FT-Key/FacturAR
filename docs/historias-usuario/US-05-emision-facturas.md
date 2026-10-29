@@ -5,7 +5,7 @@
 **Estimación:** 3 días  
 **Requisito:** RF-04  
 **Depende de:** US-03, US-07  
-**Habilita:** US-06, US-08, US-09, US-11, US-13, US-17, US-18, US-21, US-24
+**Habilita:** US-06, US-08, US-09, US-11, US-13, US-17, US-18, US-21
 
 ## Historia
 
@@ -312,7 +312,7 @@ Ejemplo (tipo C): 1 × 10000; `ImporteNeto` 10000, `ImporteIva` 0, `ImporteTotal
 | Transición | Estado | Quién la dispara | Alcance |
 | --- | --- | --- | --- |
 | (inexistente) → `Emitido` | `Emitido` (1) | `EmitirComprobanteService` al insertar | Implementada en US-05. |
-| `Emitido` → `Anulado` | `Anulado` (2) | Anulación administrativa | US-22, stretch. Fuera de alcance. |
+| `Emitido` → `Anulado` | `Anulado` (2) | Anulación administrativa | US-22, fuera de alcance. |
 | `Emitido` → `Rechazado` | `Rechazado` (3) | — | No hay endpoint en el MVP. |
 
 - `Borrador` (0) no se usa en US-05: no existe un endpoint que cree borradores.

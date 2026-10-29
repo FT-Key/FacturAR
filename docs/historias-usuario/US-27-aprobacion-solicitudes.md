@@ -386,7 +386,7 @@ Invitación (`Invitacion`):
 | US-29 | `IEmailSender`, `EmailService`, `Portal__BaseUrl` | Las 3 plantillas de US-27 | **Antes de US-27** |
 | US-28 | El alta del usuario administrador y el consumo de la invitación | La `Invitacion` con su `TokenHash` y `ExpiraAt` | **Después** |
 | US-17 | Outbox, reintentos y auditoría completa | Los eventos `solicitud.aprobada`, `solicitud.rechazada`, `invitacion.reenviada` y `email.*` | **Después**: puede migrar los emails a la outbox |
-| US-22 (stretch) | — | Podría anular solicitudes aprobadas | Fuera de alcance |
+| US-22 (fuera de alcance) | — | Podría anular solicitudes aprobadas | Fuera de alcance |
 
 ### Dependencias técnicas
 

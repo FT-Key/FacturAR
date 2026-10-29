@@ -248,7 +248,7 @@ La nota es un comprobante más: tiene **su propio CAE**, **su propio vencimiento
 
 - Una nota no puede ser el original de otra nota: el original debe ser una factura de la misma base. Por eso el `ImporteOriginalAjustado` solo existe en facturas.
 - El original debe estar en `Emitido`. `Anulado` (2) y `Rechazado` (3) devuelven `409 COMPROBANTE_ANULADO`.
-- La anulación administrativa de un comprobante es US-22 (stretch) y está fuera de alcance.
+- La anulación administrativa de un comprobante es US-22 y está fuera de alcance.
 
 ### Concurrencia y atomicidad
 
@@ -280,7 +280,7 @@ update : { $inc: { ImporteOriginalAjustado: delta } }
 | US-12 / US-13 | El portal lista notas y permite emitirlas. |
 | US-17 | Auditoría y outbox de la emisión de notas. |
 | US-18 | El seed puede crear las secuencias de los seis tipos de nota, además de las tres de factura. No es obligatorio: la creación es implícita. |
-| US-22 | Anulación administrativa de un comprobante ya emitido (stretch, fuera de alcance). |
+| US-22 | Anulación administrativa de un comprobante ya emitido (fuera de alcance). |
 
 ## Casos de prueba
 
