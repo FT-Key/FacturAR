@@ -47,7 +47,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Responde 200 o 503', () => pm.expect([200, 503]).to.include(pm.response.code));",
-                  "pm.test('Devuelve estado', () => pm.expect(pm.response.json()).to.have.property('estado'));"
+                  "pm.test('Devuelve estado', () => pm.expect(pm.response.json()).to.have.property('status'));",
+                  "pm.test('Informa la versión y el commit', () => { const cuerpo = pm.response.json(); pm.expect(cuerpo).to.have.property('version'); pm.expect(cuerpo).to.have.property('commit'); });"
                 ]
               }
             }
@@ -60,7 +61,34 @@
               "host": ["{{baseUrl}}"],
               "path": ["health"]
             },
-            "description": "Health check. Devuelve 503 si MongoDB no está disponible."
+            "description": "Readiness. Devuelve 503 si MongoDB no está disponible."
+          },
+          "response": []
+        },
+        {
+          "name": "Health live",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Devuelve estado', () => pm.expect(pm.response.json()).to.have.property('status'));",
+                  "pm.test('Informa la versión y el commit', () => { const cuerpo = pm.response.json(); pm.expect(cuerpo).to.have.property('version'); pm.expect(cuerpo).to.have.property('commit'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/live",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "live"]
+            },
+            "description": "Liveness. No consulta MongoDB y siempre responde 200."
           },
           "response": []
         },

@@ -17,7 +17,12 @@ RUN dotnet publish facturAR_frontend/src/FacturAR.Web/FacturAR.Web.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
+ARG SOURCE_COMMIT=unknown
+ARG APP_VERSION=0.1.0
+
 ENV ASPNETCORE_URLS=http://+:8080
+ENV SOURCE_COMMIT=$SOURCE_COMMIT
+ENV APP_VERSION=$APP_VERSION
 EXPOSE 8080
 
 COPY --from=build /app/publish .
