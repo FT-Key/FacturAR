@@ -284,7 +284,7 @@ GET /v1/comprobantes/verificar/{cae}
 - `400 CAE_INVALIDO` si el CAE no tiene exactamente 14 dígitos.
 - `404 COMPROBANTE_NO_ENCONTRADO` si no existe.
 - La respuesta **nunca** incluye `Id`, `ContribuyenteId`, `IdempotencyKey`, `Items`, `Observaciones` ni datos del emisor que no figuren en el comprobante.
-- La respuesta de un comprobante anulado mantiene el estado `Anulado` visible. La anulación administrativa es US-22 (stretch).
+- La respuesta de un comprobante anulado mantiene el estado `Anulado` visible. La anulación administrativa es US-22, fuera de alcance.
 
 ## 9. Salud del servicio
 
@@ -356,8 +356,8 @@ En Development, el seed deja además una API key de demostración de la empresa 
 - Registro libre de usuarios. El alta es **solicitud → aprobación → invitación → activación**.
 - GraphQL ni gRPC.
 - Multi-moneda.
-- Webhooks (US-23 es stretch).
-- Integración real con AFIP (US-24 es stretch).
+- Webhooks (US-23, fuera de alcance).
+- Integración real con AFIP (US-24, fuera de alcance).
 - Kubernetes: no se usa. Decisión de plataforma en [`docs/plan-implementacion.md`](plan-implementacion.md) §2.
 
 ## 16. Trazabilidad

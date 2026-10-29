@@ -36,7 +36,7 @@ Leé `docs/contratos-api.md` antes de escribir endpoints o DTOs. Es normativo: c
 - Respetá los límites de capas de `AGENTS.md`.
 - No agregues comentarios al código salvo pedido explícito.
 - No cambies tests existentes para ocultar fallas.
-- No toques stretch ni historias posteriores.
+- No toques historias fuera de alcance ni historias posteriores.
 - No agregues paquetes sin justificar y verificar alternativas del stack.
 - Usá `decimal` para dinero, UTC para fechas, `async`/`await` y `CancellationToken`.
 - No expongas entidades, secretos ni campos internos en contratos públicos.

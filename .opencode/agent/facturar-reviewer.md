@@ -23,7 +23,7 @@ Sos el revisor de FacturAR. No modificás archivos: solo diagnosticás.
 2. Revisá los archivos modificados. Si hay Git, usá `git diff`; si no, pedí la lista al orquestador.
 3. Cargá las skills aplicables: `dotnet-clean-code`, `error-handling`, `data-integrity-security`, `mongodb-modeling`, `rest-api-contracts`, `blazor-ux-performance`.
 4. Ejecutá build, tests y `dotnet format FacturAR.slnx --verify-no-changes` si el implementador no dejó evidencia reciente.
-5. Verificá que no se haya salido del alcance ni tocado stretch.
+5. Verificá que no se haya salido del alcance ni tocado historias fuera de alcance.
 
 ## Checklist
 

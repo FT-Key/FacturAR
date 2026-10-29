@@ -5,7 +5,7 @@
 **Estimación:** 3 días  
 **Requisito:** RNF-20 / RF-21  
 **Depende de:** US-19, US-20  
-**Habilita:** US-21, US-26  
+**Habilita:** US-21  
 **Estado:** Completada
 
 ## Historia
@@ -24,7 +24,7 @@ US-20 valida el código con CI. Esta historia agrega el CD de despliegue:
 - No se usa ACR en esta historia. ACR es un registro privado de Azure y queda como mejora posterior.
 - Azure **no detecta** cambios en Docker Hub por sí solo. El workflow de GitHub Actions ejecuta `azure/webapps-deploy@v3` con el tag SHA para actualizar cada Web App.
 
-El paso a paso completo, con variables, secretos, nombres de imágenes, creación de recursos, smoke tests y rollback, está en [`docs/despliegue-azure.md`](../../despliegue-azure.md). Esta historia no duplica ese procedimiento: lo referencia y registra la evidencia.
+El paso a paso completo, con variables, secretos, nombres de imágenes, creación de recursos, smoke tests y rollback, está en [`docs/despliegue-azure.md`](../despliegue-azure.md). Esta historia no duplica ese procedimiento: lo referencia y registra la evidencia.
 
 La guía sigue el mismo patrón que el proyecto ICS: GitHub Actions construye la imagen, la publica en Docker Hub y despliega en Azure App Service. La diferencia es que FacturAR tiene dos contenedores, API y portal, y ambos se despliegan con el mismo SHA.
 
@@ -158,11 +158,11 @@ Scenario: Rollback
 - Se eligió B1 en lugar de F1 porque F1 no soporta Always On y las apps se dormían. Always On está activo en la API y en el portal.
 - Environment `production` en GitHub sin required reviewers, wait timer 0 y sin restricción de ramas, para no frenar el deploy automático.
 - Los hostnames cortos `https://<app>.azurewebsites.net` no existen para estas apps; por eso el workflow usa `AZURE_API_URL` y `AZURE_WEB_URL` con las URLs completas, mientras que `AZURE_API_APP_NAME` y `AZURE_WEB_APP_NAME` guardan solo el nombre corto del recurso.
-- La guía operativa está en [`docs/despliegue-azure.md`](../../despliegue-azure.md).
+- La guía operativa está en [`docs/despliegue-azure.md`](../despliegue-azure.md).
 
 ### Rollback
 
-Rollback documentado en [`docs/despliegue-azure.md`](../../despliegue-azure.md) §9 y validado: el procedimiento despliega un tag SHA ya publicado en Docker Hub con `az webapp config container set --container-image-name <usuario>/facturar-<api|web>:<sha> --container-registry-url https://index.docker.io`, el mismo mecanismo que aplica el CD, y cada versión conserva su tag inmutable (`8a3541507a5eabb566571ad843f19e9c7baa0f3f` y `077a247695125defb70ae325f5bad052023fb398`), de modo que se puede volver a cualquiera de las dos.
+Rollback documentado en [`docs/despliegue-azure.md`](../despliegue-azure.md) §9 y validado: el procedimiento despliega un tag SHA ya publicado en Docker Hub con `az webapp config container set --container-image-name <usuario>/facturar-<api|web>:<sha> --container-registry-url https://index.docker.io`, el mismo mecanismo que aplica el CD, y cada versión conserva su tag inmutable (`8a3541507a5eabb566571ad843f19e9c7baa0f3f` y `077a247695125defb70ae325f5bad052023fb398`), de modo que se puede volver a cualquiera de las dos.
 
 ## Notas de alcance
 

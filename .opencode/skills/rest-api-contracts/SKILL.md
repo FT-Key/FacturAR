@@ -7,7 +7,7 @@ description: Define contratos REST de FacturAR con rutas /v1, DTOs, códigos HTT
 
 ## Alcance
 
-- FacturAR usa REST en el MVP. GraphQL/gRPC es stretch (US-25) y no se implementa sin pedido explícito.
+- FacturAR usa REST en el MVP. GraphQL/gRPC está fuera de alcance (US-25) y no se implementa sin pedido explícito.
 - Versioná rutas con `/v1/...`.
 - Usá sustantivos plurales y verbos HTTP con su semántica: `GET` seguro, `POST` creación, `PUT`/`PATCH` actualización, `DELETE` baja.
 

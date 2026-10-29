@@ -413,7 +413,7 @@ Implementado en esta base:
 
 Documentado y pendiente de implementación:
 
-- `AdministradorFacturar`, `SolicitudAltaEmpresa`, `Invitacion`, `EmailMessage`, `Webhook` y `WebhookEntrega` (US-23, stretch).
+- `AdministradorFacturar`, `SolicitudAltaEmpresa`, `Invitacion`, `EmailMessage` y `Webhook`/`WebhookEntrega` (US-23, fuera de alcance).
 - Enums `RolGlobal`, `EstadoSolicitud` y `EstadoInvitacion`.
 - Solicitud pública, aprobación, invitación, activación y emails.
 - Autenticación de empresa y administrador global.

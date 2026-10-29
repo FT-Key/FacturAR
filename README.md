@@ -470,4 +470,4 @@ Para rollback, cambiar `IMAGE_TAG` en `.env.production` por el SHA de un build a
 - Los montos se modelan con `decimal` (MongoDB `Decimal128`).
 - Las fechas se almacenan en UTC.
 - El equipo es de 4-5 personas con una ventana de 3 semanas.
-- El alcance obligatorio tiene 26 historias y 47 días ideales, y se implementan en un único sprint; US-22 a US-25 son stretch.
+- El alcance obligatorio tiene 26 historias y 47 días ideales, y se implementan en un único sprint; US-22 a US-25 quedan fuera del alcance del proyecto y están archivadas en `docs/historias-usuario-fuera-de-alcance/`.

@@ -2,7 +2,7 @@
 
 ## Contexto
 
-FacturAR es un simulador de facturación electrónica argentina con onboarding de empresas. El alcance obligatorio está en `docs/historias-usuario/` (US-01 a US-21 y US-27 a US-30) y se implementa en un único sprint; US-19, US-20 y US-31 están completadas y archivadas en `docs/historias-usuario-terminadas/`. Las US-22 a US-25 son stretch y no se implementan sin pedido explícito.
+FacturAR es un simulador de facturación electrónica argentina con onboarding de empresas. El alcance obligatorio está en `docs/historias-usuario/` (US-01 a US-21 y US-27 a US-30) y se implementa en un único sprint; US-19, US-20 y US-31 están completadas y archivadas en `docs/historias-usuario-terminadas/`. Las US-22 a US-25 quedan fuera del alcance del proyecto, están archivadas en `docs/historias-usuario-fuera-de-alcance/` y no se implementan sin pedido explícito.
 
 Stack: .NET 10, ASP.NET Core Minimal API, Blazor Web App (Server) + Razor Pages, MongoDB 8+ con `MongoDB.Driver`, xUnit, Docker Compose y GitHub Actions.
 
@@ -22,6 +22,7 @@ facturAR_frontend/src/FacturAR.Web/  Blazor Server + Razor Pages. Nunca accede a
 docs/
   historias-usuario/
   historias-usuario-terminadas/
+  historias-usuario-fuera-de-alcance/
   postman/
   contratos-api.md
   plan-implementacion.md

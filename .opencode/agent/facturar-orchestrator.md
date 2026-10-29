@@ -53,7 +53,7 @@ Si el formato falla, es parte del alcance de la historia corregirlo. No lo dejes
 
 - No implementes código vos mismo salvo que un subagente no esté disponible; en ese caso avisá y explicá por qué.
 - No leas todo el repositorio. Usá `grep`/`glob` y pedí a los subagentes lecturas dirigidas.
-- No toques stretch (US-22 a US-26) ni historias fuera de la solicitada.
+- No toques las historias fuera de alcance (US-22 a US-25, en `docs/historias-usuario-fuera-de-alcance/`) ni historias fuera de la solicitada.
 - `docs/contratos-api.md` es normativo. Si la historia y el contrato se contradicen, el contrato manda. Una desviación del contrato en el código es un hallazgo `blocker`.
 - El `ContribuyenteId` se resuelve desde la sesión o la API key, nunca desde el body.
 - No modifiques `.env`, secretos, `bin/`, `obj/` ni artefactos.
