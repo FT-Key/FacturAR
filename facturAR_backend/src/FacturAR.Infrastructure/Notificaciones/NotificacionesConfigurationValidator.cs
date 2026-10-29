@@ -20,9 +20,10 @@ public static class NotificacionesConfigurationValidator
             throw new InvalidOperationException("Email:Host es obligatorio cuando Email:Provider es Smtp.");
         }
 
-        if (!Uri.TryCreate(notificaciones.PortalBaseUrl, UriKind.Absolute, out _))
+        if (!Uri.TryCreate(notificaciones.PortalBaseUrl, UriKind.Absolute, out var portalBaseUrl)
+            || (portalBaseUrl.Scheme != Uri.UriSchemeHttp && portalBaseUrl.Scheme != Uri.UriSchemeHttps))
         {
-            throw new InvalidOperationException("Portal:BaseUrl debe ser una URL absoluta.");
+            throw new InvalidOperationException("Portal:BaseUrl debe ser una URL absoluta con esquema http o https.");
         }
 
         if (!string.IsNullOrWhiteSpace(notificaciones.AdminNotificationEmail)

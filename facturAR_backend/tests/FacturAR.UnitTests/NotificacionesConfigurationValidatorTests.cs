@@ -42,6 +42,39 @@ public sealed class NotificacionesConfigurationValidatorTests
     }
 
     [Fact]
+    public void Validar_ConPortalBaseUrlSinEsquema_LanzaInvalidOperationException()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            NotificacionesConfigurationValidator.Validar(
+                new EmailOptions { Provider = "Smtp", Host = "smtp.dominio.com" },
+                new NotificacionesOptions { PortalBaseUrl = "portal.dominio.com" },
+                esDevelopment: false));
+
+        Assert.Contains("Portal:BaseUrl", ex.Message);
+    }
+
+    [Fact]
+    public void Validar_ConPortalBaseUrlConEsquemaNoHttp_LanzaInvalidOperationException()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            NotificacionesConfigurationValidator.Validar(
+                new EmailOptions { Provider = "Smtp", Host = "smtp.dominio.com" },
+                new NotificacionesOptions { PortalBaseUrl = "ftp://portal.dominio.com" },
+                esDevelopment: false));
+
+        Assert.Contains("Portal:BaseUrl", ex.Message);
+    }
+
+    [Fact]
+    public void Validar_ConPortalBaseUrlHttp_NoLanza()
+    {
+        NotificacionesConfigurationValidator.Validar(
+            new EmailOptions { Provider = "Smtp", Host = "smtp.dominio.com" },
+            new NotificacionesOptions { PortalBaseUrl = "http://localhost:5116" },
+            esDevelopment: false);
+    }
+
+    [Fact]
     public void Validar_ConAdminNotificationEmailInvalida_LanzaInvalidOperationException()
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>
