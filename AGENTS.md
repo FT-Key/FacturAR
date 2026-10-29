@@ -2,7 +2,7 @@
 
 ## Contexto
 
-FacturAR es un simulador de facturación electrónica argentina con onboarding de empresas. El alcance obligatorio está en `docs/historias-usuario/` (US-01 a US-21 y US-27 a US-31); US-19, US-20 y US-31 están completadas y archivadas en `docs/historias-usuario-terminadas/`. Las US-22 a US-26 son stretch y no se implementan sin pedido explícito.
+FacturAR es un simulador de facturación electrónica argentina con onboarding de empresas. El alcance obligatorio está en `docs/historias-usuario/` (US-01 a US-21 y US-27 a US-30) y se implementa en un único sprint; US-19, US-20 y US-31 están completadas y archivadas en `docs/historias-usuario-terminadas/`. Las US-22 a US-25 son stretch y no se implementan sin pedido explícito.
 
 Stack: .NET 10, ASP.NET Core Minimal API, Blazor Web App (Server) + Razor Pages, MongoDB 8+ con `MongoDB.Driver`, xUnit, Docker Compose y GitHub Actions.
 
@@ -73,7 +73,7 @@ Los tests con `MongoFact` se omiten si no existe `MONGO_CONNECTION_STRING` o `Mo
 
 ## Despliegue
 
-- Plataforma objetivo: Azure App Service con contenedores de Docker Hub. **No se usa Kubernetes**; la decisión está en `docs/historias-usuario/US-26-kubernetes.md`.
+- Plataforma objetivo: Azure App Service con contenedores de Docker Hub. **No se usa Kubernetes**; la decisión está en `docs/plan-implementacion.md` §2.
 - La CI valida build, formato y tests, y construye las imágenes sin publicarlas. La CD publica en Docker Hub y despliega en Azure solo si la CI del mismo commit fue exitosa.
 - El smoke test del CD compara el `commit` de `/health/live` con el SHA esperado: si no coinciden, el deploy falla.
 - El rollback automático está configurado en el job `rollback` del CD. El rollback manual se dispara con `workflow_dispatch` y `modo=rollback` + `image_tag=<sha>`.

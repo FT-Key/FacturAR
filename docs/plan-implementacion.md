@@ -25,6 +25,24 @@ Al terminar, el sistema tiene que permitir esta cadena completa, sin pasos manua
 
 **Criterio de éxito:** un grupo externo, con solo el manual y una API key, puede emitir y consultar comprobantes sin acceso al código ni a la base de datos.
 
+### El escenario concreto de arranque
+
+El criterio anterior, traducido al caso real que hay que entregar: un compañero de otro proyecto tiene que poder integrarse con nuestra API sin que nadie lo acompañe.
+
+1. El compañero **se registra** en el portal público con su CUIT, su razón social y su email (`US-01`).
+2. Nosotros lo **aprobamos** desde la consola global (`US-27`).
+3. Le **mandamos el enlace** de activación por email (`US-29`).
+4. Él lo abre, **define su contraseña** y su cuenta queda activa (`US-28`).
+5. Entra al portal con su sesión de empresa (`US-04`).
+6. Desde **API keys** genera su clave y la ve una sola vez (`US-14`, `US-02`).
+7. Con esa clave **emite su primer comprobante** desde su propia aplicación (`US-03`, `US-07`, `US-05`).
+8. Si su aplicación **reintenta** por timeout, recibe el mismo comprobante (`US-06`).
+9. **Consulta** lo emitido, **descarga el PDF** y pide el último autorizado (`US-09`, `US-10`).
+10. Consulta el **manual online** y la **colección de Postman** para el resto de los casos (`US-30`, `US-21`).
+11. Verifica su comprobante por CAE desde el portal (`US-11`).
+
+Si alguno de esos once pasos no funciona de punta a punta, **el sprint todavía no terminó**, por más historias que figuren como cerradas. Las historias que sostienen directamente ese recorrido son US-01, US-27, US-28, US-29, US-04, US-02, US-03, US-05, US-06, US-07, US-09, US-10, US-14, US-30 y US-21: son el mínimo que hay que priorizar si el tiempo aprieta.
+
 ## 2. Decisiones de plataforma
 
 | Decisión | Motivo |
@@ -33,8 +51,20 @@ Al terminar, el sistema tiene que permitir esta cadena completa, sin pasos manua
 | MongoDB Atlas M0 | Ya es replica set, requisito de las transacciones de US-05, US-07 y US-08. |
 | Docker Hub público con tags inmutables por SHA | El deploy nunca usa `latest`. Permite rollback instantáneo a cualquier versión. |
 | GitHub Actions con CI y CD separados | La CD solo se dispara si la CI del mismo commit fue exitosa. |
-| **Sin Kubernetes** | Decisión fechada: el proyecto es académico, lo consumen 1 a 3 aplicaciones externas y no hay requisito de escala horizontal. Ver la decisión en [`docs/historias-usuario/US-26-kubernetes.md`](historias-usuario/US-26-kubernetes.md). |
+| **Sin Kubernetes** | Decisión fechada el 2026-10-28. Ver abajo. |
 | **Sin ACR ni Azure Container Apps** | Docker Hub alcanza y no agrega costo. |
+
+### Por qué no Kubernetes
+
+1. **No hay requisito de escala.** El proyecto es académico y lo consumen 1 a 3 aplicaciones consumidoras externas. El volumen esperado no justifica orquestación propia.
+2. **Azure App Service ya da lo que se busca.** Reinicio automático con Always On, health check nativo, TLS y dominio automáticos, escalado por plan, configuración por App Settings y rollback por tag SHA.
+3. **Kubernetes rompe el costo.** El control plane de AKS ronda los USD 72 por mes, más nodos, balanceador y storage. RNF-20 exige recursos gratuitos o de bajo costo.
+4. **Kubernetes no resuelve el cuello de botella real.** El límite para escalar horizontalmente el portal es Blazor Server con session affinity, que necesita un backplane de SignalR. Kubernetes no lo aporta.
+5. **El CI/CD no necesitaría cambios.** Las imágenes ya se construyen con tags inmutables por SHA en Docker Hub, que es exactamente lo que Kubernetes consume. Si algún día hiciera falta, la migración no requiere tocar la aplicación.
+
+**Alternativa para escalar, si alguna vez hace falta:** Azure SignalR (free tier) para el backplane de Blazor Server, deployment slots de App Service para staging y swap sin costo adicional, y autoscale rules o un plan mayor para la API.
+
+**Se reconsidera solo si** aparece un requisito formal de portabilidad on-premise o multi-nube, un volumen que obligue a más de una réplica de la API con la afinidad de sesión resuelta, multi-tenant con aislamiento a nivel de clúster, o un requisito de la cátedra que exija orquestación de contenedores.
 
 ## 3. Estado real al inicio del plan
 
@@ -68,115 +98,135 @@ Estas reglas aplican a todas las historias. Están en [`docs/contratos-api.md`](
 9. **Ninguna historia avanza a la siguiente.** El orquestador corta si falta una dependencia.
 10. **La documentación se actualiza en la misma historia** que cambia el comportamiento.
 
-## 6. Orden de ejecución
+## 6. Orden de ejecución dentro del sprint
 
-### Fase 0 — Base de acceso
+Las 23 historias del MVP se implementan en **un único sprint**. Lo que sigue son **bloques de ejecución ordenados por dependencias**, no sprints separados: cada bloque se cierra antes de arrancar el siguiente, y dentro de un bloque las historias sin dependencia mutua se toman en paralelo.
 
-Objetivo: que exista una sesión, una API key y que la API pueda autenticar a un integrador.
+El mismo orden está en la columna **Orden** de [`docs/historias-usuario/README.md`](historias-usuario/README.md) y en el tablero de Trello, donde cada bloque arranca con una tarjeta separadora.
 
-| Historia | Depende de | Puede ir en paralelo con |
-| --- | --- | --- |
-| US-29 — Notificaciones por email | — | US-04 |
-| US-04 — Autenticación, roles y aislamiento multiempresa | — | US-29 |
-| US-02 — Gestión de API keys | US-04, US-28 | US-07, US-18 |
-| US-03 — Autenticación por API key | US-02 | — |
+### Bloque 1 — Base de acceso
 
-**Salida de fase:** un usuario se loguea en el portal, crea una API key y un request con `X-Api-Key` resuelve el contribuyente correcto.
+Objetivo: que exista una sesión de empresa, una sesión de consola global y el envío de emails. Es lo único que se puede arrancar en paralelo sin esperar a nadie.
 
-> US-02 depende de US-28 según el índice, pero el seeding de una API key de demo se resuelve en US-18. Si US-28 todavía no está, se implementa US-02 con el repositorio y se deja el alta desde el portal para US-14.
+| Orden | Historia | Depende de | En paralelo con |
+| --- | --- | --- | --- |
+| 1 | US-04 — Autenticación, roles y aislamiento multiempresa | — | US-29 |
+| 2 | US-29 — Notificaciones transaccionales por email | — | US-04 |
 
-### Fase 1 — Onboarding profesional
+**Salida de bloque:** un usuario se autentica en el portal, un administrador global se autentica en la consola, y la API puede enviar un email con `FileEmailSender` o SMTP.
 
-Objetivo: que una empresa externa pueda.self-servicio pedir el alta y activarse.
+### Bloque 2 — Onboarding de empresas
 
-| Historia | Depende de | Puede ir en paralelo con |
-| --- | --- | --- |
-| US-01 — Solicitud pública de alta | US-29 | US-27 |
-| US-27 — Revisión y aprobación de solicitudes | US-01, US-04, US-29 | US-28 |
-| US-28 — Activación de cuenta por invitación | US-04, US-27, US-29 | — |
+Objetivo: que una empresa externa se registre, sea aprobada y active su cuenta.
 
-**Salida de fase:** solicitud → aprobación → email con link → activación → sesión activa.
+| Orden | Historia | Depende de | En paralelo con |
+| --- | --- | --- | --- |
+| 3 | US-01 — Solicitud pública de alta de empresa | US-29 | — |
+| 4 | US-27 — Revisión y aprobación de solicitudes | US-01, US-04, US-29 | — |
+| 5 | US-28 — Activación de cuenta por invitación | US-04, US-27, US-29 | — |
 
-### Fase 2 — Emisión
+**Salida de bloque:** solicitud → aprobación → email con link → activación → sesión activa.
+
+Los tres son **secuenciales**: la solicitud crea el registro que el administrador aprueba, y la aprobación crea la invitación que el solicitante acepta. Si falta tiempo, US-28 se puede dejar para el final del sprint, pero US-02 y US-14 dependen de él.
+
+### Bloque 3 — Integraciones y numeración
+
+Objetivo: que un integrador externo pueda autenticarse y que exista la numeración fiscal.
+
+| Orden | Historia | Depende de | En paralelo con |
+| --- | --- | --- | --- |
+| 6 | US-02 — Gestión de API keys | US-04, US-28 | US-07, US-18 |
+| 7 | US-03 — Autenticación por API key | US-02 | US-07, US-18 |
+| 8 | US-07 — Numeración atómica | US-04 | US-02, US-18 |
+| 9 | US-18 — Parámetros y datos semilla | US-02, US-04, US-07 | US-03 |
+
+**Salida de bloque:** un request con `X-Api-Key` resuelve el contribuyente correcto, la numeración correlativa está lista y hay datos de demo para la presentación.
+
+> US-02 depende de US-28 según el índice. Si US-28 todavía no está al cierre del bloque 2, se implementa US-02 con su repositorio y se deja el alta desde el portal para US-14.
+
+### Bloque 4 — Emisión
 
 Objetivo: que se emitan comprobantes correctos, numerados e idempotentes.
 
-| Historia | Depende de | Puede ir en paralelo con |
-| --- | --- | --- |
-| US-07 — Numeración atómica | US-04 | US-02 |
-| US-05 — Emisión de facturas A, B y C | US-03, US-07 | — |
-| US-06 — Idempotencia de emisión | US-05 | US-08 |
-| US-08 — Notas de crédito y débito | US-05 | US-06 |
+| Orden | Historia | Depende de | En paralelo con |
+| --- | --- | --- | --- |
+| 10 | US-05 — Emisión de facturas A, B y C | US-03, US-07 | — |
+| 11 | US-06 — Idempotencia de emisión | US-05 | US-08 |
+| 12 | US-08 — Notas de crédito y débito | US-05 | US-06 |
 
-**Salida de fase:** `POST /v1/comprobantes` emite con número correlativo, CAE único y `Idempotency-Key` funcional.
+**Salida de bloque:** `POST /v1/comprobantes` emite con número correlativo, CAE único y `Idempotency-Key` funcional.
 
 > US-05, US-07 y US-08 requieren transacciones. Sin replica set local, sus tests de concurrencia y rollback no pueden pasar. Resolver el prerrequisito de §4.
 
-### Fase 3 — Consultas, documentos y portal
+### Bloque 5 — Consultas, documentos y portal
 
 Objetivo: que el emisor y el integrador puedan consultar y descargar, y que el portal tenga la operación diaria.
 
-| Historia | Depende de | Puede ir en paralelo con |
-| --- | --- | --- |
-| US-09 — Consultas y último autorizado | US-03, US-05 | US-10 |
-| US-10 — PDF con código QR | US-05, US-09 | US-14 |
-| US-12 — Dashboard y listado | US-04, US-09, US-10 | US-13 |
-| US-13 — Emisión manual desde el portal | US-04, US-05, US-10 | US-14 |
-| US-14 — API keys desde el portal | US-02, US-04, US-28 | US-12, US-13 |
+| Orden | Historia | Depende de | En paralelo con |
+| --- | --- | --- | --- |
+| 13 | US-09 — Consultas y último autorizado | US-03, US-05 | — |
+| 14 | US-10 — PDF con código QR | US-05, US-09 | US-14 |
+| 15 | US-12 — Dashboard y listado | US-04, US-09, US-10 | US-13, US-14 |
+| 16 | US-13 — Emisión manual desde el portal | US-04, US-05, US-10 | US-12, US-14 |
+| 17 | US-14 — API keys desde el portal | US-02, US-04, US-28 | US-12, US-13 |
 
-**Salida de fase:** el portal tiene dashboard, listado, detalle con PDF y emisión manual. La API tiene listado, detalle, último autorizado y PDF.
+**Salida de bloque:** el portal tiene dashboard, listado, detalle con PDF y emisión manual. La API tiene listado, detalle, último autorizado y PDF.
 
-### Fase 4 — Interoperabilidad y operación
+### Bloque 6 — Interoperabilidad, operación y entrega
 
-Objetivo: interoperabilidad con el contrato de AFIP y trazabilidad interna.
+Objetivo: interoperabilidad con el contrato de AFIP, trazabilidad interna y entrega al grupo consumidor.
 
-| Historia | Depende de | Puede ir en paralelo con |
-| --- | --- | --- |
-| US-15 — SOAP de emisión | US-03, US-05 | US-16, US-17, US-18 |
-| US-16 — SOAP de consultas | US-03, US-09 | US-15, US-17, US-18 |
-| US-17 — Auditoría y outbox | US-05, US-27, US-28 | US-15, US-16, US-18 |
-| US-18 — Parámetros y datos semilla | US-02, US-04, US-07 | US-15, US-16, US-17 |
+| Orden | Historia | Depende de | En paralelo con |
+| --- | --- | --- | --- |
+| 18 | US-15 — SOAP de emisión | US-03, US-05 | US-16, US-17, US-30 |
+| 19 | US-16 — SOAP de consultas | US-03, US-09 | US-15, US-17, US-30 |
+| 20 | US-17 — Auditoría y outbox | US-05, US-27, US-28 | US-15, US-16, US-30 |
+| 21 | US-30 — Manual online de integración | US-02, US-03, US-05 | US-15, US-16, US-17 |
+| 22 | US-21 — Tests, Postman y documentación | Todas las implementadas | US-11 |
+| 23 | US-11 — Verificación pública por CAE (cierre) | US-05, US-18 | — |
 
-**Salida de fase:** la API habla REST y SOAP, todo queda auditado y hay datos de demo para la presentación.
+**Salida de bloque:** la API habla REST y SOAP, todo queda auditado, el manual está publicado y un tercero puede integrar sin ayuda.
 
-### Fase 5 — Cierre y entrega
-
-| Historia | Depende de |
-| --- | --- |
-| US-30 — Manual online de integración | US-02, US-03, US-05 |
-| US-21 — Tests, Postman y documentación | Todas las implementadas |
-
-**Salida de fase:** un tercero puede integrar la API leyendo el manual y la colección de Postman, sin ayuda.
+US-21 y US-11 van al final: US-21 cierra la cobertura de tests y la documentación de todo lo demás, y US-11 necesita un comprobante real emitido por US-05 para completar la prueba manual que le queda.
 
 ### Resumen visual
 
 ```mermaid
 flowchart TD
-    F0A["US-29 Emails"] --> F0B["US-04 Auth y roles"]
-    F0B --> F0C["US-02 API keys"]
-    F0C --> F0D["US-03 Auth por API key"]
-    F0A --> F1A["US-01 Solicitud"]
+    F0A["US-04 Auth y roles"] --> F1C["US-28 Invitación"]
+    F0B["US-29 Emails"] --> F1A["US-01 Solicitud"]
     F1A --> F1B["US-27 Aprobación"]
-    F1B --> F1C["US-28 Invitación"]
-    F0B --> F2A["US-07 Numeración"]
-    F0D --> F2B["US-05 Emisión"]
-    F2A --> F2B
-    F2B --> F2C["US-06 Idempotencia"]
-    F2B --> F2D["US-08 Notas"]
-    F0D --> F3A["US-09 Consultas"]
-    F2B --> F3A
-    F3A --> F3B["US-10 PDF y QR"]
-    F3B --> F3C["US-12 Dashboard"]
-    F2B --> F3D["US-13 Emisión manual"]
-    F0C --> F3E["US-14 API keys en portal"]
-    F0D --> F4A["US-15 SOAP emisión"]
-    F2B --> F4B["US-17 Auditoría"]
-    F0C --> F4C["US-18 Seed"]
-    F3B --> F5A["US-30 Manual online"]
-    F0D --> F5A
-    F4A --> F5B["US-21 Tests y docs"]
-    F5A --> F5B
+    F1B --> F1C
+    F1C --> F2A["US-02 API keys"]
+    F0A --> F2A
+    F2A --> F2B["US-03 Auth por API key"]
+    F0A --> F2C["US-07 Numeración"]
+    F2A --> F2D["US-18 Seed"]
+    F2C --> F2D
+    F2B --> F3A["US-05 Emisión"]
+    F2C --> F3A
+    F3A --> F3B["US-06 Idempotencia"]
+    F3A --> F3C["US-08 Notas"]
+    F2B --> F4A["US-09 Consultas"]
+    F3A --> F4A
+    F4A --> F4B["US-10 PDF y QR"]
+    F4B --> F4C["US-12 Dashboard"]
+    F3A --> F4D["US-13 Emisión manual"]
+    F2A --> F4E["US-14 API keys en portal"]
+    F2B --> F5A["US-15 SOAP emisión"]
+    F4A --> F5B["US-16 SOAP consultas"]
+    F3A --> F5C["US-17 Auditoría"]
+    F2A --> F5D["US-30 Manual online"]
+    F3A --> F5D
+    F5A --> F5E["US-21 Tests y docs"]
+    F5D --> F5E
 ```
+
+### Cómo se refleja en el tablero
+
+El tablero de Trello tiene una sola lista de sprint con las 23 historias del MVP, ordenadas por la columna **Orden**. Cada bloque arranca con una **tarjeta separadora** que dice de qué bloque se trata, qué incluye y cuál es su salida. Las tarjetas separadoras no son historias: no se asignan a nadie y no se mueven.
+
+El estado de una historia se trackea moviendo la tarjeta: queda en **Sprint 1** hasta que alguien la toma, pasa a **In Progress** mientras se trabaja y termina en **Done**.
 
 ## 7. Checklist de demo end-to-end
 

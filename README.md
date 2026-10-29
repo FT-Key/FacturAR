@@ -43,7 +43,7 @@ Simulador de facturación electrónica de AFIP/ARCA para el Trabajo Final Integr
 
 No se utilizan EF Core, Dapper, SQL Server, SQLite, Web Forms ni gRPC en el alcance obligatorio.
 
-Kubernetes tampoco se usa, por decisión de plataforma: el despliegue corre sobre Azure App Service for Containers, que ya se encarga de ejecutar los contenedores, aplicar los despliegues y sostener las dos Web Apps sin necesidad de un clúster propio. La historia US-26 (Kubernetes) queda como stretch y no se implementa en el MVP.
+Kubernetes tampoco se usa, por decisión de plataforma: el despliegue corre sobre Azure App Service for Containers, que ya se encarga de ejecutar los contenedores, aplicar los despliegues y sostener las dos Web Apps sin necesidad de un clúster propio. El razonamiento completo está en [`docs/plan-implementacion.md`](docs/plan-implementacion.md) §2.
 
 ## Arquitectura
 
@@ -470,4 +470,4 @@ Para rollback, cambiar `IMAGE_TAG` en `.env.production` por el SHA de un build a
 - Los montos se modelan con `decimal` (MongoDB `Decimal128`).
 - Las fechas se almacenan en UTC.
 - El equipo es de 4-5 personas con una ventana de 3 semanas.
-- El alcance obligatorio tiene 26 historias y 47 días ideales; US-22 a US-26 son stretch.
+- El alcance obligatorio tiene 26 historias y 47 días ideales, y se implementan en un único sprint; US-22 a US-25 son stretch.

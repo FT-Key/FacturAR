@@ -1,4 +1,4 @@
-﻿# US-27 — Revisión y aprobación de solicitudes de empresa
+# US-27 — Revisión y aprobación de solicitudes de empresa
 
 **Épica:** Registro y multiempresa  
 **Prioridad:** Alta  

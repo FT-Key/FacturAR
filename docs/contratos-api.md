@@ -358,7 +358,7 @@ En Development, el seed deja además una API key de demostración de la empresa 
 - Multi-moneda.
 - Webhooks (US-23 es stretch).
 - Integración real con AFIP (US-24 es stretch).
-- Kubernetes (US-26 es stretch y está descartada por decisión de plataforma).
+- Kubernetes: no se usa. Decisión de plataforma en [`docs/plan-implementacion.md`](plan-implementacion.md) §2.
 
 ## 16. Trazabilidad
 
