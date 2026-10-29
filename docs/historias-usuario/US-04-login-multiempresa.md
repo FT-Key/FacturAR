@@ -32,7 +32,7 @@ Un administrador global no es un usuario de empresa. Un usuario de empresa no pu
 - [x] Logout invalida la sesión y redirige al login correspondiente.
 - [x] `GET /v1/auth/me` devuelve el usuario, rol y contribuyente de la sesión de empresa.
 - [x] `GET /v1/admin/auth/me` devuelve el administrador global y su rol.
-- [ ] Las políticas de autorización distinguen `EmpresaAdministrador`, `EmpresaEmisor`, `EmpresaConsulta`, `AdminGlobal` y `AdminSuper`.
+- [x] Las políticas de autorización distinguen `EmpresaAdministrador`, `EmpresaEmisor`, `EmpresaConsulta`, `AdminGlobal` y `AdminSuper`.
 - [ ] Un usuario `Consulta` no puede emitir ni administrar API keys.
 - [ ] Un administrador global `Soporte` puede ver solicitudes y reenviar invitaciones, pero no aprobar ni rechazar.
 - [ ] Todas las consultas de negocio se filtran por el `ContribuyenteId` de la sesión.
@@ -500,16 +500,16 @@ Antes de empezar US-04 tiene que existir:
 Evidencia ejecutada:
 
 - `dotnet build FacturAR.slnx -c Release` → 0 errores, 0 advertencias.
-- `dotnet test FacturAR.slnx -c Release --no-build` con `MONGO_CONNECTION_STRING` → **86 tests correctos, 0 fallos, 0 omitidos** (58 unitarios + 28 de integración).
+- `dotnet test FacturAR.slnx -c Release --no-build` con `MONGO_CONNECTION_STRING` → **87 tests correctos, 0 fallos, 0 omitidos** (58 unitarios + 29 de integración).
 - `dotnet format FacturAR.slnx --verify-no-changes` → sin cambios.
 - Tests unitarios: `PasswordHasherTests`, `LoginIntentStoreTests`, `AutenticarEmpresaServiceTests`, `AutenticarAdminGlobalServiceTests`.
-- Tests de integración con MongoDB: `AuthEndpointsTests` (CP-01 a CP-07, CP-10 a CP-14, auditoría) y `AdminBootstrapTests` (CP-14, bootstrap idempotente e índice único).
+- Tests de integración: `AuthEndpointsTests` (CP-01 a CP-07, CP-10 a CP-14, auditoría), `AdminBootstrapTests` (bootstrap idempotente e índice único) y `AuthorizationPolicyTests` (matriz de políticas por rol y por plano).
 
 Pendiente (depende de historias posteriores, no de US-04):
 
 - CP-08, CP-09 y CP-15 requieren endpoints de negocio de US-02, US-05 y US-09; no son verificables todavía.
 - Los criterios de aislamiento multiempresa (consultas filtradas por `ContribuyenteId`, acceso cruzado `404`) se completan cuando existan esos endpoints.
-- Las políticas `EmpresaAdministrador`, `EmpresaEmisor` y `EmpresaConsulta` están registradas en API y portal, pero solo se ejercitan con los endpoints de esas historias.
+- Las políticas `EmpresaAdministrador`, `EmpresaEmisor` y `EmpresaConsulta` están registradas y cubiertas por `AuthorizationPolicyTests`; se ejercitan de punta a punta cuando existan los endpoints de esas historias.
 
 Notas de implementación:
 
