@@ -123,9 +123,10 @@ public sealed class ActivacionInvitacionServiceTests
 
     [Theory]
     [InlineData("solicitante@demo.com", "s***@demo.com")]
-    [InlineData("a@b.ar", "a***@b.ar")]
+    [InlineData("a@b.ar", "***@b.ar")]
     [InlineData("sin-arroba", "s***")]
     [InlineData("termina@", "t***")]
+    [InlineData("a@", "a***")]
     public void EnmascararEmail_MuestraPrimerCaracterYDominio(string email, string esperado)
     {
         Assert.Equal(esperado, InvitacionVigente.EnmascararEmail(email));
@@ -248,6 +249,20 @@ public sealed class ActivacionInvitacionServiceTests
     }
 
     [Fact]
+    public async Task Aceptar_EmpresaDesactivadaDentroDeLaTransaccion_NoCreaUsuario()
+    {
+        var ctx = new Contexto();
+        var (token, invitacion) = ctx.AgregarInvitacion();
+        ctx.Contribuyentes.DesactivarEnLaSegundaLectura = true;
+
+        await Assert.ThrowsAsync<CuentaInactivaException>(
+            () => ctx.Aceptar.AceptarAsync(token, new AceptarInvitacionRequest(PasswordValida, PasswordValida)));
+
+        Assert.Empty(ctx.Usuarios.Insertados);
+        Assert.Equal(EstadoInvitacion.Pendiente, invitacion.Estado);
+    }
+
+    [Fact]
     public async Task Aceptar_TokenVencido_DevuelveVencidaSinCrearUsuario()
     {
         var ctx = new Contexto();
@@ -359,8 +374,35 @@ public sealed class ActivacionInvitacionServiceTests
     {
         public List<Contribuyente> Todos { get; } = [];
 
+        public int Lecturas { get; private set; }
+
+        public bool DesactivarEnLaSegundaLectura { get; set; }
+
         public Task<Contribuyente?> GetByIdAsync(Guid id, CancellationToken ct = default)
-            => Task.FromResult(Todos.FirstOrDefault(c => c.Id == id));
+        {
+            Lecturas++;
+            var contribuyente = Todos.FirstOrDefault(c => c.Id == id);
+            if (contribuyente is null)
+            {
+                return Task.FromResult<Contribuyente?>(null);
+            }
+
+            if (DesactivarEnLaSegundaLectura && Lecturas >= 2)
+            {
+                return Task.FromResult<Contribuyente?>(new Contribuyente
+                {
+                    Id = contribuyente.Id,
+                    Cuit = contribuyente.Cuit,
+                    RazonSocial = contribuyente.RazonSocial,
+                    CondicionIva = contribuyente.CondicionIva,
+                    Email = contribuyente.Email,
+                    Activo = false,
+                    CreatedAt = contribuyente.CreatedAt
+                });
+            }
+
+            return Task.FromResult<Contribuyente?>(contribuyente);
+        }
 
         public Task<bool> ExistePorCuitAsync(string cuit, CancellationToken ct = default)
             => throw new NotSupportedException();

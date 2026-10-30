@@ -48,6 +48,11 @@ public static class InvitacionVigente
     public static string EnmascararEmail(string email)
     {
         var arroba = email.IndexOf('@');
+        if (arroba == 1 && arroba < email.Length - 1)
+        {
+            return $"***{email[arroba..]}";
+        }
+
         if (arroba <= 0 || arroba == email.Length - 1)
         {
             return email.Length == 0 ? "***" : $"{email[0]}***";

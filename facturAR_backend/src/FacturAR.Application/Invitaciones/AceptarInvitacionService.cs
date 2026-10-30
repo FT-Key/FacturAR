@@ -67,6 +67,12 @@ public sealed class AceptarInvitacionService
                 async innerCt =>
                 {
                     var ahora = DateTime.UtcNow;
+                    var contribuyente = await _contribuyentes.GetByIdAsync(invitacion.ContribuyenteId, innerCt);
+                    if (contribuyente is null || !contribuyente.Activo)
+                    {
+                        throw new CuentaInactivaException();
+                    }
+
                     if (await _usuarios.ExistePorContribuyenteYEmailAsync(invitacion.ContribuyenteId, invitacion.Email, innerCt))
                     {
                         throw new UsuarioExistenteException();
@@ -113,7 +119,7 @@ public sealed class AceptarInvitacionService
         }
         catch (UsuarioExistenteException)
         {
-            throw new InvitacionUsadaException();
+            throw new InvitacionUsadaException("Ya existe una cuenta con este email en la empresa. Pedí que te reenvíen la invitación.");
         }
 
         return new AceptarInvitacionResponse(MensajeCuentaActivada);

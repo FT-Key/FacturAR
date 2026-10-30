@@ -6,4 +6,9 @@ public sealed class InvitacionUsadaException : Exception
         : base("El link de activación ya fue usado.")
     {
     }
+
+    public InvitacionUsadaException(string mensaje)
+        : base(mensaje)
+    {
+    }
 }
