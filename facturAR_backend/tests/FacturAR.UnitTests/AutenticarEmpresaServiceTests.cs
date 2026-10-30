@@ -135,7 +135,7 @@ public sealed class AutenticarEmpresaServiceTests
         public Task<bool> ExistePorCuitAsync(string cuit, CancellationToken ct = default)
             => Task.FromResult(string.Equals(contribuyente.Cuit, cuit, StringComparison.Ordinal));
 
-    public Task InsertarAsync(Contribuyente contribuyente, CancellationToken ct = default)
-        => throw new NotSupportedException();
-}
+        public Task InsertarAsync(Contribuyente contribuyente, CancellationToken ct = default)
+            => throw new NotSupportedException();
+    }
 }
