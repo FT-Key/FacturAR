@@ -19,20 +19,20 @@ La verificación pública por CAE sigue siendo anónima.
 
 ## Criterios de aceptación
 
-- [ ] Los endpoints de negocio exigen el header `X-Api-Key`.
-- [ ] Una key ausente devuelve `401 API_KEY_AUSENTE`.
-- [ ] Una key mal formada, inexistente, revocada o de una empresa inactiva devuelve `401 API_KEY_INVALIDA`.
-- [ ] La comparación del hash se hace en tiempo constante.
-- [ ] Una key válida resuelve el `ContribuyenteId` y lo adjunta al request.
-- [ ] El contexto de tenant se expone mediante una abstracción de Application.
-- [ ] El cliente no puede acceder a datos de otro contribuyente.
-- [ ] Se actualiza `UltimoUso` en cada autenticación exitosa.
-- [ ] La actualización de `UltimoUso` no bloquea la respuesta si falla.
-- [ ] La key completa no se registra en logs, errores ni trazas.
-- [ ] Los endpoints de emisión y consulta quedan protegidos.
-- [ ] La verificación pública permanece anónima.
-- [ ] Los errores no revelan si el prefijo existe.
-- [ ] Hay tests de 401, 403, aislamiento y actualización de último uso.
+- [ ] Los endpoints de negocio exigen el header `X-Api-Key`. — Pendiente: no existen endpoints de negocio (US-05/US-09); solo se validó con un host stub.
+- [x] Una key ausente devuelve `401 API_KEY_AUSENTE`.
+- [x] Una key mal formada, inexistente, revocada o de una empresa inactiva devuelve `401 API_KEY_INVALIDA`.
+- [x] La comparación del hash se hace en tiempo constante.
+- [x] Una key válida resuelve el `ContribuyenteId` y lo adjunta al request.
+- [x] El contexto de tenant se expone mediante una abstracción de Application.
+- [ ] El cliente no puede acceder a datos de otro contribuyente. — Pendiente end-to-end: sin endpoints de comprobantes no hay aislamiento real verificable; solo hay prueba de pipeline con stub.
+- [x] Se actualiza `UltimoUso` en cada autenticación exitosa.
+- [x] La actualización de `UltimoUso` no bloquea la respuesta si falla.
+- [x] La key completa no se registra en logs, errores ni trazas.
+- [ ] Los endpoints de emisión y consulta quedan protegidos. — Pendiente: US-05 y US-09 no están implementadas.
+- [x] La verificación pública permanece anónima.
+- [x] Los errores no revelan si el prefijo existe.
+- [ ] Hay tests de 401, 403, aislamiento y actualización de último uso. — Parcial: hay tests de 401 y de último uso; el aislamiento solo está cubierto a nivel de pipeline/stub y `403` no aplica al esquema de API key (no tiene roles).
 
 ## Escenarios Gherkin
 
@@ -77,25 +77,25 @@ Scenario: Verificación pública anónima
 
 ## Tareas técnicas
 
-- [ ] Crear `IApiKeyAuthenticator` y `ITenantContext` en Application.
-- [ ] Implementar `ApiKeyAuthenticationHandler` o middleware en Api.
-- [ ] Parsear el prefijo y buscar la key en el repositorio.
-- [ ] Comparar el hash con `CryptographicOperations.FixedTimeEquals`.
-- [ ] Rechazar keys de contribuyentes inactivos.
-- [ ] Actualizar `UltimoUso` de forma controlada.
-- [ ] Aplicar el esquema de autenticación a los endpoints de negocio.
-- [ ] Mantener `/v1/comprobantes/verificar/{cae}` anónimo.
-- [ ] Agregar tests de autenticación y aislamiento.
-- [ ] Documentar el header, errores y ejemplos en el manual.
+- [x] Crear `IApiKeyAuthenticator` y `ITenantContext` en Application.
+- [x] Implementar `ApiKeyAuthenticationHandler` o middleware en Api.
+- [x] Parsear el prefijo y buscar la key en el repositorio.
+- [x] Comparar el hash con `CryptographicOperations.FixedTimeEquals`.
+- [x] Rechazar keys de contribuyentes inactivos.
+- [x] Actualizar `UltimoUso` de forma controlada.
+- [ ] Aplicar el esquema de autenticación a los endpoints de negocio. — Pendiente: la política `ApiKeyNegocio` y `RequireApiKey()` existen, pero no hay endpoints de negocio reales que las usen.
+- [x] Mantener `/v1/comprobantes/verificar/{cae}` anónimo.
+- [x] Agregar tests de autenticación y aislamiento. — Aislamiento cubierto a nivel de pipeline/stub; falta el caso end-to-end con datos reales.
+- [x] Documentar el header, errores y ejemplos en el manual.
 
 ## Definition of Done
 
-- [ ] Los endpoints protegidos rechazan requests sin key.
-- [ ] Una key válida solo accede a su empresa.
-- [ ] La verificación pública sigue funcionando sin autenticación.
-- [ ] Los logs no contienen keys completas.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el manual.
+- [ ] Los endpoints protegidos rechazan requests sin key. — Pendiente: no hay endpoints protegidos reales (US-05/US-09).
+- [ ] Una key válida solo accede a su empresa. — Pendiente end-to-end por la misma razón.
+- [x] La verificación pública sigue funcionando sin autenticación.
+- [x] Los logs no contienen keys completas.
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el manual.
 
 ## Contrato técnico
 
@@ -303,6 +303,42 @@ Antes de empezar US-03 tiene que existir:
 - **Contracts**: no se agregan DTOs. El handler expone los claims, no los cuerpos de respuesta.
 - **Tests**: `FacturAR.UnitTests` para `ApiKeyAuthenticationHandler` (con `IApiKeyAuthenticator` y repositorio falsos) y `FacturAR.IntegrationTests` con `MongoFact` para los casos end-to-end, el aislamiento y la actualización de `UltimoUso`.
 - **Catálogo de errores**: `docs/contratos-api.md` §2.1 define `API_KEY_AUSENTE` (`401`) y `API_KEY_INVALIDA` (`401`). US-03 los usa tal cual.
+
+## Evidencia de cierre
+
+Fecha de verificación: 2026-10-30. Rama `feature/us-03-autenticacion-api-key`.
+
+| Comando | Resultado |
+| --- | --- |
+| `dotnet build FacturAR.slnx -c Release` | 0 errores, 0 warnings. |
+| `dotnet test FacturAR.slnx -c Release --no-build` | 253/253 unitarios OK; 66 integración OK, 78 omitidos (`MongoFact` sin `MONGO_CONNECTION_STRING`), 0 fallos. |
+| `dotnet format FacturAR.slnx --verify-no-changes` | Sin cambios pendientes. |
+
+Tests nuevos y casos concretos:
+
+- `ApiKeyAuthenticatorTests`: formato inválido, valor de más de 200 caracteres, prefijo inexistente, key revocada, hash incorrecto, hash con formato inesperado sin exponer valores en el log, contribuyente inactivo e inexistente, secreto alterado en un carácter, valor vacío y key válida sin loguear el valor.
+- `ApiKeyAuthenticationHandlerTests`: sin header → `API_KEY_AUSENTE`; header inválido → `API_KEY_INVALIDA`; header mal formado no consulta el repositorio; fallo al actualizar `UltimoUso` sigue autenticando y registra warning; fallo de infraestructura → `503 MONGO_NO_DISPONIBLE`; claims `NameIdentifier`, `contribuyenteId`, `apikeyId` y `plano`; logs sin el valor ni el hash.
+- `ApiKeyUsageRegistrarTests`: actualización desactivada, intervalo respetado, key nunca usada escribe hora UTC, excepción del repositorio no se propaga y deja warning, timeout configurado no rompe la autenticación.
+- `ApiKeyStubHostTests` (host de prueba, no endpoint real): anónimo sin key `200`; sin key `401 API_KEY_AUSENTE`; key inválida `401 API_KEY_INVALIDA`; key válida resuelve el contribuyente del claim; `contribuyenteId` en query y body no cambia el tenant; la cookie de sesión no satisface la política; los logs no contienen el valor.
+- `ApiKeyPipelineTests` (API real): `/` y `/health/live` sin key `200`; `/v1/comprobantes/verificar/123` sin key `400 CAE_INVALIDO`; login de empresa, login de admin y solicitud de alta siguen llegando a sus endpoints.
+- `MongoApiKeyAuthenticationTests` (CP-01, CP-05, CP-06, CP-07, CP-10, CP-11, CP-12, CP-13, CP-14): **omitidos** sin `MONGO_CONNECTION_STRING`.
+
+QA runtime con instancia nueva en `localhost:5199`:
+
+- `GET /health/live` → `200`.
+- `GET /` → `200`.
+- `GET /v1/comprobantes/verificar/abc` sin header → `400 CAE_INVALIDO` (anónimo, no `401`).
+- `GET /v1/auth/me` sin cookie → `401 CREDENCIALES_INVALIDAS` con challenge de `cookies.contribuyente` y `cookies.admin`.
+- `GET /v1/comprobantes` → `404` (endpoint de negocio inexistente).
+- `GET /v1/comprobantes/verificar/00000000000000` sin header → `500` por Mongo caído; se reproduce igual en la instancia previa `localhost:5171`, donde `/health` responde `503 degraded/database unavailable`. Es un comportamiento preexistente de US-11, no de US-03.
+
+Pendiente por US-05/US-09 y Mongo real:
+
+- Aplicar `RequireApiKey()` y la política `ApiKeyNegocio` a emisión y consultas cuando esos endpoints existan.
+- CP-01 end-to-end contra un endpoint de negocio real.
+- CP-09 y CP-10 con datos reales: aislamiento contra comprobantes de otra empresa.
+- Correr `MongoApiKeyAuthenticationTests` con `MONGO_CONNECTION_STRING`.
+- Confirmar en QA que la cookie de sesión no habilita endpoints de negocio reales (hoy solo está cubierto con el stub).
 
 ## Notas de alcance
 
