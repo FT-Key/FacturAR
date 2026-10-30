@@ -181,7 +181,7 @@ La página de activación muestra la razón social y el email enmascarado. El so
 
 Si el token es inválido, vencido o ya fue usado, se muestra un mensaje claro y se indica contactar al administrador. El administrador puede reenviar una invitación nueva.
 
-Errores del flujo: `404 INVITACION_NO_ENCONTRADA`, `410 INVITACION_VENCIDA`, `409 INVITACION_USADA`, `400 PASSWORD_DEBIL`, `400 VALIDACION` si la confirmación no coincide, `403 CUENTA_INACTIVA` si la empresa está desactivada y `429 RATE_LIMIT` (20 validaciones y 10 activaciones por IP y hora, configurables en `RateLimit:Invitacion`).
+Errores del flujo: `404 INVITACION_NO_ENCONTRADA`, `410 INVITACION_VENCIDA`, `409 INVITACION_USADA`, `400 PASSWORD_DEBIL`, `400 VALIDACION` si la confirmación no coincide, `403 CUENTA_INACTIVA` si la empresa está desactivada y `429 RATE_LIMIT` (20 validaciones y 10 activaciones por IP y hora, configurables en `RateLimit:Invitacion`). Con `RateLimit:Invitacion:ConfiarEnProxy` en `true`, la IP se toma de `X-Forwarded-For` para funcionar detrás de un proxy; el default es `false`.
 
 ### 4. Login y API key
 

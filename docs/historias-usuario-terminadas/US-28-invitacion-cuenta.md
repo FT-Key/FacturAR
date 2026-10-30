@@ -120,8 +120,29 @@ Decisiones tomadas durante la implementación:
 - `GET` con un token ya usado responde `409 INVITACION_USADA`, igual que el `POST`; el contrato no lo listaba para el `GET` pero es el error más claro y no expone datos.
 - Antes del compare-and-set se comprueba que no exista el usuario en la empresa; si existe, la transacción se aborta sin marcar la invitación (`409 INVITACION_USADA`), así el administrador puede reenviarla. El índice `ux_usuarios_contribuyente_email` sigue siendo la barrera final.
 - `UsuarioRepository` ahora participa de la transacción con `MongoSesionActual`, igual que los repositorios de US-27.
-- Rate limit por IP con ventana fija de una hora, configurable en `RateLimit:Invitacion:ValidacionesPorIp` (20) y `RateLimit:Invitacion:ActivacionesPorIp` (10).
+- Rate limit por IP con ventana fija de una hora, configurable en `RateLimit:Invitacion:ValidacionesPorIp` (20) y `RateLimit:Invitacion:ActivacionesPorIp` (10). Con `RateLimit:Invitacion:ConfiarEnProxy` en `true` (default `false`), la IP sale de la última entrada de `X-Forwarded-For`.
 - La página `/activar` es interactiva sin prerender, para validar el token una sola vez y conservarlo solo en memoria.
+
+### Revisión de calidad (2026-10-30)
+
+Comandos ejecutados en la rama `feature/us-28-invitacion-cuenta`, con los cambios de la revisión sin commitear y sin Docker ni MongoDB local:
+
+| Comando | Resultado |
+| --- | --- |
+| `dotnet build FacturAR.slnx -c Release` | 0 advertencias, 0 errores. |
+| `dotnet test FacturAR.slnx -c Release --no-build` | UnitTests: 187 superados, 0 fallos. IntegrationTests: 53 superados, 0 fallos, 55 omitidos. |
+| `dotnet format FacturAR.slnx --verify-no-changes` | Limpio, sin cambios. |
+
+Los 55 tests de integración omitidos son los marcados `MongoFact`: se omiten en local porque no hay MongoDB en replica set y se validan en CI. En esta revisión **no** se verificó la suite `MongoFact` ni se corrió QA manual con Playwright, porque no había Docker ni MongoDB local.
+
+Correcciones aplicadas en la revisión:
+
+1. El rate limit de invitaciones soporta `RateLimit:Invitacion:ConfiarEnProxy` y usa `X-Forwarded-For` cuando está activo; se extrajo `IpCliente` y `SolicitudAltaRateLimitPolicy` lo reutiliza.
+2. `AceptarInvitacionService` revalida que el contribuyente siga activo dentro de la transacción (cierra el TOCTOU) y devuelve `403 CUENTA_INACTIVA`.
+3. Si ya existe un usuario con ese email en la empresa, el `409 INVITACION_USADA` trae un mensaje claro y la invitación sigue `Pendiente`.
+4. `EnmascararEmail` no revela un local-part de un solo carácter (`a@b.ar` → `***@b.ar`).
+5. `Activar.razor` pasó a `OnParametersSetAsync`, así un segundo link de invitación en la misma sesión carga el token nuevo y el token se sigue quitando de la URL.
+6. El portal baja `System.Net.Http.HttpClient` a `Warning` para no loguear la URL con el token.
 
 ## Contrato técnico
 
@@ -184,7 +205,7 @@ public sealed record AceptarInvitacionResponse(string Mensaje);
 
 `InvitacionValidacionResponse` expone **solo** razón social, email enmascarado y vencimiento. No expone `Id`, `TokenHash`, `TokenPrefix`, `ContribuyenteId`, `SolicitudId` ni `CreadaPorAdministradorId`.
 
-El enmascarado del email muestra el primer carácter y el dominio: `s***@demo.com`. Si el email no tiene dominio reconocible, se muestra solo el primer carácter y una máscara.
+El enmascarado del email muestra el primer carácter y el dominio: `s***@demo.com`. Si el local-part tiene un solo carácter, se reemplaza completo (`a@b.ar` → `***@b.ar`). Si el email no tiene dominio reconocible, se muestra solo el primer carácter y una máscara.
 
 ### Casos de uso y servicios
 
@@ -193,9 +214,9 @@ El enmascarado del email muestra el primer carácter y el dominio: `s***@demo.co
 | `ValidarInvitacionService` | Clase | `FacturAR.Application.Invitaciones` | Resuelve el token, valida estado y vencimiento, verifica que la empresa esté activa y arma la respuesta enmascarada. |
 | `AceptarInvitacionService` | Clase | `FacturAR.Application.Invitaciones` | Valida la contraseña y ejecuta la transacción que marca la invitación como usada y crea el usuario. |
 | `IInvitacionRepository` | Interfaz | `FacturAR.Application.Abstractions` | Reutilizada de US-27: `ObtenerPorTokenHashAsync`, `MarcarUsadaAsync` (compare-and-set), `RegistrarEnvioAsync`. |
-| `IUsuarioRepository` | Interfaz | `FacturAR.Application.Abstractions` | `ExistePorContribuyenteYEmailAsync`, `InsertarAsync`. |
-| `IContribuyenteRepository` | Interfaz | `FacturAR.Application.Abstractions` | Reutilizada de US-01: `ObtenerPorIdAsync`. |
-| `IPasswordHasher` | Interfaz | `FacturAR.Application.Abstractions` | `HashPassword(string)`, `VerifyHashedPassword(string hash, string password)`. La implementa US-04. |
+| `IUsuarioRepository` | Interfaz | `FacturAR.Application.Abstractions` | `ExistePorContribuyenteYEmailAsync`, `InsertAsync`. |
+| `IContribuyenteRepository` | Interfaz | `FacturAR.Application.Abstractions` | Reutilizada de US-01: `GetByIdAsync`. |
+| `IPasswordHasher` | Interfaz | `FacturAR.Application.Abstractions` | `Hash(string password)`, `Verify(string password, string hash)`. La implementa US-04. |
 | `ITransaccionMongo` | Interfaz | `FacturAR.Application.Abstractions` | Reutilizada de US-27. |
 | `IEventoAuditoriaRepository` | Interfaz | `FacturAR.Application.Abstractions` | Reutilizada de US-01. |
 | `PoliticaContrasena` | Clase estática | `FacturAR.Domain.Validation` | Reglas de contraseña. |
@@ -266,6 +287,9 @@ Rate limiter integrado de ASP.NET Core (`Microsoft.AspNetCore.RateLimiting`, en 
 | --- | --- | --- | --- | --- |
 | `invitacion-validacion` | `GET /v1/invitaciones/{token}` | IP | 20 por hora | `RateLimit__Invitacion__ValidacionesPorIp` |
 | `invitacion-activacion` | `POST /v1/invitaciones/{token}/aceptar` | IP | 10 por hora | `RateLimit__Invitacion__ActivacionesPorIp` |
+| Configuración común | — | IP | — | `RateLimit__Invitacion__ConfiarEnProxy` (default `false`): con `true`, la partición usa la última IP de `X-Forwarded-For`; con `false`, `HttpContext.Connection.RemoteIpAddress`. |
+
+La partición de ambas políticas es por IP. La IP se resuelve con `IpCliente.Obtener`: si `RateLimit:Invitacion:ConfiarEnProxy` es `true`, toma la **última** entrada de `X-Forwarded-For` (pensado para correr detrás de un proxy); si es `false` (default), usa `HttpContext.Connection.RemoteIpAddress`. `SolicitudAltaRateLimitPolicy` reutiliza la misma resolución.
 
 El rechazo responde `429 RATE_LIMIT` con `Retry-After`.
 

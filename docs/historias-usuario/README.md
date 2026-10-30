@@ -1,6 +1,6 @@
 # Historias de usuario
 
-El alcance obligatorio tiene **26 historias y 47 días ideales de trabajo**, y **se implementan en un único sprint**. US-19, US-20 y US-31 están completadas y archivadas; quedan 23 historias activas.
+El alcance obligatorio tiene **26 historias y 47 días ideales de trabajo**, y **se implementan en un único sprint**. US-19, US-20, US-27, US-28 y US-31 están completadas y archivadas; quedan 21 historias activas.
 
 Las US-22 a US-25 **quedan fuera del alcance del proyecto** y están archivadas en [`docs/historias-usuario-fuera-de-alcance/`](../historias-usuario-fuera-de-alcance/README.md). No se implementan ni se cuentan para el avance del MVP.
 
