@@ -10,17 +10,17 @@ public sealed class EditarSolicitudService
     public const string AccionEditada = "solicitud.editada";
 
     private readonly ISolicitudAltaRepository _solicitudes;
-    private readonly NotificadorRevisionSolicitudes _notificador;
     private readonly IEventoAuditoriaRepository _eventos;
+    private readonly ITransaccionMongo _transaccion;
 
     public EditarSolicitudService(
         ISolicitudAltaRepository solicitudes,
         IEventoAuditoriaRepository eventos,
-        NotificadorRevisionSolicitudes notificador)
+        ITransaccionMongo transaccion)
     {
         _solicitudes = solicitudes;
         _eventos = eventos;
-        _notificador = notificador;
+        _transaccion = transaccion;
     }
 
     public async Task EditarAsync(
@@ -100,21 +100,24 @@ public sealed class EditarSolicitudService
         solicitud.Domicilio = domicilio;
         solicitud.UpdatedAt = DateTime.UtcNow;
 
-        if (!await _solicitudes.ActualizarDatosPendienteAsync(solicitud, ct))
-        {
-            throw new SolicitudYaProcesadaException();
-        }
+        await _transaccion.EjecutarAsync(
+            async innerCt =>
+            {
+                if (!await _solicitudes.ActualizarDatosPendienteAsync(solicitud, innerCt))
+                {
+                    throw new SolicitudYaProcesadaException();
+                }
 
-        await _notificador.BestEffortAsync(
-            AccionEditada,
-            solicitud.Id,
-            () => _eventos.AddAsync(
-                NotificadorRevisionSolicitudes.Evento(
-                    AccionEditada,
-                    solicitud,
-                    administradorId,
-                    new Dictionary<string, string> { ["campos"] = string.Join(",", campos) }),
-                ct),
+                await _eventos.AddAsync(
+                    NotificadorRevisionSolicitudes.Evento(
+                        AccionEditada,
+                        solicitud,
+                        administradorId,
+                        new Dictionary<string, string> { ["campos"] = string.Join(",", campos) }),
+                    innerCt);
+
+                return true;
+            },
             ct);
     }
 }
