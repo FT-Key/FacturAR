@@ -219,7 +219,7 @@ else
     private static string NormalizarCuit(string cuit)
         => cuit.Replace("-", string.Empty, StringComparison.Ordinal).Trim();
 
-    private sealed class SolicitudAltaModelo
+    private sealed class SolicitudAltaModelo : IValidatableObject
     {
         [Required(ErrorMessage = "La razón social es obligatoria.")]
         [StringLength(200, MinimumLength = 3, ErrorMessage = "La razón social debe tener entre 3 y 200 caracteres.")]
@@ -230,7 +230,6 @@ else
         [CuitValido]
         public string Cuit { get; set; } = string.Empty;
 
-        [Range(1, 7, ErrorMessage = "Seleccioná la condición frente al IVA.")]
         public int CondicionIva { get; set; }
 
         [Required(ErrorMessage = "El nombre del solicitante es obligatorio.")]
@@ -267,5 +266,15 @@ else
 
         [Range(typeof(bool), "true", "true", ErrorMessage = "Tenés que aceptar los términos para enviar la solicitud.")]
         public bool AceptaTerminos { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (!CondicionesIva.Any(opcion => opcion.Valor == CondicionIva))
+            {
+                yield return new ValidationResult(
+                    "Seleccioná la condición frente al IVA.",
+                    [nameof(CondicionIva)]);
+            }
+        }
     }
 }
