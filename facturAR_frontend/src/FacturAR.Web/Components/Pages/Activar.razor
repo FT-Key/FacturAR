@@ -81,15 +81,33 @@
     private bool _cargando = true;
     private bool _enviando;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        _token = Token?.Trim();
-        if (string.IsNullOrEmpty(_token))
+        var token = Token?.Trim();
+        if (string.IsNullOrEmpty(token))
         {
+            if (_token is not null)
+            {
+                return;
+            }
+
             _error = MensajeLinkInvalido;
             _cargando = false;
             return;
         }
+
+        if (string.Equals(token, _token, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _token = token;
+        _invitacion = null;
+        _error = null;
+        _enviando = false;
+        _modelo.Password = string.Empty;
+        _modelo.Confirmacion = string.Empty;
+        _cargando = true;
 
         var resultado = await ApiClient.ValidarInvitacionAsync(_token);
         if (resultado.Exitoso)
@@ -131,7 +149,7 @@
             _invitacion = null;
         }
 
-        _error = resultado.Mensaje;
+        _error = resultado.Mensaje ?? MensajeLinkInvalido;
     }
 
     private sealed class ActivacionModelo
