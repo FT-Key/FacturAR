@@ -12,5 +12,6 @@ public static class MongoCollections
     public const string Eventos = "eventos";
     public const string Administradores = "administradores";
     public const string SolicitudesAlta = "solicitudesAlta";
+    public const string Invitaciones = "invitaciones";
     public const string Webhooks = "webhooks";
 }
