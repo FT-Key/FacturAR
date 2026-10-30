@@ -131,5 +131,8 @@ public sealed class AutenticarEmpresaServiceTests
     {
         public Task<Contribuyente?> GetByIdAsync(Guid id, CancellationToken ct = default)
             => Task.FromResult<Contribuyente?>(contribuyente.Id == id ? contribuyente : null);
+
+        public Task<bool> ExistePorCuitAsync(string cuit, CancellationToken ct = default)
+            => Task.FromResult(string.Equals(contribuyente.Cuit, cuit, StringComparison.Ordinal));
     }
 }

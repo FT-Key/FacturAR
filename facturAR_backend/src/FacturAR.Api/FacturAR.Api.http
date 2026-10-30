@@ -19,3 +19,23 @@ GET {{FacturAR_Api_HostAddress}}/v1/comprobantes/verificar/12345678901234
 Accept: application/json
 
 ###
+
+POST {{FacturAR_Api_HostAddress}}/v1/solicitudes-alta
+Content-Type: application/json
+
+{
+  "razonSocial": "Empresa Demo S.A.",
+  "cuit": "20123456786",
+  "condicionIva": 1,
+  "nombreSolicitante": "Ana Pérez",
+  "email": "solicitante@demo.com",
+  "telefono": "+54 11 5555-1234",
+  "domicilio": "Av. Corrientes 1234",
+  "ciudad": "Ciudad Autónoma de Buenos Aires",
+  "provincia": "Buenos Aires",
+  "codigoPostal": "C1043",
+  "mensaje": "Queremos emitir facturas A y B.",
+  "aceptaTerminos": true
+}
+
+###

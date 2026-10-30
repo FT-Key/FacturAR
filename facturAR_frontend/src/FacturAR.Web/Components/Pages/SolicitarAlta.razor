@@ -1,0 +1,280 @@
+@page "/solicitar-alta"
+@rendermode InteractiveServer
+@implements IDisposable
+@using System.ComponentModel.DataAnnotations
+@using FacturAR.Contracts.Solicitudes
+@using FacturAR.Web.Validation
+@inject FacturarApiClient ApiClient
+
+<PageTitle>Solicitar alta de empresa - FacturAR</PageTitle>
+
+<div class="py-4">
+    <h1 class="h3 mb-1">Solicitar alta de empresa</h1>
+    <p class="text-muted mb-0">
+        Completá los datos de tu empresa y revisamos la solicitud antes de habilitarte el acceso.
+    </p>
+</div>
+
+@if (_enviada)
+{
+    <div class="card border-success" role="status">
+        <div class="card-body">
+            <h2 class="h5">Solicitud recibida</h2>
+            <p class="mb-2">@_mensajeExito</p>
+            <p class="text-muted">Revisamos los datos y te escribimos al email de contacto.</p>
+            <a class="btn btn-primary" href="/">Volver al inicio</a>
+        </div>
+    </div>
+}
+else
+{
+    <EditForm EditContext="_editContext" OnValidSubmit="EnviarAsync">
+        <DataAnnotationsValidator />
+
+        @if (!string.IsNullOrWhiteSpace(_errorGeneral))
+        {
+            <div class="alert alert-danger" role="alert">@_errorGeneral</div>
+        }
+
+        <div class="row g-3">
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="razonSocial">Razón social</label>
+                <InputText id="razonSocial" class="form-control" @bind-Value="_modelo.RazonSocial" />
+                <ValidationMessage For="() => _modelo.RazonSocial" class="text-danger small" />
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="cuit">CUIT</label>
+                <InputText id="cuit"
+                           class="form-control"
+                           inputmode="numeric"
+                           aria-invalid="@(TieneErrorCuit ? "true" : null)"
+                           aria-describedby="@(TieneErrorCuit ? "cuit-error" : null)"
+                           @bind-Value="_modelo.Cuit" />
+                <div id="cuit-error">
+                    <ValidationMessage For="() => _modelo.Cuit" class="text-danger small" />
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="condicionIva">Condición frente al IVA</label>
+                <InputSelect id="condicionIva" class="form-select" @bind-Value="_modelo.CondicionIva">
+                    <option value="0">Seleccioná una opción</option>
+                    @foreach (var opcion in CondicionesIva)
+                    {
+                        <option value="@opcion.Valor">@opcion.Texto</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => _modelo.CondicionIva" class="text-danger small" />
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="nombreSolicitante">Nombre del solicitante</label>
+                <InputText id="nombreSolicitante" class="form-control" @bind-Value="_modelo.NombreSolicitante" />
+                <ValidationMessage For="() => _modelo.NombreSolicitante" class="text-danger small" />
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="email">Email de contacto</label>
+                <InputText id="email" type="email" class="form-control" @bind-Value="_modelo.Email" />
+                <ValidationMessage For="() => _modelo.Email" class="text-danger small" />
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="telefono">Teléfono</label>
+                <InputText id="telefono" type="tel" class="form-control" @bind-Value="_modelo.Telefono" />
+                <ValidationMessage For="() => _modelo.Telefono" class="text-danger small" />
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="domicilio">Domicilio</label>
+                <InputText id="domicilio" class="form-control" @bind-Value="_modelo.Domicilio" />
+                <ValidationMessage For="() => _modelo.Domicilio" class="text-danger small" />
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="ciudad">Ciudad</label>
+                <InputText id="ciudad" class="form-control" @bind-Value="_modelo.Ciudad" />
+                <ValidationMessage For="() => _modelo.Ciudad" class="text-danger small" />
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="provincia">Provincia</label>
+                <InputText id="provincia" class="form-control" @bind-Value="_modelo.Provincia" />
+                <ValidationMessage For="() => _modelo.Provincia" class="text-danger small" />
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="codigoPostal">Código postal</label>
+                <InputText id="codigoPostal" class="form-control" @bind-Value="_modelo.CodigoPostal" />
+                <ValidationMessage For="() => _modelo.CodigoPostal" class="text-danger small" />
+            </div>
+
+            <div class="col-12">
+                <label class="form-label" for="mensaje">Mensaje (opcional)</label>
+                <InputTextArea id="mensaje" class="form-control" rows="3" maxlength="1000" @bind-Value="_modelo.Mensaje" />
+                <ValidationMessage For="() => _modelo.Mensaje" class="text-danger small" />
+            </div>
+
+            <div class="col-12">
+                <div class="form-check">
+                    <InputCheckbox id="aceptaTerminos" class="form-check-input" @bind-Value="_modelo.AceptaTerminos" />
+                    <label class="form-check-label" for="aceptaTerminos">Acepto los términos y condiciones</label>
+                </div>
+                <ValidationMessage For="() => _modelo.AceptaTerminos" class="text-danger small" />
+            </div>
+
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary" disabled="@_enviando">
+                    @(_enviando ? "Enviando..." : "Enviar solicitud")
+                </button>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    private const string MensajeErrorConexion = "No pudimos conectarnos con el servicio. Intentá de nuevo en unos minutos.";
+
+    private static readonly (int Valor, string Texto)[] CondicionesIva =
+    [
+        (1, "Responsable Inscripto"),
+        (4, "Exento"),
+        (5, "Consumidor Final"),
+        (6, "Monotributo"),
+        (7, "Sujeto No Categorizado")
+    ];
+
+    private readonly SolicitudAltaModelo _modelo = new();
+    private readonly CancellationTokenSource _cancelacion = new();
+    private readonly EditContext _editContext;
+    private bool _enviando;
+    private bool _enviada;
+    private string _mensajeExito = string.Empty;
+    private string? _errorGeneral;
+
+    public SolicitarAlta()
+    {
+        _editContext = new EditContext(_modelo);
+    }
+
+    private bool TieneErrorCuit =>
+        _editContext
+            .GetValidationMessages(new FieldIdentifier(_modelo, nameof(SolicitudAltaModelo.Cuit)))
+            .Any();
+
+    private async Task EnviarAsync()
+    {
+        if (_enviando)
+        {
+            return;
+        }
+
+        _enviando = true;
+        _errorGeneral = null;
+
+        try
+        {
+            var solicitud = new SolicitudAltaRequest(
+                _modelo.RazonSocial.Trim(),
+                NormalizarCuit(_modelo.Cuit),
+                _modelo.CondicionIva,
+                _modelo.NombreSolicitante.Trim(),
+                _modelo.Email.Trim(),
+                _modelo.Telefono.Trim(),
+                _modelo.Domicilio.Trim(),
+                _modelo.Ciudad.Trim(),
+                _modelo.Provincia.Trim(),
+                _modelo.CodigoPostal.Trim(),
+                string.IsNullOrWhiteSpace(_modelo.Mensaje) ? null : _modelo.Mensaje.Trim(),
+                _modelo.AceptaTerminos);
+
+            var resultado = await ApiClient.EnviarSolicitudAltaAsync(solicitud, _cancelacion.Token);
+
+            if (resultado.Exitoso)
+            {
+                _mensajeExito = resultado.Mensaje;
+                _enviada = true;
+                return;
+            }
+
+            _errorGeneral = resultado.Mensaje;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or TimeoutException)
+        {
+            _errorGeneral = MensajeErrorConexion;
+        }
+        finally
+        {
+            _enviando = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _cancelacion.Cancel();
+        _cancelacion.Dispose();
+    }
+
+    private static string NormalizarCuit(string cuit)
+        => cuit.Replace("-", string.Empty, StringComparison.Ordinal).Trim();
+
+    private sealed class SolicitudAltaModelo : IValidatableObject
+    {
+        [Required(ErrorMessage = "La razón social es obligatoria.")]
+        [StringLength(200, MinimumLength = 3, ErrorMessage = "La razón social debe tener entre 3 y 200 caracteres.")]
+        public string RazonSocial { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El CUIT es obligatorio.")]
+        [RegularExpression(@"^\d{2}-?\d{8}-?\d$", ErrorMessage = "Ingresá el CUIT con 11 dígitos.")]
+        [CuitValido]
+        public string Cuit { get; set; } = string.Empty;
+
+        public int CondicionIva { get; set; }
+
+        [Required(ErrorMessage = "El nombre del solicitante es obligatorio.")]
+        [StringLength(120, MinimumLength = 2, ErrorMessage = "El nombre del solicitante debe tener entre 2 y 120 caracteres.")]
+        public string NombreSolicitante { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El email es obligatorio.")]
+        [EmailAddress(ErrorMessage = "El email no es válido.")]
+        [StringLength(254, ErrorMessage = "El email no puede superar los 254 caracteres.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El teléfono es obligatorio.")]
+        [StringLength(32, MinimumLength = 8, ErrorMessage = "El teléfono debe tener entre 8 y 32 caracteres.")]
+        public string Telefono { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El domicilio es obligatorio.")]
+        [StringLength(200, MinimumLength = 5, ErrorMessage = "El domicilio debe tener entre 5 y 200 caracteres.")]
+        public string Domicilio { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La ciudad es obligatoria.")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "La ciudad debe tener entre 2 y 100 caracteres.")]
+        public string Ciudad { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La provincia es obligatoria.")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "La provincia debe tener entre 2 y 100 caracteres.")]
+        public string Provincia { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El código postal es obligatorio.")]
+        [StringLength(10, MinimumLength = 4, ErrorMessage = "El código postal debe tener entre 4 y 10 caracteres.")]
+        public string CodigoPostal { get; set; } = string.Empty;
+
+        [StringLength(1000, ErrorMessage = "El mensaje no puede superar los 1000 caracteres.")]
+        public string? Mensaje { get; set; }
+
+        [Range(typeof(bool), "true", "true", ErrorMessage = "Tenés que aceptar los términos para enviar la solicitud.")]
+        public bool AceptaTerminos { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (!CondicionesIva.Any(opcion => opcion.Valor == CondicionIva))
+            {
+                yield return new ValidationResult(
+                    "Seleccioná la condición frente al IVA.",
+                    [nameof(CondicionIva)]);
+            }
+        }
+    }
+}

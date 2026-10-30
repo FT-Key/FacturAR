@@ -15,6 +15,7 @@ builder.Services.AddHttpClient<FacturarApiClient>(client =>
 {
     var baseUrl = builder.Configuration["Api:BaseUrl"] ?? "http://localhost:5171";
     client.BaseAddress = new Uri($"{baseUrl.TrimEnd('/')}/");
+    client.Timeout = TimeSpan.FromSeconds(10);
 });
 
 builder.Services.AddScoped<AuthenticationStateProvider, ApiAuthenticationStateProvider>();
