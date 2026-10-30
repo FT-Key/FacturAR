@@ -1,10 +1,12 @@
 using System.Threading.RateLimiting;
 using FacturAR.Api.Auth;
 using FacturAR.Api.Security;
+using FacturAR.Api.Solicitudes;
 using FacturAR.Application.Abstractions;
 using FacturAR.Application.Auth;
 using FacturAR.Application.Comprobantes;
 using FacturAR.Application.Notificaciones;
+using FacturAR.Application.Solicitudes;
 using FacturAR.Contracts.Comunes;
 using FacturAR.Contracts.Comprobantes;
 using FacturAR.Contracts.Sistema;
@@ -14,6 +16,7 @@ using FacturAR.Infrastructure.Mongo;
 using FacturAR.Infrastructure.Notificaciones;
 using FacturAR.Infrastructure.Password;
 using FacturAR.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.RateLimiting;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -54,6 +57,10 @@ var notificacionesOptions = new NotificacionesOptions
     AdminNotificationEmail = builder.Configuration["Admin:NotificationEmail"]
 };
 
+var solicitudAltaRateLimitOptions = builder.Configuration
+    .GetSection(SolicitudAltaRateLimitOptions.SectionName)
+    .Get<SolicitudAltaRateLimitOptions>() ?? new SolicitudAltaRateLimitOptions();
+
 NotificacionesConfigurationValidator.Validar(emailOptions, notificacionesOptions, builder.Environment.IsDevelopment());
 
 MongoSerialization.Configure();
@@ -65,6 +72,8 @@ builder.Services.AddSingleton(bootstrapAdminOptions);
 builder.Services.AddSingleton(buildInformation);
 builder.Services.AddSingleton(emailOptions);
 builder.Services.AddSingleton(notificacionesOptions);
+builder.Services.AddSingleton(solicitudAltaRateLimitOptions);
+builder.Services.AddSingleton<SolicitudAltaRateLimiter>();
 
 if (string.Equals(emailOptions.Provider, "Smtp", StringComparison.OrdinalIgnoreCase))
 {
@@ -87,6 +96,8 @@ builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IAdministradorRepository, AdministradorRepository>();
 builder.Services.AddScoped<IContribuyenteRepository, ContribuyenteRepository>();
 builder.Services.AddScoped<IEventoAuditoriaRepository, EventoAuditoriaRepository>();
+builder.Services.AddScoped<ISolicitudAltaRepository, SolicitudAltaRepository>();
+builder.Services.AddScoped<CrearSolicitudAltaService>();
 builder.Services.AddSingleton<IPasswordHasher>(_ => new PasswordHasher(authOptions.PasswordHashIterations));
 builder.Services.AddSingleton<ILoginIntentStore>(_ =>
     new LoginIntentStore(authOptions.Login.MaxIntentosFallidos, TimeSpan.FromMinutes(authOptions.Login.MinutosBloqueo)));
@@ -131,15 +142,30 @@ var app = builder.Build();
 
 app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 {
-    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+    var excepcion = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+    var esSolicitudInvalida = excepcion is BadHttpRequestException;
+
+    context.Response.StatusCode = esSolicitudInvalida
+        ? StatusCodes.Status400BadRequest
+        : StatusCodes.Status500InternalServerError;
     context.Response.ContentType = "application/json";
-    await context.Response.WriteAsJsonAsync(new ErrorResponse(
-        "ERROR_INTERNO",
-        "Ocurrió un error inesperado."));
+
+    var error = esSolicitudInvalida
+        ? new ErrorResponse("VALIDACION", "El cuerpo de la solicitud no es válido.")
+        : new ErrorResponse("ERROR_INTERNO", "Ocurrió un error inesperado.");
+
+    await context.Response.WriteAsJsonAsync(error);
 }));
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
+app.UseWhen(
+    ctx => string.Equals(
+            ctx.Request.Path.Value?.TrimEnd('/'),
+            "/v1/solicitudes-alta",
+            StringComparison.OrdinalIgnoreCase)
+        && HttpMethods.IsPost(ctx.Request.Method),
+    branch => branch.UseMiddleware<SolicitudAltaRateLimitMiddleware>());
 
 if (app.Environment.IsDevelopment())
 {
@@ -240,6 +266,7 @@ app.MapGet("/v1/comprobantes/verificar/{cae}", async (
 .Produces<ErrorResponse>(StatusCodes.Status404NotFound);
 
 app.MapAuthEndpoints();
+app.MapSolicitudAltaEndpoints();
 
 app.Run();
 

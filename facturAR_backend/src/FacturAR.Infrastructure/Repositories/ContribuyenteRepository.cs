@@ -20,4 +20,9 @@ public sealed class ContribuyenteRepository : IContribuyenteRepository
             .Find(c => c.Id == id)
             .FirstOrDefaultAsync(ct);
     }
+
+    public Task<bool> ExistePorCuitAsync(string cuit, CancellationToken ct = default)
+        => _context.Contribuyentes
+            .Find(c => c.Cuit == cuit)
+            .AnyAsync(ct);
 }

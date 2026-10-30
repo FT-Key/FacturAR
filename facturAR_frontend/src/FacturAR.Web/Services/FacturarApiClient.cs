@@ -1,7 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using FacturAR.Contracts.Auth;
+using FacturAR.Contracts.Comunes;
 using FacturAR.Contracts.Comprobantes;
+using FacturAR.Contracts.Solicitudes;
 
 namespace FacturAR.Web.Services;
 
@@ -9,6 +12,8 @@ public sealed class FacturarApiClient(HttpClient httpClient)
 {
     private const string CookieHeader = "Cookie";
     private const string SetCookieHeader = "Set-Cookie";
+    private const string MensajeSolicitudRecibida = "Recibimos tu solicitud.";
+    private const string MensajeErrorSolicitud = "No pudimos enviar la solicitud. Intentá de nuevo en unos minutos.";
 
     public async Task<VerificacionResponse?> VerificarAsync(string cae, CancellationToken cancellationToken = default)
     {
@@ -23,6 +28,27 @@ public sealed class FacturarApiClient(HttpClient httpClient)
 
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<VerificacionResponse>(cancellationToken);
+    }
+
+    public async Task<SolicitudAltaResultado> EnviarSolicitudAltaAsync(
+        SolicitudAltaRequest solicitud,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await httpClient.PostAsJsonAsync(
+            "v1/solicitudes-alta",
+            solicitud,
+            cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var recibida = await response.Content.ReadFromJsonAsync<SolicitudAltaResponse>(cancellationToken);
+            return SolicitudAltaResultado.ConExito(recibida?.Mensaje ?? MensajeSolicitudRecibida);
+        }
+
+        var error = await LeerErrorAsync(response, cancellationToken);
+        return error is null
+            ? SolicitudAltaResultado.Fallido(null, MensajeErrorSolicitud)
+            : SolicitudAltaResultado.Fallido(error.Codigo, error.Mensaje);
     }
 
     public Task<IReadOnlyList<string>?> LoginEmpresaAsync(
@@ -117,6 +143,25 @@ public sealed class FacturarApiClient(HttpClient httpClient)
         }
 
         return request;
+    }
+
+    private static async Task<ErrorResponse?> LeerErrorAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(cancellationToken);
+            return string.IsNullOrWhiteSpace(error?.Mensaje) ? null : error;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+        catch (NotSupportedException)
+        {
+            return null;
+        }
     }
 
     private static IReadOnlyList<string> LeerSetCookie(HttpResponseMessage response)

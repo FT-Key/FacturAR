@@ -1,4 +1,5 @@
 using FacturAR.Domain.Entities;
+using FacturAR.Domain.Enums;
 using MongoDB.Driver;
 
 namespace FacturAR.Infrastructure.Mongo;
@@ -93,6 +94,35 @@ public static class MongoIndexInitializer
                     .Ascending(e => e.ContribuyenteId)
                     .Descending(e => e.CreatedAt),
                 new CreateIndexOptions { Name = "ix_eventos_contribuyente_fecha" })
+        ], cancellationToken);
+
+        await context.SolicitudesAlta.Indexes.CreateManyAsync(
+        [
+            new CreateIndexModel<SolicitudAltaEmpresa>(
+                Builders<SolicitudAltaEmpresa>.IndexKeys.Ascending(s => s.Cuit),
+                new CreateIndexOptions<SolicitudAltaEmpresa>
+                {
+                    Unique = true,
+                    Name = "ux_solicitudes_alta_cuit_pendiente",
+                    PartialFilterExpression = Builders<SolicitudAltaEmpresa>.Filter.Eq(
+                        s => s.Estado,
+                        EstadoSolicitud.Pendiente)
+                }),
+            new CreateIndexModel<SolicitudAltaEmpresa>(
+                Builders<SolicitudAltaEmpresa>.IndexKeys.Ascending(s => s.EmailSolicitante),
+                new CreateIndexOptions<SolicitudAltaEmpresa>
+                {
+                    Unique = true,
+                    Name = "ux_solicitudes_alta_email_pendiente",
+                    PartialFilterExpression = Builders<SolicitudAltaEmpresa>.Filter.Eq(
+                        s => s.Estado,
+                        EstadoSolicitud.Pendiente)
+                }),
+            new CreateIndexModel<SolicitudAltaEmpresa>(
+                Builders<SolicitudAltaEmpresa>.IndexKeys
+                    .Ascending(s => s.Estado)
+                    .Descending(s => s.CreatedAt),
+                new CreateIndexOptions { Name = "ix_solicitudes_alta_estado_fecha" })
         ], cancellationToken);
     }
 }
