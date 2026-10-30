@@ -469,6 +469,7 @@ Para rollback, cambiar `IMAGE_TAG` en `.env.production` por el SHA de un build a
 - [Historias de usuario](docs/historias-usuario/README.md)
 - [Historias terminadas](docs/historias-usuario-terminadas/README.md)
 - [Colección Postman](docs/postman/FacturAR.postman_collection.json)
+- [Manual de marca](docs/manual-marca/README.md)
 - [Guía para agentes](AGENTS.md)
 
 ## Alcance y supuestos
