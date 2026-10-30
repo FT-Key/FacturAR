@@ -6,4 +6,5 @@ public sealed class InvitacionRateLimitOptions
 
     public int ValidacionesPorIp { get; set; } = 20;
     public int ActivacionesPorIp { get; set; } = 10;
+    public bool ConfiarEnProxy { get; set; }
 }

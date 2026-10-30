@@ -69,10 +69,7 @@ var invitacionRateLimitOptions = builder.Configuration
     .GetSection(InvitacionRateLimitOptions.SectionName)
     .Get<InvitacionRateLimitOptions>() ?? new InvitacionRateLimitOptions();
 
-if (invitacionRateLimitOptions.ValidacionesPorIp < 1 || invitacionRateLimitOptions.ActivacionesPorIp < 1)
-{
-    throw new InvalidOperationException("RateLimit:Invitacion requiere límites mayores a cero.");
-}
+InvitacionRateLimitOptionsValidator.Validar(invitacionRateLimitOptions);
 
 NotificacionesConfigurationValidator.Validar(emailOptions, notificacionesOptions, builder.Environment.IsDevelopment());
 
@@ -153,8 +150,8 @@ builder.Services.AddRateLimiter(options =>
 
     options.AddPolicy<string>("solicitud-alta", solicitudAltaPolicy);
 
-    options.AddPolicy<string>(InvitacionEndpoints.PoliticaValidacion, PorIpPorHora(invitacionRateLimitOptions.ValidacionesPorIp));
-    options.AddPolicy<string>(InvitacionEndpoints.PoliticaActivacion, PorIpPorHora(invitacionRateLimitOptions.ActivacionesPorIp));
+    options.AddPolicy<string>(InvitacionEndpoints.PoliticaValidacion, PorIpPorHora(invitacionRateLimitOptions.ValidacionesPorIp, invitacionRateLimitOptions.ConfiarEnProxy));
+    options.AddPolicy<string>(InvitacionEndpoints.PoliticaActivacion, PorIpPorHora(invitacionRateLimitOptions.ActivacionesPorIp, invitacionRateLimitOptions.ConfiarEnProxy));
 
     options.OnRejected = async (context, cancellationToken) =>
     {
@@ -310,9 +307,9 @@ app.MapInvitacionEndpoints();
 
 app.Run();
 
-static Func<HttpContext, RateLimitPartition<string>> PorIpPorHora(int limite)
+static Func<HttpContext, RateLimitPartition<string>> PorIpPorHora(int limite, bool confiarEnProxy)
     => context => RateLimitPartition.GetFixedWindowLimiter(
-        context.Connection.RemoteIpAddress?.ToString() ?? "desconocida",
+        IpCliente.Obtener(context, confiarEnProxy),
         _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = limite,
