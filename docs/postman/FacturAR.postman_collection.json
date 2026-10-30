@@ -340,6 +340,299 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Consola global — solicitudes",
+      "description": "US-27. Requiere la sesión de administrador global: ejecutar primero «Login SuperAdmin».",
+      "item": [
+        {
+          "name": "Login SuperAdmin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "auth", "login"]
+            },
+            "description": "Inicia la sesión de la consola global. Postman guarda la cookie `.FacturAR.Admin` para los requests siguientes.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar solicitudes pendientes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Devuelve la página', () => pm.expect(body).to.have.keys('items', 'page', 'pageSize', 'total', 'totalPages'));",
+                  "if (body.items.length > 0) { pm.collectionVariables.set('solicitudId', body.items[0].id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/solicitudes?estado=Pendiente&page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "solicitudes?estado=Pendiente&page=1&pageSize=20"]
+            },
+            "description": "Lista paginada con filtros `estado`, `cuit`, `razonSocial` y `email`. Guarda el id de la primera solicitud en `solicitudId`."
+          },
+          "response": []
+        },
+        {
+          "name": "Detalle de solicitud",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('No expone el hash del token', () => pm.expect(pm.response.text().toLowerCase()).to.not.include('tokenhash'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/solicitudes/{{solicitudId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "solicitudes", "{{solicitudId}}"]
+            },
+            "description": "Datos completos, invitación vigente (solo prefijo del token) e historial de revisión."
+          },
+          "response": []
+        },
+        {
+          "name": "Editar solicitud pendiente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/solicitudes/{{solicitudId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "solicitudes", "{{solicitudId}}"]
+            },
+            "description": "Solo `SuperAdmin` y solo mientras la solicitud esté `Pendiente`. El CUIT no es editable.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razonSocial\": \"Empresa Demo S.A.\",\n  \"condicionIva\": 1,\n  \"email\": \"solicitante@demo.com\",\n  \"telefono\": \"+54 11 5555-1234\",\n  \"domicilio\": \"Av. Corrientes 1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Aprobar solicitud",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Devuelve contribuyente e invitación', () => pm.expect(pm.response.json()).to.have.keys('contribuyenteId', 'invitacionId', 'emailEnviado', 'advertenciaEmail'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/solicitudes/{{solicitudId}}/aprobar",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "solicitudes", "{{solicitudId}}", "aprobar"]
+            },
+            "description": "Crea contribuyente, punto de venta 1 «Casa Central» e invitación en una transacción. Si el email falla responde 200 con `emailEnviado = false`."
+          },
+          "response": []
+        },
+        {
+          "name": "Aprobar dos veces",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Código SOLICITUD_YA_PROCESADA', () => pm.expect(pm.response.json().codigo).to.eql('SOLICITUD_YA_PROCESADA'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/solicitudes/{{solicitudId}}/aprobar",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "solicitudes", "{{solicitudId}}", "aprobar"]
+            },
+            "description": "Una solicitud ya resuelta devuelve 409 `SOLICITUD_YA_PROCESADA` y no duplica datos."
+          },
+          "response": []
+        },
+        {
+          "name": "Reenviar invitación",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/solicitudes/{{solicitudId}}/reenviar-invitacion",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "solicitudes", "{{solicitudId}}", "reenviar-invitacion"]
+            },
+            "description": "Revoca la invitación vigente y envía una nueva. `Soporte` también puede hacerlo. Si el email falla responde 502 `EMAIL_NO_ENVIADO`."
+          },
+          "response": []
+        },
+        {
+          "name": "Rechazar sin motivo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400 o 409', () => pm.expect(pm.response.code).to.be.oneOf([400, 409]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/solicitudes/{{solicitudId}}/rechazar",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "solicitudes", "{{solicitudId}}", "rechazar"]
+            },
+            "description": "El motivo es obligatorio (10 a 500 caracteres).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Rechazar con motivo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200 o 409', () => pm.expect(pm.response.code).to.be.oneOf([200, 409]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/solicitudes/{{solicitudId}}/rechazar",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "solicitudes", "{{solicitudId}}", "rechazar"]
+            },
+            "description": "Usar sobre una solicitud `Pendiente` distinta de la aprobada. Deja la solicitud `Rechazada` y envía el motivo al solicitante.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Datos fiscales incompletos\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [
@@ -351,6 +644,21 @@
     {
       "key": "caeExistente",
       "value": "12345678901234",
+      "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@facturar.local",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "CAMBIAR",
+      "type": "string"
+    },
+    {
+      "key": "solicitudId",
+      "value": "",
       "type": "string"
     }
   ]

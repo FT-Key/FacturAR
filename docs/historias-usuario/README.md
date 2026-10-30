@@ -29,7 +29,7 @@ La columna **Orden** es la posición dentro del sprint. La columna **Contrato** 
 | 1 | [US-04](US-04-login-multiempresa.md) | Autenticación, roles y aislamiento multiempresa | Registro | 1 | Alta | 3 | RF-11 | Base implementada | Sí |
 | 2 | [US-29](US-29-emails-transaccionales.md) | Notificaciones transaccionales por email | Registro | 1 | Alta | 2 | RF-26 | Parcial | Sí |
 | 3 | [US-01](US-01-alta-contribuyente.md) | Solicitud pública de alta de empresa | Registro | 2 | Alta | 2 | RF-23 | Parcial | Sí |
-| 4 | [US-27](US-27-aprobacion-solicitudes.md) | Revisión y aprobación de solicitudes | Registro | 2 | Alta | 3 | RF-24 | Pendiente | Sí |
+| 4 | [US-27](../historias-usuario-terminadas/US-27-aprobacion-solicitudes.md) | Revisión y aprobación de solicitudes | Registro | 2 | Alta | 3 | RF-24 | Completada | Sí |
 | 5 | [US-28](US-28-invitacion-cuenta.md) | Activación de cuenta por invitación | Registro | 2 | Alta | 2 | RF-25 | Pendiente | Sí |
 | 6 | [US-02](US-02-api-keys.md) | Gestión de API keys | Integraciones | 3 | Alta | 2 | RF-02 | Pendiente | Sí |
 | 7 | [US-03](US-03-autenticacion-api-key.md) | Autenticación por API key | Integraciones | 3 | Alta | 1 | RF-03 | Pendiente | Sí |
@@ -60,6 +60,8 @@ Al día de hoy **US-11 y US-04 tienen comportamiento implementado**: la API expo
 **US-29** queda en **Parcial**: el servicio de email está implementado y probado —`IEmailSender`, `EmailService`, las cinco plantillas, remitente de archivo en desarrollo, remitente SMTP y validación de configuración al arrancar—, pero falta el disparo desde los endpoints de US-01 y US-27 y la advertencia/reenvío en el panel de solicitudes.
 
 **US-01** queda en **Parcial**: `POST /v1/solicitudes-alta` y la página `/solicitar-alta` están implementados y cubiertos por tests automáticos (unitarios y de integración); falta la verificación con Mongo real y el QA del camino feliz.
+
+**US-27** queda **Completada**: la consola global lista, filtra, edita, aprueba, rechaza y reenvía invitaciones (`/v1/admin/solicitudes` y `/admin/solicitudes` en el portal). La aprobación crea contribuyente, punto de venta e invitación en una transacción de MongoDB y dispara los emails de US-29 después del commit.
 
 El resto de las historias tiene el **modelo de dominio y los índices de MongoDB preparados**, pero sin casos de uso, endpoints ni pantallas. Eso no cuenta como avance: una historia está terminada cuando entrega comportamiento verificable con test.
 

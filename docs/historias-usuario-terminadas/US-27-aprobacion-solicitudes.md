@@ -5,7 +5,8 @@
 **Estimación:** 3 días  
 **Requisito:** RF-24  
 **Depende de:** US-01, US-04, US-29  
-**Habilita:** US-28
+**Habilita:** US-28  
+**Estado:** Completada
 
 ## Historia
 
@@ -19,24 +20,24 @@ La operación debe ser atómica e idempotente: una solicitud no puede aprobarse 
 
 ## Criterios de aceptación
 
-- [ ] El panel global lista solicitudes con estado, CUIT, razón social, email y fecha.
-- [ ] Se puede filtrar por estado, CUIT, razón social y email.
-- [ ] El detalle muestra todos los datos de la solicitud y su historial de revisión.
-- [ ] El administrador puede editar razón social, condición IVA, email, teléfono y domicilio mientras la solicitud esté `Pendiente`.
-- [ ] El CUIT se valida y normaliza antes de aprobar.
-- [ ] No se puede aprobar una solicitud si el CUIT ya pertenece a un contribuyente.
-- [ ] Aprobar crea `Contribuyente`, `PuntoVenta` número `1` "Casa Central" e `Invitacion` en una sola transacción.
-- [ ] La solicitud pasa a `Aprobada` y registra administrador y fecha de revisión.
-- [ ] La invitación se crea para el email del solicitante con rol `Administrador`, token hasheado y vencimiento de 48 horas.
-- [ ] Se envía el email de invitación después de confirmar la transacción.
-- [ ] Si el email falla, la aprobación no se revierte; el panel muestra una advertencia y permite reenviar.
-- [ ] Aprobar dos veces la misma solicitud devuelve `409` y no duplica datos.
-- [ ] Rechazar exige un motivo y deja la solicitud en `Rechazada`.
-- [ ] Rechazar no crea contribuyente, punto de venta ni invitación.
-- [ ] Un administrador `Soporte` puede ver y reenviar invitaciones, pero no editar, aprobar ni rechazar.
-- [ ] Reenviar una invitación revoca la anterior y genera una nueva con nuevo token y vencimiento.
-- [ ] Todas las acciones registran auditoría con actor global y solicitud.
-- [ ] La UI muestra mensajes claros de éxito, conflicto y error de email.
+- [x] El panel global lista solicitudes con estado, CUIT, razón social, email y fecha.
+- [x] Se puede filtrar por estado, CUIT, razón social y email.
+- [x] El detalle muestra todos los datos de la solicitud y su historial de revisión.
+- [x] El administrador puede editar razón social, condición IVA, email, teléfono y domicilio mientras la solicitud esté `Pendiente`.
+- [x] El CUIT se valida y normaliza antes de aprobar.
+- [x] No se puede aprobar una solicitud si el CUIT ya pertenece a un contribuyente.
+- [x] Aprobar crea `Contribuyente`, `PuntoVenta` número `1` "Casa Central" e `Invitacion` en una sola transacción.
+- [x] La solicitud pasa a `Aprobada` y registra administrador y fecha de revisión.
+- [x] La invitación se crea para el email del solicitante con rol `Administrador`, token hasheado y vencimiento de 48 horas.
+- [x] Se envía el email de invitación después de confirmar la transacción.
+- [x] Si el email falla, la aprobación no se revierte; el panel muestra una advertencia y permite reenviar.
+- [x] Aprobar dos veces la misma solicitud devuelve `409` y no duplica datos.
+- [x] Rechazar exige un motivo y deja la solicitud en `Rechazada`.
+- [x] Rechazar no crea contribuyente, punto de venta ni invitación.
+- [x] Un administrador `Soporte` puede ver y reenviar invitaciones, pero no editar, aprobar ni rechazar.
+- [x] Reenviar una invitación revoca la anterior y genera una nueva con nuevo token y vencimiento.
+- [x] Todas las acciones registran auditoría con actor global y solicitud.
+- [x] La UI muestra mensajes claros de éxito, conflicto y error de email.
 
 ## Escenarios Gherkin
 
@@ -105,32 +106,52 @@ Scenario: Reenviar invitación
 
 ## Tareas técnicas
 
-- [ ] Crear `Invitacion`, `EstadoInvitacion` y `TokenInvitacion` en Domain.
-- [ ] Crear `IInvitacionRepository` y `ISolicitudAltaRepository` en Application.
-- [ ] Implementar `AprobarSolicitudService` con transacción de MongoDB.
-- [ ] Implementar `RechazarSolicitudService` con motivo obligatorio.
-- [ ] Implementar `ReenviarInvitacionService` con revocación de la anterior.
-- [ ] Crear endpoints `GET /v1/admin/solicitudes`, `GET /v1/admin/solicitudes/{id}` y `PUT /v1/admin/solicitudes/{id}`.
-- [ ] Crear `POST /v1/admin/solicitudes/{id}/aprobar`.
-- [ ] Crear `POST /v1/admin/solicitudes/{id}/rechazar`.
-- [ ] Crear `POST /v1/admin/solicitudes/{id}/reenviar-invitacion`.
-- [ ] Aplicar políticas `AdminGlobal` y `AdminSuper`.
-- [ ] Crear el panel de solicitudes y el detalle en el portal.
-- [ ] Integrar el envío de emails de US-29.
-- [ ] Registrar auditoría de aprobación, rechazo y reenvío.
-- [ ] Agregar índices para token de invitación y búsquedas del panel.
-- [ ] Agregar tests de transacción, doble aprobación, CUIT duplicado y permisos.
-- [ ] Documentar endpoints y códigos de error en OpenAPI y Postman.
+- [x] Crear `Invitacion`, `EstadoInvitacion` y `TokenInvitacion` en Domain.
+- [x] Crear `IInvitacionRepository` y `ISolicitudAltaRepository` en Application.
+- [x] Implementar `AprobarSolicitudService` con transacción de MongoDB.
+- [x] Implementar `RechazarSolicitudService` con motivo obligatorio.
+- [x] Implementar `ReenviarInvitacionService` con revocación de la anterior.
+- [x] Crear endpoints `GET /v1/admin/solicitudes`, `GET /v1/admin/solicitudes/{id}` y `PUT /v1/admin/solicitudes/{id}`.
+- [x] Crear `POST /v1/admin/solicitudes/{id}/aprobar`.
+- [x] Crear `POST /v1/admin/solicitudes/{id}/rechazar`.
+- [x] Crear `POST /v1/admin/solicitudes/{id}/reenviar-invitacion`.
+- [x] Aplicar políticas `AdminGlobal` y `AdminSuper`.
+- [x] Crear el panel de solicitudes y el detalle en el portal.
+- [x] Integrar el envío de emails de US-29.
+- [x] Registrar auditoría de aprobación, rechazo y reenvío.
+- [x] Agregar índices para token de invitación y búsquedas del panel.
+- [x] Agregar tests de transacción, doble aprobación, CUIT duplicado y permisos.
+- [x] Documentar endpoints y códigos de error en OpenAPI y Postman.
 
 ## Definition of Done
 
-- [ ] Una solicitud aprobada genera exactamente una empresa, un punto de venta y una invitación.
-- [ ] Una solicitud rechazada no genera datos de empresa.
-- [ ] El panel global permite revisar, editar, aprobar, rechazar y reenviar.
-- [ ] Los permisos de `SuperAdmin` y `Soporte` están cubiertos por tests.
-- [ ] Un fallo de email no pierde la aprobación y permite reenviar.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el proceso de alta.
+- [x] Una solicitud aprobada genera exactamente una empresa, un punto de venta y una invitación.
+- [x] Una solicitud rechazada no genera datos de empresa.
+- [x] El panel global permite revisar, editar, aprobar, rechazar y reenviar.
+- [x] Los permisos de `SuperAdmin` y `Soporte` están cubiertos por tests.
+- [x] Un fallo de email no pierde la aprobación y permite reenviar.
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el proceso de alta.
+
+## Evidencia
+
+Verificado el 2026-10-30 sobre la rama `feature/us-27-aprobacion-solicitudes`, con MongoDB 8.2 local en replica set.
+
+| Qué | Cómo se verificó |
+| --- | --- |
+| Reglas de aprobar, rechazar, reenviar, editar, listar y detalle | `RevisionSolicitudesServiceTests` (34 tests unitarios con repositorios falsos). |
+| Transacción real, doble aprobación, aprobación concurrente (4 requests simultáneos), CUIT duplicado, email caído, permisos de `Soporte`, filtros y paginación | `MongoRevisionSolicitudesTests` (17 tests `MongoFact` con `WebApplicationFactory`). CP-27-01 a CP-27-13 cubiertos. |
+| Suite completa | `dotnet test FacturAR.slnx -c Release`: 147 unitarios y 93 de integración en verde. `dotnet format --verify-no-changes` sin cambios. |
+| Panel del portal | QA manual con API y portal locales: login de `SuperAdmin`, listado y filtro, edición, aprobación, intento de doble aprobación, reenvío, rechazo con motivo corto (validación) y con motivo válido. Se generaron los emails `SolicitudAprobada`, `InvitacionReenviada` y `SolicitudRechazada`. Sin sesión, `/admin/solicitudes` redirige a `/admin/login`. |
+| Replica set en CI | PR `ci/mongo-replica-set`: la CI levanta `mongo:8.2` con `--replSet rs0`. |
+
+Decisiones tomadas durante la implementación:
+
+- La transacción entra a Application por `ITransaccionMongo`. Los repositorios toman la sesión activa de `MongoSesionActual` (scoped), así que las interfaces no exponen tipos del driver.
+- `Invitacion` guarda `Estado`. `Vencida` se calcula al leer (`EstadoEfectivo`) y no se persiste.
+- Reenviar exige una invitación `Pendiente`, aunque esté vencida. Si la invitación ya se usó (US-28) o la solicitud no está aprobada, responde `404 INVITACION_NO_ENCONTRADA`.
+- El panel del portal usa render estático con formularios `POST`, igual que la consola, porque la cookie de sesión solo está disponible en el request HTTP.
+- Se agregó el índice `ix_eventos_entidad_fecha` para el historial del detalle y `ix_invitaciones_solicitud_estado` para localizar la invitación vigente.
 
 ## Contrato técnico
 

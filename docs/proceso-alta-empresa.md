@@ -2,7 +2,7 @@
 
 ## Estado del documento
 
-> **Diseño objetivo del MVP.** Este documento describe el onboarding profesional simulado de FacturAR: **solicitud → aprobación → invitación → activación**. La solicitud pública (US-01) está implementada y probada automáticamente, pero falta verificar la persistencia con Mongo real; la aprobación, la invitación y la activación siguen pendientes.
+> **Diseño objetivo del MVP.** Este documento describe el onboarding profesional simulado de FacturAR: **solicitud → aprobación → invitación → activación**. La solicitud pública (US-01) está implementada y probada automáticamente, pero falta verificar la persistencia con Mongo real. La revisión y aprobación (US-27) está implementada; la activación por invitación (US-28) sigue pendiente.
 
 Qué describe este documento: el flujo de alta de una empresa, los actores, los estados de la solicitud y de la invitación, los emails transaccionales y los endpoints previstos de la consola global.
 
@@ -35,7 +35,7 @@ Ningún otro endpoint del onboarding existe hoy: `/v1/admin/solicitudes/**`, `/v
 | US-01 | §1 Solicitud pública de alta | Parcial |
 | US-04 | §4 Login de empresa y sesión | Base implementada |
 | US-02 | §4 Gestión de API keys desde el portal | Pendiente |
-| US-27 | §2 Revisión y aprobación del administrador global | Pendiente |
+| US-27 | §2 Revisión y aprobación del administrador global | Completada |
 | US-28 | §3 Invitación y activación de la cuenta | Pendiente |
 | US-29 | Emails transaccionales del onboarding | Parcial |
 | US-30 | §5 Manual de integración online | Pendiente |
@@ -63,7 +63,7 @@ Este proceso reemplaza el registro libre de empresa y usuario administrador. El 
 
 ## Flujo
 
-> **Diseño objetivo — US-01, US-27, US-28 y US-29.** El diagrama muestra el flujo completo del MVP. El `POST` de solicitud (US-01) ya está implementado; los endpoints de aprobación, invitación y activación todavía no existen.
+> **Diseño objetivo — US-01, US-27, US-28 y US-29.** El diagrama muestra el flujo completo del MVP. El `POST` de solicitud (US-01) y la revisión y aprobación (US-27) ya están implementados; la activación por invitación (US-28) todavía no existe.
 
 ```mermaid
 sequenceDiagram
@@ -95,7 +95,7 @@ Etapas y su estado:
 | Etapa | Qué pasa | Historia | Estado |
 | --- | --- | --- | --- |
 | 1. Solicitud pública | El solicitante completa el formulario y la solicitud queda `Pendiente`. | US-01, US-29 | Parcial |
-| 2. Revisión del administrador global | El administrador consulta, corrige, aprueba o rechaza. | US-27 | Pendiente |
+| 2. Revisión del administrador global | El administrador consulta, corrige, aprueba o rechaza. | US-27 | Completada |
 | 3. Invitación y activación | El solicitante acepta la invitación y define su contraseña. | US-28, US-29 | Pendiente |
 | 4. Login y API key | El usuario de empresa inicia sesión y crea su API key. | US-04, US-02 | Parcial |
 | 5. Manual de integración | El integrador lee la guía y consume la API. | US-30 | Pendiente |
@@ -130,7 +130,7 @@ La respuesta no revela si un CUIT ya existe. Si el CUIT ya está registrado, se 
 
 ### 2. Revisión del administrador global
 
-> **Diseño objetivo — US-27.** `GET /v1/admin/solicitudes` y las acciones de aprobar, rechazar y reenviar invitación **todavía no están implementadas**.
+> **Implementado — US-27.** La API expone `/v1/admin/solicitudes` y el portal el panel `/admin/solicitudes`, con listado, detalle, edición, aprobación, rechazo y reenvío de invitaciones.
 
 El administrador global ingresa por `/admin/login` con una cuenta separada de los usuarios de empresa. Puede:
 
@@ -151,9 +151,9 @@ Al aprobar, en una sola operación:
 6. Se envía el email de invitación.
 7. Se registra un evento de auditoría.
 
-Si falla la creación del contribuyente o del punto de venta, no se marca la solicitud como aprobada ni se envía la invitación.
+Los pasos 1 a 5 y la auditoría ocurren en una única transacción de MongoDB (requiere replica set). Si cualquiera falla, no se crea nada ni se envía la invitación. El email se envía después de confirmar la transacción: si falla, la aprobación queda firme y el panel ofrece reenviar.
 
-Errores del flujo: `404 SOLICITUD_NO_ENCONTRADA` si la solicitud no existe, `409 SOLICITUD_YA_PROCESADA` si ya fue revisada, `409 SOLICITUD_PENDIENTE` si el CUIT ya está en uso, `403 SIN_PERMISOS` si el rol no alcanza y `502 EMAIL_NO_ENVIADO` cuando el reenvío de la invitación es lo que falla.
+Errores del flujo: `404 SOLICITUD_NO_ENCONTRADA` si la solicitud no existe, `409 SOLICITUD_YA_PROCESADA` si ya fue revisada, `409 CUIT_YA_REGISTRADO` si el CUIT ya está en uso, `403 SIN_PERMISOS` si el rol no alcanza y `502 EMAIL_NO_ENVIADO` cuando el reenvío de la invitación es lo que falla.
 
 `SuperAdmin` aprueba y rechaza. `Soporte` solo consulta y reenvía invitaciones.
 
@@ -263,7 +263,7 @@ El manual online explica:
 
 En desarrollo se usa un remitente que escribe el email completo en un archivo local; el log solo registra metadatos sin tokens. En producción se configura SMTP por variables de entorno. Un fallo de email no debe perder la solicitud ni la empresa: el administrador puede reenviar la invitación. El cuerpo con token no se persiste en claro.
 
-> **Estado de US-29:** el servicio de email ya está implementado y probado con remitente de archivo en desarrollo y SMTP configurable en producción. US-01 ya dispara el email `SolicitudRecibida` y la notificación al administrador; el reenvío desde el panel se habilita con US-27.
+> **Estado de US-29:** el servicio de email ya está implementado y probado con remitente de archivo en desarrollo y SMTP configurable en producción. US-01 ya dispara el email `SolicitudRecibida` y la notificación al administrador; US-27 dispara `SolicitudAprobada`, `SolicitudRechazada` e `InvitacionReenviada` desde el panel.
 
 ## Endpoints previstos
 
@@ -274,12 +274,12 @@ Todos los endpoints de esta tabla están **especificados**. La columna Estado in
 | `POST` | `/v1/solicitudes-alta` | Público con rate limit. | US-01 | Implementado |
 | `POST` | `/v1/admin/auth/login` | Público con rate limit. | US-04 | Implementado |
 | `POST` | `/v1/admin/auth/logout` | Administrador global. | US-04 | Implementado |
-| `GET` | `/v1/admin/solicitudes` | Administrador global. | US-27 | No implementado |
-| `GET` | `/v1/admin/solicitudes/{id}` | Administrador global. | US-27 | No implementado |
-| `PUT` | `/v1/admin/solicitudes/{id}` | Administrador global. | US-27 | No implementado |
-| `POST` | `/v1/admin/solicitudes/{id}/aprobar` | `SuperAdmin`. | US-27 | No implementado |
-| `POST` | `/v1/admin/solicitudes/{id}/rechazar` | `SuperAdmin`. | US-27 | No implementado |
-| `POST` | `/v1/admin/solicitudes/{id}/reenviar-invitacion` | Administrador global. | US-27 | No implementado |
+| `GET` | `/v1/admin/solicitudes` | Administrador global. | US-27 | Implementado |
+| `GET` | `/v1/admin/solicitudes/{id}` | Administrador global. | US-27 | Implementado |
+| `PUT` | `/v1/admin/solicitudes/{id}` | `SuperAdmin`. | US-27 | Implementado |
+| `POST` | `/v1/admin/solicitudes/{id}/aprobar` | `SuperAdmin`. | US-27 | Implementado |
+| `POST` | `/v1/admin/solicitudes/{id}/rechazar` | `SuperAdmin`. | US-27 | Implementado |
+| `POST` | `/v1/admin/solicitudes/{id}/reenviar-invitacion` | Administrador global. | US-27 | Implementado |
 | `GET` | `/v1/invitaciones/{token}` | Público con rate limit. | US-28 | No implementado |
 | `POST` | `/v1/invitaciones/{token}/aceptar` | Público con rate limit. | US-28 | No implementado |
 | `POST` | `/v1/auth/login` | Público con rate limit. | US-04 | Implementado |
