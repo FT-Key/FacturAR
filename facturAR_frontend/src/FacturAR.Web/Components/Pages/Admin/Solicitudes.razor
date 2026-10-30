@@ -1,0 +1,186 @@
+@page "/admin/solicitudes"
+@using System.Globalization
+@using FacturAR.Contracts.Comunes
+@using FacturAR.Contracts.Solicitudes
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = "AdminGlobal")]
+@inject FacturarApiClient ApiClient
+@inject NavigationManager Navigation
+
+<PageTitle>Solicitudes de alta - FacturAR</PageTitle>
+
+<div class="py-4 d-flex flex-wrap justify-content-between align-items-end gap-2">
+    <div>
+        <h1 class="h3 mb-1">Solicitudes de alta</h1>
+        <p class="text-muted mb-0">Revisá las empresas que pidieron acceso y resolvé cada solicitud.</p>
+    </div>
+    <a class="btn btn-outline-secondary btn-sm" href="/admin">Volver a la consola</a>
+</div>
+
+<form method="get" action="/admin/solicitudes" class="row g-2 align-items-end mb-3" data-enhance-nav="false">
+    <div class="col-12 col-md-2">
+        <label class="form-label small" for="estado">Estado</label>
+        <select id="estado" name="estado" class="form-select form-select-sm">
+            <option value="" selected="@string.IsNullOrEmpty(Estado)">Todos</option>
+            @foreach (var opcion in Estados)
+            {
+                <option value="@opcion" selected="@string.Equals(Estado, opcion, StringComparison.OrdinalIgnoreCase)">@opcion</option>
+            }
+        </select>
+    </div>
+    <div class="col-12 col-md-2">
+        <label class="form-label small" for="cuit">CUIT</label>
+        <input id="cuit" name="cuit" class="form-control form-control-sm" inputmode="numeric" value="@Cuit" />
+    </div>
+    <div class="col-12 col-md-3">
+        <label class="form-label small" for="razonSocial">Razón social</label>
+        <input id="razonSocial" name="razonSocial" class="form-control form-control-sm" value="@RazonSocial" />
+    </div>
+    <div class="col-12 col-md-3">
+        <label class="form-label small" for="email">Email</label>
+        <input id="email" name="email" type="search" class="form-control form-control-sm" value="@Email" />
+    </div>
+    <div class="col-12 col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+        <a class="btn btn-link btn-sm" href="/admin/solicitudes">Limpiar</a>
+    </div>
+</form>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger" role="alert">@_error</div>
+}
+else if (_pagina is null)
+{
+    <p class="text-muted">Cargando…</p>
+}
+else if (_pagina.Items.Count == 0)
+{
+    <div class="alert alert-light border" role="status">No hay solicitudes que coincidan con los filtros.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Estado</th>
+                    <th scope="col">CUIT</th>
+                    <th scope="col">Razón social</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Recibida</th>
+                    <th scope="col"><span class="visually-hidden">Acciones</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var solicitud in _pagina.Items)
+                {
+                    <tr>
+                        <td><span class="badge @ClaseEstado(solicitud.Estado)">@solicitud.Estado</span></td>
+                        <td class="font-monospace">@solicitud.Cuit</td>
+                        <td>@solicitud.RazonSocial</td>
+                        <td>@solicitud.Email</td>
+                        <td>@Fecha(solicitud.CreatedAt)</td>
+                        <td class="text-end">
+                            <a class="btn btn-outline-primary btn-sm" href="/admin/solicitudes/@solicitud.Id">Revisar</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <nav class="d-flex justify-content-between align-items-center" aria-label="Paginación de solicitudes">
+        <span class="text-muted small">
+            @_pagina.Total solicitud(es) · página @_pagina.Page de @Math.Max(_pagina.TotalPages, 1)
+        </span>
+        <div class="btn-group btn-group-sm">
+            @if (_pagina.Page > 1)
+            {
+                <a class="btn btn-outline-secondary" href="@UrlPagina(_pagina.Page - 1)">Anterior</a>
+            }
+            @if (_pagina.Page < _pagina.TotalPages)
+            {
+                <a class="btn btn-outline-secondary" href="@UrlPagina(_pagina.Page + 1)">Siguiente</a>
+            }
+        </div>
+    </nav>
+}
+
+@code {
+    private static readonly string[] Estados = ["Pendiente", "Aprobada", "Rechazada"];
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    [SupplyParameterFromQuery]
+    private int? Page { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Estado { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Cuit { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? RazonSocial { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Email { get; set; }
+
+    private PaginaResponse<SolicitudAltaResumenResponse>? _pagina;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationState is null || !EsAdministradorGlobal((await AuthenticationState).User))
+        {
+            Navigation.NavigateTo("/admin/login");
+            return;
+        }
+
+        var resultado = await ApiClient.ListarSolicitudesAsync(
+            HttpContext?.Request.Headers.Cookie.ToString(),
+            Math.Max(Page ?? 1, 1),
+            Estado,
+            Cuit,
+            RazonSocial,
+            Email);
+
+        if (resultado.SinSesion)
+        {
+            Navigation.NavigateTo("/admin/login");
+            return;
+        }
+
+        if (resultado.Exitoso)
+        {
+            _pagina = resultado.Valor;
+        }
+        else
+        {
+            _error = resultado.Mensaje;
+        }
+    }
+
+    private string UrlPagina(int page)
+        => Navigation.GetUriWithQueryParameter("page", page);
+
+    internal static bool EsAdministradorGlobal(System.Security.Claims.ClaimsPrincipal usuario)
+        => usuario.HasClaim("rolGlobal", "SuperAdmin") || usuario.HasClaim("rolGlobal", "Soporte");
+
+    internal static string ClaseEstado(string estado)
+        => estado switch
+        {
+            "Pendiente" => "text-bg-warning",
+            "Aprobada" => "text-bg-success",
+            "Rechazada" => "text-bg-secondary",
+            _ => "text-bg-light"
+        };
+
+    internal static string Fecha(DateTime fecha)
+        => fecha.ToUniversalTime().ToString("dd/MM/yyyy HH:mm 'UTC'", CultureInfo.InvariantCulture);
+}

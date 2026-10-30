@@ -349,7 +349,7 @@ En Development, el seed deja además una API key de demostración de la empresa 
 - API keys: `GET|POST /v1/api-keys`, `DELETE /v1/api-keys/{id}`, `POST /v1/api-keys/{id}/regenerar`.
 - Solicitud de alta (público): `POST /v1/solicitudes-alta`.
 - Activación (público): `GET /v1/invitaciones/{token}` y `POST /v1/invitaciones/{token}/aceptar`.
-- Consola global: `GET /v1/admin/solicitudes`, `POST /v1/admin/solicitudes/{id}/aprobar`, `POST /v1/admin/solicitudes/{id}/rechazar`, `POST /v1/admin/solicitudes/{id}/reenviar-invitacion`.
+- Consola global: `GET /v1/admin/solicitudes`, `GET|PUT /v1/admin/solicitudes/{id}`, `POST /v1/admin/solicitudes/{id}/aprobar`, `POST /v1/admin/solicitudes/{id}/rechazar`, `POST /v1/admin/solicitudes/{id}/reenviar-invitacion`.
 
 ## 15. Qué NO existe en el MVP
 

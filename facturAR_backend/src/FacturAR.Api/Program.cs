@@ -1,10 +1,14 @@
 using System.Threading.RateLimiting;
 using FacturAR.Api.Auth;
+using FacturAR.Api.Invitaciones;
 using FacturAR.Api.Security;
+using FacturAR.Api.Solicitudes;
 using FacturAR.Application.Abstractions;
 using FacturAR.Application.Auth;
 using FacturAR.Application.Comprobantes;
+using FacturAR.Application.Invitaciones;
 using FacturAR.Application.Notificaciones;
+using FacturAR.Application.Solicitudes;
 using FacturAR.Contracts.Comunes;
 using FacturAR.Contracts.Comprobantes;
 using FacturAR.Contracts.Sistema;
@@ -14,6 +18,7 @@ using FacturAR.Infrastructure.Mongo;
 using FacturAR.Infrastructure.Notificaciones;
 using FacturAR.Infrastructure.Password;
 using FacturAR.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.RateLimiting;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -54,6 +59,18 @@ var notificacionesOptions = new NotificacionesOptions
     AdminNotificationEmail = builder.Configuration["Admin:NotificationEmail"]
 };
 
+var solicitudAltaRateLimitOptions = builder.Configuration
+    .GetSection(SolicitudAltaRateLimitOptions.SectionName)
+    .Get<SolicitudAltaRateLimitOptions>() ?? new SolicitudAltaRateLimitOptions();
+
+SolicitudAltaRateLimitOptionsValidator.Validar(solicitudAltaRateLimitOptions);
+
+var invitacionRateLimitOptions = builder.Configuration
+    .GetSection(InvitacionRateLimitOptions.SectionName)
+    .Get<InvitacionRateLimitOptions>() ?? new InvitacionRateLimitOptions();
+
+InvitacionRateLimitOptionsValidator.Validar(invitacionRateLimitOptions);
+
 NotificacionesConfigurationValidator.Validar(emailOptions, notificacionesOptions, builder.Environment.IsDevelopment());
 
 MongoSerialization.Configure();
@@ -65,6 +82,7 @@ builder.Services.AddSingleton(bootstrapAdminOptions);
 builder.Services.AddSingleton(buildInformation);
 builder.Services.AddSingleton(emailOptions);
 builder.Services.AddSingleton(notificacionesOptions);
+builder.Services.AddSingleton(solicitudAltaRateLimitOptions);
 
 if (string.Equals(emailOptions.Provider, "Smtp", StringComparison.OrdinalIgnoreCase))
 {
@@ -87,6 +105,21 @@ builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IAdministradorRepository, AdministradorRepository>();
 builder.Services.AddScoped<IContribuyenteRepository, ContribuyenteRepository>();
 builder.Services.AddScoped<IEventoAuditoriaRepository, EventoAuditoriaRepository>();
+builder.Services.AddScoped<ISolicitudAltaRepository, SolicitudAltaRepository>();
+builder.Services.AddScoped<CrearSolicitudAltaService>();
+builder.Services.AddScoped<MongoSesionActual>();
+builder.Services.AddScoped<ITransaccionMongo, TransaccionMongo>();
+builder.Services.AddScoped<IInvitacionRepository, InvitacionRepository>();
+builder.Services.AddScoped<IPuntoVentaRepository, PuntoVentaRepository>();
+builder.Services.AddScoped<NotificadorRevisionSolicitudes>();
+builder.Services.AddScoped<ListarSolicitudesService>();
+builder.Services.AddScoped<ObtenerSolicitudService>();
+builder.Services.AddScoped<EditarSolicitudService>();
+builder.Services.AddScoped<AprobarSolicitudService>();
+builder.Services.AddScoped<RechazarSolicitudService>();
+builder.Services.AddScoped<ReenviarInvitacionService>();
+builder.Services.AddScoped<ValidarInvitacionService>();
+builder.Services.AddScoped<AceptarInvitacionService>();
 builder.Services.AddSingleton<IPasswordHasher>(_ => new PasswordHasher(authOptions.PasswordHashIterations));
 builder.Services.AddSingleton<ILoginIntentStore>(_ =>
     new LoginIntentStore(authOptions.Login.MaxIntentosFallidos, TimeSpan.FromMinutes(authOptions.Login.MinutosBloqueo)));
@@ -98,6 +131,8 @@ builder.Services.AddScoped<AdminGlobalBootstrapService>();
 builder.Services.AddHostedService<AdminGlobalBootstrapHostedService>();
 
 builder.Services.AddFacturarCookies(authOptions, builder.Environment.IsDevelopment());
+
+var solicitudAltaPolicy = new SolicitudAltaRateLimitPolicy(solicitudAltaRateLimitOptions);
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -113,10 +148,21 @@ builder.Services.AddRateLimiter(options =>
         });
     });
 
+    options.AddPolicy<string>("solicitud-alta", solicitudAltaPolicy);
+
+    options.AddPolicy<string>(InvitacionEndpoints.PoliticaValidacion, PorIpPorHora(invitacionRateLimitOptions.ValidacionesPorIp, invitacionRateLimitOptions.ConfiarEnProxy));
+    options.AddPolicy<string>(InvitacionEndpoints.PoliticaActivacion, PorIpPorHora(invitacionRateLimitOptions.ActivacionesPorIp, invitacionRateLimitOptions.ConfiarEnProxy));
+
     options.OnRejected = async (context, cancellationToken) =>
     {
         if (context.HttpContext.Response.HasStarted)
         {
+            return;
+        }
+
+        if (context.HttpContext.Request.Path.StartsWithSegments("/v1/invitaciones"))
+        {
+            await SolicitudAltaRateLimitRechazo.Handler(context, cancellationToken);
             return;
         }
 
@@ -131,14 +177,29 @@ var app = builder.Build();
 
 app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 {
-    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+    var excepcion = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+    var esSolicitudInvalida = excepcion is BadHttpRequestException;
+
+    context.Response.StatusCode = esSolicitudInvalida
+        ? StatusCodes.Status400BadRequest
+        : StatusCodes.Status500InternalServerError;
     context.Response.ContentType = "application/json";
-    await context.Response.WriteAsJsonAsync(new ErrorResponse(
-        "ERROR_INTERNO",
-        "Ocurrió un error inesperado."));
+
+    var error = esSolicitudInvalida
+        ? new ErrorResponse("VALIDACION", "El cuerpo de la solicitud no es válido.")
+        : new ErrorResponse("ERROR_INTERNO", "Ocurrió un error inesperado.");
+
+    await context.Response.WriteAsJsonAsync(error);
 }));
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseWhen(
+    ctx => string.Equals(
+            ctx.Request.Path.Value?.TrimEnd('/'),
+            "/v1/solicitudes-alta",
+            StringComparison.OrdinalIgnoreCase)
+        && HttpMethods.IsPost(ctx.Request.Method),
+    branch => branch.UseMiddleware<SolicitudAltaRateLimitMiddleware>());
 app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
@@ -240,7 +301,20 @@ app.MapGet("/v1/comprobantes/verificar/{cae}", async (
 .Produces<ErrorResponse>(StatusCodes.Status404NotFound);
 
 app.MapAuthEndpoints();
+app.MapSolicitudAltaEndpoints();
+app.MapSolicitudesAdminEndpoints();
+app.MapInvitacionEndpoints();
 
 app.Run();
+
+static Func<HttpContext, RateLimitPartition<string>> PorIpPorHora(int limite, bool confiarEnProxy)
+    => context => RateLimitPartition.GetFixedWindowLimiter(
+        IpCliente.Obtener(context, confiarEnProxy),
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = limite,
+            Window = TimeSpan.FromHours(1),
+            QueueLimit = 0
+        });
 
 public partial class Program;

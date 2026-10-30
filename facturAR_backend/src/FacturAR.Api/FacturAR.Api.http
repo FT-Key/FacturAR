@@ -19,3 +19,100 @@ GET {{FacturAR_Api_HostAddress}}/v1/comprobantes/verificar/12345678901234
 Accept: application/json
 
 ###
+
+POST {{FacturAR_Api_HostAddress}}/v1/solicitudes-alta
+Content-Type: application/json
+
+{
+  "razonSocial": "Empresa Demo S.A.",
+  "cuit": "20123456786",
+  "condicionIva": 1,
+  "nombreSolicitante": "Ana Pérez",
+  "email": "solicitante@demo.com",
+  "telefono": "+54 11 5555-1234",
+  "domicilio": "Av. Corrientes 1234",
+  "ciudad": "Ciudad Autónoma de Buenos Aires",
+  "provincia": "Buenos Aires",
+  "codigoPostal": "C1043",
+  "mensaje": "Queremos emitir facturas A y B.",
+  "aceptaTerminos": true
+}
+
+###
+
+# Consola global (US-27): iniciar sesión y copiar la cookie .FacturAR.Admin en @adminCookie.
+@adminCookie = .FacturAR.Admin=PEGAR_COOKIE
+@solicitudId = 00000000-0000-0000-0000-000000000000
+
+POST {{FacturAR_Api_HostAddress}}/v1/admin/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@facturar.local",
+  "password": "CAMBIAR"
+}
+
+###
+
+GET {{FacturAR_Api_HostAddress}}/v1/admin/solicitudes?estado=Pendiente&page=1&pageSize=20
+Cookie: {{adminCookie}}
+
+###
+
+GET {{FacturAR_Api_HostAddress}}/v1/admin/solicitudes/{{solicitudId}}
+Cookie: {{adminCookie}}
+
+###
+
+PUT {{FacturAR_Api_HostAddress}}/v1/admin/solicitudes/{{solicitudId}}
+Cookie: {{adminCookie}}
+Content-Type: application/json
+
+{
+  "razonSocial": "Empresa Demo S.A.",
+  "condicionIva": 1,
+  "email": "solicitante@demo.com",
+  "telefono": "+54 11 5555-1234",
+  "domicilio": "Av. Corrientes 1234"
+}
+
+###
+
+POST {{FacturAR_Api_HostAddress}}/v1/admin/solicitudes/{{solicitudId}}/aprobar
+Cookie: {{adminCookie}}
+
+###
+
+POST {{FacturAR_Api_HostAddress}}/v1/admin/solicitudes/{{solicitudId}}/rechazar
+Cookie: {{adminCookie}}
+Content-Type: application/json
+
+{
+  "motivo": "Datos fiscales incompletos"
+}
+
+###
+
+POST {{FacturAR_Api_HostAddress}}/v1/admin/solicitudes/{{solicitudId}}/reenviar-invitacion
+Cookie: {{adminCookie}}
+
+###
+
+# Activación (US-28): pegar el token del link /activar?token=... del email de aprobación.
+@tokenInvitacion = PEGAR_TOKEN
+@passwordNueva = CAMBIAR
+
+GET {{FacturAR_Api_HostAddress}}/v1/invitaciones/{{tokenInvitacion}}
+Accept: application/json
+
+###
+
+POST {{FacturAR_Api_HostAddress}}/v1/invitaciones/{{tokenInvitacion}}/aceptar
+Content-Type: application/json
+
+{
+  "password": "{{passwordNueva}}",
+  "confirmacionPassword": "{{passwordNueva}}"
+}
+
+###

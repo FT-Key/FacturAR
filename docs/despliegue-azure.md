@@ -317,6 +317,19 @@ Después de crear:
 | `Mongo__ConnectionString` | Connection string de Atlas |
 | `Mongo__DatabaseName` | `facturar` |
 | `Mongo__InitializeIndexes` | `true` |
+| `Email__Provider` | `Smtp` |
+| `Email__Host` | Host SMTP del proveedor |
+| `Email__Port` | `587` |
+| `Email__User` | Usuario SMTP |
+| `Email__Password` | Clave SMTP (secreto) |
+| `Email__UseSsl` | `true` |
+| `Email__From` | Remitente verificado por el proveedor |
+| `Email__FromName` | `FacturAR` |
+| `Email__TimeoutSegundos` | `15` |
+| `Portal__BaseUrl` | URL pública del portal, sin barra final |
+| `Admin__NotificationEmail` | Email para avisos de administración (opcional) |
+
+Estas últimas claves son obligatorias desde US-29 y van **solo en la Web App de la API**, no en la del portal. En `Production` el provider por defecto es `Smtp` y el arranque falla si `Email__Host` está vacío: `Email:Host es obligatorio cuando Email:Provider es Smtp`. `Email__Provider=File` solo está permitido en `Development`. `Portal__BaseUrl` es la URL que se usa en los emails de invitación.
 
 2. **Configuration** → **General settings**:
    - **Health check path:** `/health/live`.
@@ -698,14 +711,18 @@ jobs:
           for intento in $(seq 1 18); do
             respuesta=$(curl -fsS --max-time 10 "$WEB_URL/health/live" 2>/dev/null || true)
             commit=$(printf '%s' "$respuesta" | sed -n 's/.*"commit":"\([^"]*\)".*/\1/p')
-            if [ "$commit" = "$EXPECTED_SHA" ]; then
-              echo "Portal desplegado con el commit $EXPECTED_SHA en el intento $intento."
+            root_code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$WEB_URL/" 2>/dev/null || true)
+            verificar_code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$WEB_URL/verificar" 2>/dev/null || true)
+            login_code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$WEB_URL/login" 2>/dev/null || true)
+            admin_code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$WEB_URL/admin/login" 2>/dev/null || true)
+            if [ "$commit" = "$EXPECTED_SHA" ] && [ "$root_code" = "200" ] && [ "$verificar_code" = "200" ] && [ "$login_code" = "200" ] && [ "$admin_code" = "200" ]; then
+              echo "Portal desplegado con el commit $EXPECTED_SHA; / /verificar /login /admin/login responden 200."
               exit 0
             fi
-            echo "Intento $intento/18: commit recibido '${commit:-sin commit}', esperado '$EXPECTED_SHA'; reintentando en 10s."
+            echo "Intento $intento/18: commit '${commit:-sin commit}', /=$root_code, /verificar=$verificar_code, /login=$login_code, /admin/login=$admin_code; esperado '$EXPECTED_SHA' y 200; reintentando en 10s."
             sleep 10
           done
-          echo "::error::El portal no quedó sirviendo el commit $EXPECTED_SHA después de 18 intentos. Revisá el Log stream de la Web App."
+          echo "::error::El portal no quedó sirviendo el commit $EXPECTED_SHA con las rutas públicas en 200 después de 18 intentos. Revisá el Log stream de la Web App."
           exit 1
 
   rollback:
@@ -837,7 +854,7 @@ Las imágenes se construyen con dos build args que quedan como variables de ento
 
 La API y el portal devuelven esos valores como `version` y `commit` en `/`, `/health` y `/health/live`.
 
-El smoke test del CD **no se queda con un 200**: consulta `$API_URL/health/live` y `$WEB_URL/health/live`, extrae el campo `commit` de la respuesta y lo compara con el SHA esperado (`needs.resolve-target.outputs.sha`). Si no coinciden, reintenta hasta 18 veces y después falla el job. Ese es el mecanismo que garantiza que la Web App esté sirviendo exactamente la imagen recién publicada.
+El smoke test del CD **no se queda con un 200**: consulta `$API_URL/health/live` y `$WEB_URL/health/live`, extrae el campo `commit` de la respuesta y lo compara con el SHA esperado (`needs.resolve-target.outputs.sha`). Además, el portal debe responder `200` en `/`, `/verificar`, `/login` y `/admin/login`, para que un error de render no pase solo porque `/health/live` sigue vivo. Si algo no coincide, reintenta hasta 18 veces y después falla el job. Ese es el mecanismo que garantiza que la Web App esté sirviendo exactamente la imagen recién publicada y que las rutas públicas funcionen.
 
 Esto reemplaza el smoke test anterior, que solo verificaba que la URL respondiera `200` y no comprobaba qué versión estaba servida.
 
@@ -1009,6 +1026,7 @@ Errores frecuentes del pipeline y qué revisar.
 | Síntoma | Causa | Qué revisar |
 | --- | --- | --- |
 | El smoke test falla con `La API no quedó sirviendo el commit <sha>` o `El portal no quedó sirviendo el commit <sha>` | La Web App sirve una imagen distinta de la publicada en ese run | Comparar el `commit` de `/health/live` con el SHA esperado. Verificar que el tag SHA exista en Docker Hub, que la Web App tenga la imagen correcta configurada y revisar el **Log stream**. Un despliegue sobre el mismo tag SHA puede servir la imagen cacheada: reiniciar la Web App. |
+| La API no arranca y el **Log stream** muestra `Email:Host es obligatorio cuando Email:Provider es Smtp` | Faltan las App Settings de email en la Web App de la API, o se cargaron en la del portal | Cargar `Email__*`, `Portal__BaseUrl` y `Admin__NotificationEmail` en `facturar-api-...`, no en `facturar-web-...` (ver §6.3) y reiniciar. |
 | El job `deploy-api` o `deploy-web` aparece como *skipped* | `vars.AZURE_DEPLOY_ENABLED` no vale `true` | Crear o corregir la variable del repositorio en **Settings → Secrets and variables → Actions → Variables**. Con `false` el CD solo publica imágenes. |
 | `Falta el secreto AZURE_WEBAPP_PUBLISH_PROFILE_API` o `..._WEB` | El publish profile no está cargado o está vencido | Descargarlo de nuevo desde **Overview → Get publish profile** y actualizar el secreto. Verificar que SCM Basic Auth Publishing Credentials esté en `On`. |
 | `Configurá DOCKERHUB_USERNAME y DOCKERHUB_TOKEN en los secretos del repositorio` | Faltan credenciales de Docker Hub | Crear el secreto con un token de Docker Hub de permiso **Read & Write**. |

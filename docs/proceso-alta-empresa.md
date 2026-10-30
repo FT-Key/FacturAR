@@ -2,7 +2,7 @@
 
 ## Estado del documento
 
-> **Diseño objetivo del MVP.** Este documento describe el onboarding profesional simulado de FacturAR: **solicitud → aprobación → invitación → activación**. **Ninguna de esas etapas está implementada todavía**: las historias US-XX que las habilitan están pendientes o en curso.
+> **Diseño objetivo del MVP.** Este documento describe el onboarding profesional simulado de FacturAR: **solicitud → aprobación → invitación → activación**. La solicitud pública (US-01) está implementada y probada automáticamente, pero falta verificar la persistencia con Mongo real. La revisión y aprobación (US-27) y la activación por invitación (US-28) están implementadas.
 
 Qué describe este documento: el flujo de alta de una empresa, los actores, los estados de la solicitud y de la invitación, los emails transaccionales y los endpoints previstos de la consola global.
 
@@ -19,8 +19,9 @@ Base URL local: `http://localhost:5171`. En Docker: `http://localhost:8080`.
 | `GET` | `/health` | Readiness: verifica MongoDB. `200` si responde, `503` si no. |
 | `GET` | `/health/live` | Liveness: no consulta MongoDB. Siempre `200`. |
 | `GET` | `/v1/comprobantes/verificar/{cae}` | Verificación pública de un comprobante por CAE. No requiere autenticación. |
+| `POST` | `/v1/solicitudes-alta` | Solicitud pública de alta de empresa, con rate limit. No requiere autenticación. |
 
-Ningún endpoint del onboarding existe hoy: `POST /v1/solicitudes-alta`, `/v1/admin/solicitudes/**`, `/v1/invitaciones/**`, `/v1/auth/**` y `/v1/api-keys/**` responden `404` hasta que su historia se complete.
+Ningún otro endpoint del onboarding existe hoy: `/v1/admin/solicitudes/**`, `/v1/invitaciones/**`, `/v1/auth/**` y `/v1/api-keys/**` responden `404` hasta que su historia se complete.
 
 ### Reglas que no cambian con el estado de implementación
 
@@ -31,11 +32,11 @@ Ningún endpoint del onboarding existe hoy: `POST /v1/solicitudes-alta`, `/v1/ad
 
 | Historia | Qué parte del documento describe | Estado |
 | --- | --- | --- |
-| US-01 | §1 Solicitud pública de alta | Pendiente |
+| US-01 | §1 Solicitud pública de alta | Parcial |
 | US-04 | §4 Login de empresa y sesión | Base implementada |
 | US-02 | §4 Gestión de API keys desde el portal | Pendiente |
-| US-27 | §2 Revisión y aprobación del administrador global | Pendiente |
-| US-28 | §3 Invitación y activación de la cuenta | Pendiente |
+| US-27 | §2 Revisión y aprobación del administrador global | Completada |
+| US-28 | §3 Invitación y activación de la cuenta | Completada |
 | US-29 | Emails transaccionales del onboarding | Parcial |
 | US-30 | §5 Manual de integración online | Pendiente |
 | US-17 | Auditoría de las acciones del onboarding | Pendiente |
@@ -62,7 +63,7 @@ Este proceso reemplaza el registro libre de empresa y usuario administrador. El 
 
 ## Flujo
 
-> **Diseño objetivo — US-01, US-27, US-28 y US-29.** El diagrama muestra el flujo completo del MVP. Ninguno de los endpoints que aparecen existe hoy.
+> **Diseño objetivo — US-01, US-27, US-28 y US-29.** El diagrama muestra el flujo completo del MVP. La solicitud (US-01), la revisión y aprobación (US-27) y la activación por invitación (US-28) ya están implementadas.
 
 ```mermaid
 sequenceDiagram
@@ -93,15 +94,15 @@ Etapas y su estado:
 
 | Etapa | Qué pasa | Historia | Estado |
 | --- | --- | --- | --- |
-| 1. Solicitud pública | El solicitante completa el formulario y la solicitud queda `Pendiente`. | US-01, US-29 | Pendiente |
-| 2. Revisión del administrador global | El administrador consulta, corrige, aprueba o rechaza. | US-27 | Pendiente |
-| 3. Invitación y activación | El solicitante acepta la invitación y define su contraseña. | US-28, US-29 | Pendiente |
+| 1. Solicitud pública | El solicitante completa el formulario y la solicitud queda `Pendiente`. | US-01, US-29 | Parcial |
+| 2. Revisión del administrador global | El administrador consulta, corrige, aprueba o rechaza. | US-27 | Completada |
+| 3. Invitación y activación | El solicitante acepta la invitación y define su contraseña. | US-28, US-29 | Completada |
 | 4. Login y API key | El usuario de empresa inicia sesión y crea su API key. | US-04, US-02 | Parcial |
 | 5. Manual de integración | El integrador lee la guía y consume la API. | US-30 | Pendiente |
 
 ### 1. Solicitud pública
 
-> **Diseño objetivo — US-01 y US-29.** `POST /v1/solicitudes-alta` **todavía no está implementado**.
+> **Estado — US-01 y US-29.** `POST /v1/solicitudes-alta` está implementado y probado automáticamente, y la página `/solicitar-alta` existe en el portal. Falta verificar la persistencia contra MongoDB real y el envío del email de confirmación en un entorno con la base disponible.
 
 El visitante completa:
 
@@ -129,7 +130,7 @@ La respuesta no revela si un CUIT ya existe. Si el CUIT ya está registrado, se 
 
 ### 2. Revisión del administrador global
 
-> **Diseño objetivo — US-27.** `GET /v1/admin/solicitudes` y las acciones de aprobar, rechazar y reenviar invitación **todavía no están implementadas**.
+> **Implementado — US-27.** La API expone `/v1/admin/solicitudes` y el portal el panel `/admin/solicitudes`, con listado, detalle, edición, aprobación, rechazo y reenvío de invitaciones.
 
 El administrador global ingresa por `/admin/login` con una cuenta separada de los usuarios de empresa. Puede:
 
@@ -150,15 +151,15 @@ Al aprobar, en una sola operación:
 6. Se envía el email de invitación.
 7. Se registra un evento de auditoría.
 
-Si falla la creación del contribuyente o del punto de venta, no se marca la solicitud como aprobada ni se envía la invitación.
+Los pasos 1 a 5 y la auditoría ocurren en una única transacción de MongoDB (requiere replica set). Si cualquiera falla, no se crea nada ni se envía la invitación. El email se envía después de confirmar la transacción: si falla, la aprobación queda firme y el panel ofrece reenviar.
 
-Errores del flujo: `404 SOLICITUD_NO_ENCONTRADA` si la solicitud no existe, `409 SOLICITUD_YA_PROCESADA` si ya fue revisada, `409 SOLICITUD_PENDIENTE` si el CUIT ya está en uso, `403 SIN_PERMISOS` si el rol no alcanza y `502 EMAIL_NO_ENVIADO` cuando el reenvío de la invitación es lo que falla.
+Errores del flujo: `404 SOLICITUD_NO_ENCONTRADA` si la solicitud no existe, `409 SOLICITUD_YA_PROCESADA` si ya fue revisada, `409 CUIT_YA_REGISTRADO` si el CUIT ya está en uso, `403 SIN_PERMISOS` si el rol no alcanza y `502 EMAIL_NO_ENVIADO` cuando el reenvío de la invitación es lo que falla.
 
 `SuperAdmin` aprueba y rechaza. `Soporte` solo consulta y reenvía invitaciones.
 
 ### 3. Invitación y activación
 
-> **Diseño objetivo — US-28 y US-29.** `GET /v1/invitaciones/{token}` y `POST /v1/invitaciones/{token}/aceptar` **todavía no están implementados**.
+> **Implementado — US-28.** La API expone `GET /v1/invitaciones/{token}` y `POST /v1/invitaciones/{token}/aceptar`, y el portal la página `/activar`.
 
 La invitación contiene un token aleatorio de alta entropía. En la base se guarda solo su hash, un prefijo visible y la fecha de expiración. Características:
 
@@ -176,11 +177,11 @@ La página de activación muestra la razón social y el email enmascarado. El so
 - Se crea el `Usuario` con el `ContribuyenteId` de la invitación, nunca con un id enviado por el navegador.
 - Se marca la invitación como usada.
 - Se registra auditoría.
-- Se redirige al login de empresa.
+- Se redirige al login de empresa (`/login?exito=cuenta-activada`). La activación no inicia sesión.
 
 Si el token es inválido, vencido o ya fue usado, se muestra un mensaje claro y se indica contactar al administrador. El administrador puede reenviar una invitación nueva.
 
-Errores del flujo: `404 INVITACION_NO_ENCONTRADA`, `410 INVITACION_VENCIDA`, `409 INVITACION_USADA`, `400 PASSWORD_DEBIL`, `400 VALIDACION` si la confirmación no coincide y `429 RATE_LIMIT`.
+Errores del flujo: `404 INVITACION_NO_ENCONTRADA`, `410 INVITACION_VENCIDA`, `409 INVITACION_USADA`, `400 PASSWORD_DEBIL`, `400 VALIDACION` si la confirmación no coincide, `403 CUENTA_INACTIVA` si la empresa está desactivada y `429 RATE_LIMIT` (20 validaciones y 10 activaciones por IP y hora, configurables en `RateLimit:Invitacion`). Con `RateLimit:Invitacion:ConfiarEnProxy` en `true`, la IP se toma de `X-Forwarded-For` para funcionar detrás de un proxy; el default es `false`.
 
 ### 4. Login y API key
 
@@ -262,7 +263,7 @@ El manual online explica:
 
 En desarrollo se usa un remitente que escribe el email completo en un archivo local; el log solo registra metadatos sin tokens. En producción se configura SMTP por variables de entorno. Un fallo de email no debe perder la solicitud ni la empresa: el administrador puede reenviar la invitación. El cuerpo con token no se persiste en claro.
 
-> **Estado de US-29:** el servicio de email ya está implementado y probado con remitente de archivo en desarrollo y SMTP configurable en producción. El disparo desde los endpoints y el reenvío desde el panel se habilitan cuando se implementen US-01 y US-27.
+> **Estado de US-29:** el servicio de email ya está implementado y probado con remitente de archivo en desarrollo y SMTP configurable en producción. US-01 ya dispara el email `SolicitudRecibida` y la notificación al administrador; US-27 dispara `SolicitudAprobada`, `SolicitudRechazada` e `InvitacionReenviada` desde el panel.
 
 ## Endpoints previstos
 
@@ -270,17 +271,17 @@ Todos los endpoints de esta tabla están **especificados**. La columna Estado in
 
 | Método | Ruta | Acceso | Historia | Estado |
 | --- | --- | --- | --- | --- |
-| `POST` | `/v1/solicitudes-alta` | Público con rate limit. | US-01 | No implementado |
+| `POST` | `/v1/solicitudes-alta` | Público con rate limit. | US-01 | Implementado |
 | `POST` | `/v1/admin/auth/login` | Público con rate limit. | US-04 | Implementado |
 | `POST` | `/v1/admin/auth/logout` | Administrador global. | US-04 | Implementado |
-| `GET` | `/v1/admin/solicitudes` | Administrador global. | US-27 | No implementado |
-| `GET` | `/v1/admin/solicitudes/{id}` | Administrador global. | US-27 | No implementado |
-| `PUT` | `/v1/admin/solicitudes/{id}` | Administrador global. | US-27 | No implementado |
-| `POST` | `/v1/admin/solicitudes/{id}/aprobar` | `SuperAdmin`. | US-27 | No implementado |
-| `POST` | `/v1/admin/solicitudes/{id}/rechazar` | `SuperAdmin`. | US-27 | No implementado |
-| `POST` | `/v1/admin/solicitudes/{id}/reenviar-invitacion` | Administrador global. | US-27 | No implementado |
-| `GET` | `/v1/invitaciones/{token}` | Público con rate limit. | US-28 | No implementado |
-| `POST` | `/v1/invitaciones/{token}/aceptar` | Público con rate limit. | US-28 | No implementado |
+| `GET` | `/v1/admin/solicitudes` | Administrador global. | US-27 | Implementado |
+| `GET` | `/v1/admin/solicitudes/{id}` | Administrador global. | US-27 | Implementado |
+| `PUT` | `/v1/admin/solicitudes/{id}` | `SuperAdmin`. | US-27 | Implementado |
+| `POST` | `/v1/admin/solicitudes/{id}/aprobar` | `SuperAdmin`. | US-27 | Implementado |
+| `POST` | `/v1/admin/solicitudes/{id}/rechazar` | `SuperAdmin`. | US-27 | Implementado |
+| `POST` | `/v1/admin/solicitudes/{id}/reenviar-invitacion` | Administrador global. | US-27 | Implementado |
+| `GET` | `/v1/invitaciones/{token}` | Público con rate limit. | US-28 | Implementado |
+| `POST` | `/v1/invitaciones/{token}/aceptar` | Público con rate limit. | US-28 | Implementado |
 | `POST` | `/v1/auth/login` | Público con rate limit. | US-04 | Implementado |
 | `POST` | `/v1/auth/logout` | Usuario autenticado. | US-04 | Implementado |
 | `GET` | `/v1/auth/me` | Usuario autenticado. | US-04 | Implementado |
@@ -289,7 +290,7 @@ Todos los endpoints de esta tabla están **especificados**. La columna Estado in
 | `DELETE` | `/v1/api-keys/{id}` | Administrador de empresa. | US-02 | No implementado |
 | `POST` | `/v1/api-keys/{id}/regenerar` | Administrador de empresa. | US-02 | No implementado |
 
-Estos endpoints se implementan en US-01, US-02, US-03, US-04, US-27, US-28 y US-29. Hasta entonces el manual y las historias son la referencia de contrato.
+Estos endpoints se implementan en US-01, US-02, US-03, US-04, US-27, US-28 y US-29. `POST /v1/solicitudes-alta` ya está implementado; el resto de los que figuran como no implementados responden `404` hasta que su historia se complete, y el manual y las historias siguen siendo la referencia de contrato.
 
 ## Relación con AFIP real
 
@@ -317,7 +318,7 @@ Nada de eso forma parte del MVP simulado.
 
 ## Criterios de demo
 
-> **Diseño objetivo.** Esta demo es posible cuando US-01, US-27, US-28, US-29, US-04 y US-02 estén completas. Hoy no se puede ejecutar de punta a punta: la verificación por CAE (US-11) es lo único que responde.
+> **Diseño objetivo.** Esta demo es posible cuando US-01, US-27, US-28, US-29, US-04 y US-02 estén completas. Hoy la solicitud de alta (US-01), la verificación por CAE (US-11) y el login (US-04) responden; los pasos 2 a 9 todavía no se pueden ejecutar de punta a punta.
 
 1. Enviar una solicitud desde el portal.
 2. Ver el email de confirmación en el buzón de desarrollo.

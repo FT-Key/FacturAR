@@ -100,6 +100,7 @@ Invitación de un solo uso para activar una cuenta de empresa.
 | `Rol` | `RolUsuario` | Sí | Administrador por defecto. |
 | `TokenHash` | `string` | Sí | Hash del token; nunca el token completo. |
 | `TokenPrefix` | `string` | Sí | Prefijo visible para soporte. |
+| `Estado` | `EstadoInvitacion` | Sí | `Pendiente` al crear. `Vencida` se deriva de `ExpiraAt` al leer; no se persiste. |
 | `ExpiraAt` | `DateTime` | Sí | UTC, 48 horas desde la creación. |
 | `UsadaAt` | `DateTime?` | No | UTC. |
 | `RevocadaAt` | `DateTime?` | No | UTC. |

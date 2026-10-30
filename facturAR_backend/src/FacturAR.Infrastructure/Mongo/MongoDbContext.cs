@@ -38,4 +38,10 @@ public sealed class MongoDbContext
 
     public IMongoCollection<EventoAuditoria> Eventos
         => _database.GetCollection<EventoAuditoria>(MongoCollections.Eventos);
+
+    public IMongoCollection<SolicitudAltaEmpresa> SolicitudesAlta
+        => _database.GetCollection<SolicitudAltaEmpresa>(MongoCollections.SolicitudesAlta);
+
+    public IMongoCollection<Invitacion> Invitaciones
+        => _database.GetCollection<Invitacion>(MongoCollections.Invitaciones);
 }

@@ -1,0 +1,165 @@
+@page "/activar"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using System.ComponentModel.DataAnnotations
+@using System.Globalization
+@using FacturAR.Contracts.Invitaciones
+@inject FacturarApiClient ApiClient
+@inject NavigationManager Navigation
+
+<PageTitle>Activar cuenta - FacturAR</PageTitle>
+
+<div class="py-4" style="max-width: 520px;">
+    <h1 class="h3 mb-1">Activar cuenta</h1>
+    <p class="text-muted">Definí tu contraseña para ingresar como administrador de la empresa.</p>
+
+    @if (_cargando)
+    {
+        <p class="text-muted" role="status">Verificando el link de activación…</p>
+    }
+    else if (_invitacion is null)
+    {
+        <div class="alert alert-danger" role="alert">@_error</div>
+        <p class="small text-muted">
+            Si el link venció o ya no es válido, pedile a FacturAR que te reenvíe la invitación.
+        </p>
+        <a class="btn btn-outline-secondary btn-sm" href="/login">Ir a ingresar</a>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <dl class="row mb-3">
+                    <dt class="col-sm-4">Empresa</dt>
+                    <dd class="col-sm-8">@_invitacion.RazonSocial</dd>
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">@_invitacion.EmailEnmascarado</dd>
+                    <dt class="col-sm-4">Vence</dt>
+                    <dd class="col-sm-8">@_invitacion.ExpiraAt.ToUniversalTime().ToString("dd/MM/yyyy HH:mm 'UTC'", CultureInfo.InvariantCulture)</dd>
+                </dl>
+
+                @if (_error is not null)
+                {
+                    <div class="alert alert-danger" role="alert">@_error</div>
+                }
+
+                <EditForm Model="_modelo" OnValidSubmit="ActivarAsync">
+                    <DataAnnotationsValidator />
+                    <div class="mb-3">
+                        <label class="form-label" for="password">Contraseña</label>
+                        <InputText id="password" type="password" class="form-control" autocomplete="new-password"
+                                   aria-describedby="ayuda-password" @bind-Value="_modelo.Password" />
+                        <div id="ayuda-password" class="form-text">
+                            Mínimo 10 caracteres, con al menos una letra y un número. Evitá secuencias o contraseñas comunes.
+                        </div>
+                        <ValidationMessage For="() => _modelo.Password" class="text-danger small" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="confirmacion">Repetí la contraseña</label>
+                        <InputText id="confirmacion" type="password" class="form-control" autocomplete="new-password"
+                                   @bind-Value="_modelo.Confirmacion" />
+                        <ValidationMessage For="() => _modelo.Confirmacion" class="text-danger small" />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100" disabled="@_enviando">
+                        @(_enviando ? "Activando…" : "Activar cuenta")
+                    </button>
+                </EditForm>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private const string MensajeLinkInvalido = "El link de activación no es válido.";
+
+    [SupplyParameterFromQuery(Name = "token")]
+    private string? Token { get; set; }
+
+    private readonly ActivacionModelo _modelo = new();
+    private InvitacionValidacionResponse? _invitacion;
+    private string? _token;
+    private string? _error;
+    private bool _cargando = true;
+    private bool _enviando;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var token = Token?.Trim();
+        if (string.IsNullOrEmpty(token))
+        {
+            if (_token is not null)
+            {
+                return;
+            }
+
+            _error = MensajeLinkInvalido;
+            _cargando = false;
+            return;
+        }
+
+        if (string.Equals(token, _token, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _token = token;
+        _invitacion = null;
+        _error = null;
+        _enviando = false;
+        _modelo.Password = string.Empty;
+        _modelo.Confirmacion = string.Empty;
+        _cargando = true;
+
+        var resultado = await ApiClient.ValidarInvitacionAsync(_token);
+        if (resultado.Exitoso)
+        {
+            _invitacion = resultado.Valor;
+            Navigation.NavigateTo("/activar", replace: true);
+        }
+        else
+        {
+            _error = resultado.Mensaje ?? MensajeLinkInvalido;
+        }
+
+        _cargando = false;
+    }
+
+    private async Task ActivarAsync()
+    {
+        if (_token is null)
+        {
+            return;
+        }
+
+        _enviando = true;
+        _error = null;
+
+        var resultado = await ApiClient.AceptarInvitacionAsync(_token, _modelo.Password, _modelo.Confirmacion);
+        if (resultado.Exitoso)
+        {
+            Navigation.NavigateTo("/login?exito=cuenta-activada", forceLoad: true);
+            return;
+        }
+
+        _enviando = false;
+        _modelo.Password = string.Empty;
+        _modelo.Confirmacion = string.Empty;
+
+        if (resultado.Codigo is "INVITACION_USADA" or "INVITACION_VENCIDA" or "INVITACION_NO_ENCONTRADA" or "CUENTA_INACTIVA")
+        {
+            _invitacion = null;
+        }
+
+        _error = resultado.Mensaje ?? MensajeLinkInvalido;
+    }
+
+    private sealed class ActivacionModelo
+    {
+        [Required(ErrorMessage = "La contraseña es obligatoria.")]
+        [StringLength(128, MinimumLength = 10, ErrorMessage = "La contraseña debe tener al menos 10 caracteres.")]
+        public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Repetí la contraseña.")]
+        [Compare(nameof(Password), ErrorMessage = "Las contraseñas no coinciden.")]
+        public string Confirmacion { get; set; } = string.Empty;
+    }
+}

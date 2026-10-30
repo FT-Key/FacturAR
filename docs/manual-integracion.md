@@ -35,8 +35,8 @@ Todo lo demás que aparece en este manual está **especificado pero no implement
 | `POST` | `/v1/admin/solicitudes/{id}/aprobar` | cookie de consola global | especificado, pendiente de implementar (US-27) |
 | `POST` | `/v1/admin/solicitudes/{id}/rechazar` | cookie de consola global | especificado, pendiente de implementar (US-27) |
 | `POST` | `/v1/admin/solicitudes/{id}/reenviar-invitacion` | cookie de consola global | especificado, pendiente de implementar (US-27) |
-| `GET` | `/v1/invitaciones/{token}` | público, con rate limit | especificado, pendiente de implementar (US-28) |
-| `POST` | `/v1/invitaciones/{token}/aceptar` | público, con rate limit | especificado, pendiente de implementar (US-28) |
+| `GET` | `/v1/invitaciones/{token}` | público, con rate limit | implementado (US-28) |
+| `POST` | `/v1/invitaciones/{token}/aceptar` | público, con rate limit | implementado (US-28) |
 | `GET` | `/v1/api-keys` | cookie de empresa | especificado, pendiente de implementar (US-02) |
 | `POST` | `/v1/api-keys` | cookie de empresa | especificado, pendiente de implementar (US-02) |
 | `DELETE` | `/v1/api-keys/{id}` | cookie de empresa | especificado, pendiente de implementar (US-02) |
@@ -106,7 +106,7 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 | US-10 | Descarga del PDF (`GET /v1/comprobantes/{id}/pdf`) | Pendiente |
 | US-11 | §8 Verificar un comprobante por CAE | Base implementada |
 | US-27 | §1 Revisión y aprobación del administrador global | Pendiente |
-| US-28 | §2 Activar la cuenta: invitación por token | Pendiente |
+| US-28 | §2 Activar la cuenta: invitación por token | Completada |
 | US-29 | Emails de onboarding de §1 y §2 | Pendiente |
 | US-21 | Veracidad documental de este manual | Parcial |
 | US-30 | Publicación del manual online en el portal | Pendiente |
@@ -145,7 +145,7 @@ Errores del flujo: `400 VALIDACION` y `400 CUIT_INVALIDO` por datos inválidos, 
 
 ## 2. Activar la cuenta
 
-> **Diseño objetivo — US-28, US-04, US-29.** La invitación, la activación y el login de empresa **todavía no están implementados**. `GET /v1/invitaciones/{token}` y `POST /v1/invitaciones/{token}/aceptar` responden `404` hasta que US-28 se complete.
+> **Estado — US-28, US-04, US-29.** La activación por invitación (US-28) y el login de empresa (US-04) están implementados: `GET /v1/invitaciones/{token}` y `POST /v1/invitaciones/{token}/aceptar` ya responden. Los emails transaccionales (US-29) siguen parciales. Errores: `404 INVITACION_NO_ENCONTRADA`, `410 INVITACION_VENCIDA`, `409 INVITACION_USADA`, `403 CUENTA_INACTIVA`, `400 PASSWORD_DEBIL`, `400 VALIDACION` y `429 RATE_LIMIT`, con rate limit por IP y hora configurable en `RateLimit:Invitacion`.
 
 1. Abrir el link del email de invitación.
 2. Verificar la razón social y el email.

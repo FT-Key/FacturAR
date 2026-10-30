@@ -19,20 +19,20 @@ El CUIT es un dato público: no se usa como prueba de titularidad. La solicitud 
 
 ## Criterios de aceptación
 
-- [ ] El formulario público solicita razón social, CUIT, condición frente al IVA, nombre del solicitante, email, teléfono, domicilio, ciudad, provincia, código postal y aceptación de términos.
-- [ ] El CUIT se normaliza sin guiones y se valida con el dígito verificador.
-- [ ] El email se normaliza a minúsculas y se valida con formato.
-- [ ] Los campos obligatorios se validan en el borde y en el caso de uso.
-- [ ] La solicitud se guarda con estado `Pendiente` y fecha UTC.
-- [ ] No se crea `Contribuyente`, `Usuario`, `PuntoVenta` ni `ApiKey` en este paso.
-- [ ] No se permite otra solicitud pendiente con el mismo CUIT.
-- [ ] No se permite otra solicitud pendiente con el mismo email.
-- [ ] Si el CUIT ya pertenece a un contribuyente, se devuelve un mensaje genérico y se registra el intento para revisión.
-- [ ] La respuesta no expone datos de otras solicitudes ni confirma la existencia de un contribuyente.
-- [ ] Se envía o encola un email de confirmación al solicitante.
-- [ ] El endpoint público tiene rate limit por IP y por email.
+- [x] El formulario público solicita razón social, CUIT, condición frente al IVA, nombre del solicitante, email, teléfono, domicilio, ciudad, provincia, código postal y aceptación de términos.
+- [x] El CUIT se normaliza sin guiones y se valida con el dígito verificador.
+- [x] El email se normaliza a minúsculas y se valida con formato.
+- [x] Los campos obligatorios se validan en el borde y en el caso de uso.
+- [x] La solicitud se guarda con estado `Pendiente` y fecha UTC.
+- [x] No se crea `Contribuyente`, `Usuario`, `PuntoVenta` ni `ApiKey` en este paso.
+- [x] No se permite otra solicitud pendiente con el mismo CUIT.
+- [x] No se permite otra solicitud pendiente con el mismo email.
+- [x] Si el CUIT ya pertenece a un contribuyente, se devuelve un mensaje genérico y se registra el intento para revisión.
+- [x] La respuesta no expone datos de otras solicitudes ni confirma la existencia de un contribuyente.
+- [x] Se envía o encola un email de confirmación al solicitante.
+- [x] El endpoint público tiene rate limit por IP y por email.
 - [ ] La página muestra un mensaje de éxito con el próximo paso y un mensaje claro ante errores.
-- [ ] La solicitud puede auditarse sin guardar datos sensibles innecesarios.
+- [x] La solicitud puede auditarse sin guardar datos sensibles innecesarios.
 
 ## Escenarios Gherkin
 
@@ -83,26 +83,26 @@ Scenario: Rate limit
 
 ## Tareas técnicas
 
-- [ ] Crear `SolicitudAltaEmpresa` y `EstadoSolicitud` en Domain.
-- [ ] Crear `ISolicitudAltaRepository` en Application.
-- [ ] Implementar el repositorio MongoDB y los índices parciales de unicidad.
-- [ ] Crear DTOs `SolicitudAltaRequest` y `SolicitudAltaResponse` en Contracts.
-- [ ] Implementar `CrearSolicitudAltaService` con normalización y validaciones.
-- [ ] Crear `POST /v1/solicitudes-alta` con rate limit y `ErrorResponse`.
-- [ ] Crear la página de solicitud en el portal y el cliente HTTP.
-- [ ] Enviar el email de confirmación mediante US-29.
-- [ ] Agregar tests unitarios de validación y duplicados.
+- [x] Crear `SolicitudAltaEmpresa` y `EstadoSolicitud` en Domain.
+- [x] Crear `ISolicitudAltaRepository` en Application.
+- [x] Implementar el repositorio MongoDB y los índices parciales de unicidad.
+- [x] Crear DTOs `SolicitudAltaRequest` y `SolicitudAltaResponse` en Contracts.
+- [x] Implementar `CrearSolicitudAltaService` con normalización y validaciones.
+- [x] Crear `POST /v1/solicitudes-alta` con rate limit y `ErrorResponse`.
+- [x] Crear la página de solicitud en el portal y el cliente HTTP.
+- [x] Enviar el email de confirmación mediante US-29.
+- [x] Agregar tests unitarios de validación y duplicados.
 - [ ] Agregar tests de integración del endpoint y de los índices.
-- [ ] Documentar el endpoint en OpenAPI y Postman.
+- [x] Documentar el endpoint en OpenAPI y Postman.
 
 ## Definition of Done
 
 - [ ] Una solicitud válida queda persistida y visible para el administrador global.
-- [ ] Los duplicados y errores no crean registros parciales.
+- [x] Los duplicados y errores no crean registros parciales.
 - [ ] El email de confirmación se genera en desarrollo.
-- [ ] El formulario funciona en desktop y mobile.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el proceso de alta.
+- [x] El formulario funciona en desktop y mobile.
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el proceso de alta.
 
 ## Contrato técnico
 
@@ -335,3 +335,38 @@ Además:
 - No implementa recuperación de contraseña ni login.
 - No consulta AFIP/ARCA.
 - No se debe guardar el token de invitación en esta historia.
+
+## Estado de implementación
+
+**Qué está implementado:**
+
+- **Domain:** `SolicitudAltaEmpresa`, `EstadoSolicitud`, `SolicitudAltaValidationException` y `SolicitudPendienteException`.
+- **Application:** `ISolicitudAltaRepository`, `IContribuyenteRepository`, `IEventoAuditoriaRepository`, `CrearSolicitudAltaService` (normalización, validaciones, duplicados, CUIT ya registrado, inserción `Pendiente` en UTC, email y auditoría) y `SolicitudAltaValidator`.
+- **Infrastructure:** `SolicitudAltaRepository`, `ContribuyenteRepository`, `EventoAuditoriaRepository` y los tres índices (`ux_solicitudes_alta_cuit_pendiente`, `ux_solicitudes_alta_email_pendiente`, `ix_solicitudes_alta_estado_fecha`) en `MongoIndexInitializer`.
+- **Contracts:** `SolicitudAltaRequest` y `SolicitudAltaResponse`.
+- **Api:** `POST /v1/solicitudes-alta` con rate limit, `ErrorResponse` y traducción de `503 MONGO_NO_DISPONIBLE`.
+- **Web:** página `/solicitar-alta` y `FacturarApiClient.EnviarSolicitudAltaAsync`.
+
+**Evidencia de comandos:**
+
+- `dotnet build FacturAR.slnx -c Release` → 0 errores, 0 advertencias.
+- `dotnet test FacturAR.slnx -c Release --no-build` → UnitTests 113/113; IntegrationTests 49 superados, 27 omitidos (`MongoFact` sin `MONGO_CONNECTION_STRING`), 0 fallos; total 162 superados.
+- `dotnet format FacturAR.slnx --verify-no-changes` → limpio (exit 0).
+- Cobertura CP-01-01 a CP-01-11 mapeada a tests en `CrearSolicitudAltaServiceTests.cs`, `SolicitudAltaEndpointsTests.cs` y `MongoSolicitudAltaTests.cs` (estos últimos omitidos sin Mongo).
+- QA con Playwright contra API (5171) y portal (5116) en local, **sin Mongo**: `/solicitar-alta` carga sin sesión; 12 campos presentes; CUIT con DV incorrecto (`20123456787`) muestra "El CUIT no es válido." junto al campo (`#cuit-error`, `aria-invalid=true`, `aria-describedby=cuit-error`) y no envía; CUIT con guiones (`20-12345678-6`) aceptado por la validación de cliente; sin aceptar términos muestra "Tenés que aceptar los términos para enviar la solicitud." y no envía; envío válido sin Mongo devuelve `503 {"codigo":"MONGO_NO_DISPONIBLE",...}` mostrado como `role=alert` claro, sin stack trace, con el formulario disponible y el botón rehabilitado; mobile 375×844 sin desbordes ni scroll horizontal con los 12 campos; consola del navegador con 0 errores.
+
+**Dependencia agregada:** `Microsoft.Extensions.Logging.Abstractions` 10.0.0 en `FacturAR.Application`, para loguear las fallas best-effort de email y auditoría sin PII (justificación exigida por `AGENTS.md`).
+
+**Verificación pendiente:**
+
+- Los 8 tests `MongoFact` de `MongoSolicitudAltaTests` no se ejecutaron: persistencia, duplicados reales, CUIT de contribuyente, creación de índices, solicitud rechazada, concurrencia y email fallido.
+- QA del camino feliz con Mongo real: `202`, `409` por duplicado, `429` por rate limit, email de confirmación real, índices parciales y persistencia en `solicitudesAlta`.
+- El mensaje de éxito en la página y la generación del email de confirmación en un archivo real quedan sin verificar.
+
+### Desvíos respecto del contrato técnico
+
+a) El contrato propone dos políticas de rate limit (`solicitud-alta-ip`, `solicitud-alta-email`) declaradas con `RequireRateLimiting`. ASP.NET Core guarda un único `EnableRateLimitingAttribute` por endpoint y solo aplica el último, así que se registra **una** política `solicitud-alta` que encadena ambos límites (IP 5/min, email 3/h) con el rate limiter del framework. Se mantienen los mismos límites, el mismo `429 RATE_LIMIT` y el mismo `Retry-After`.
+
+b) Limitación conocida: el portal llama a la API desde el servidor (Blazor Server), así que en despliegue todos los visitantes comparten la IP del contenedor del portal para el límite por IP; el límite por email sigue siendo por usuario. Queda para despliegue/ingress.
+
+c) Limitación conocida: el envío de email ocurre dentro del request (según el flujo 7 del contrato), así que la latencia del SMTP afecta la respuesta y el caso "CUIT ya registrado" responde más rápido. La migración a outbox corresponde a US-17.

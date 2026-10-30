@@ -249,14 +249,18 @@ jobs:
           for intento in $(seq 1 18); do
             respuesta=$(curl -fsS --max-time 10 "$WEB_URL/health/live" 2>/dev/null || true)
             commit=$(printf '%s' "$respuesta" | sed -n 's/.*"commit":"\([^"]*\)".*/\1/p')
-            if [ "$commit" = "$EXPECTED_SHA" ]; then
-              echo "Portal desplegado con el commit $EXPECTED_SHA en el intento $intento."
+            root_code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$WEB_URL/" 2>/dev/null || true)
+            verificar_code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$WEB_URL/verificar" 2>/dev/null || true)
+            login_code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$WEB_URL/login" 2>/dev/null || true)
+            admin_code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$WEB_URL/admin/login" 2>/dev/null || true)
+            if [ "$commit" = "$EXPECTED_SHA" ] && [ "$root_code" = "200" ] && [ "$verificar_code" = "200" ] && [ "$login_code" = "200" ] && [ "$admin_code" = "200" ]; then
+              echo "Portal desplegado con el commit $EXPECTED_SHA; / /verificar /login /admin/login responden 200."
               exit 0
             fi
-            echo "Intento $intento/18: commit recibido '${commit:-sin commit}', esperado '$EXPECTED_SHA'; reintentando en 10s."
+            echo "Intento $intento/18: commit '${commit:-sin commit}', /=$root_code, /verificar=$verificar_code, /login=$login_code, /admin/login=$admin_code; esperado '$EXPECTED_SHA' y 200; reintentando en 10s."
             sleep 10
           done
-          echo "::error::El portal no quedó sirviendo el commit $EXPECTED_SHA después de 18 intentos. Revisá el Log stream de la Web App."
+          echo "::error::El portal no quedó sirviendo el commit $EXPECTED_SHA con las rutas públicas en 200 después de 18 intentos. Revisá el Log stream de la Web App."
           exit 1
 
   rollback:

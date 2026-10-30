@@ -17,6 +17,11 @@
         <h1 class="h3 mb-1">Ingresar</h1>
         <p class="text-muted">Acceso de usuarios de empresa.</p>
 
+        @if (Model.CuentaActivada)
+        {
+            <div class="alert alert-success" role="status">Cuenta activada. Ya podés iniciar sesión.</div>
+        }
+
         @if (!string.IsNullOrWhiteSpace(Model.Error))
         {
             <div class="alert alert-danger" role="alert">@Model.Error</div>

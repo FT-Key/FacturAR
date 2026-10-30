@@ -125,11 +125,20 @@ public sealed class AutenticarEmpresaServiceTests
         public Task InsertAsync(Usuario usuario, CancellationToken ct = default) => Task.CompletedTask;
 
         public Task UpdateAsync(Usuario usuario, CancellationToken ct = default) => Task.CompletedTask;
+
+        public Task<bool> ExistePorContribuyenteYEmailAsync(Guid contribuyenteId, string email, CancellationToken ct = default)
+            => throw new NotSupportedException();
     }
 
     private sealed class FakeContribuyenteRepository(Contribuyente contribuyente) : IContribuyenteRepository
     {
         public Task<Contribuyente?> GetByIdAsync(Guid id, CancellationToken ct = default)
             => Task.FromResult<Contribuyente?>(contribuyente.Id == id ? contribuyente : null);
+
+        public Task<bool> ExistePorCuitAsync(string cuit, CancellationToken ct = default)
+            => Task.FromResult(string.Equals(contribuyente.Cuit, cuit, StringComparison.Ordinal));
+
+        public Task InsertarAsync(Contribuyente contribuyente, CancellationToken ct = default)
+            => throw new NotSupportedException();
     }
 }

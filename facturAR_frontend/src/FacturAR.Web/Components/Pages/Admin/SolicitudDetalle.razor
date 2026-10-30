@@ -1,0 +1,441 @@
+@page "/admin/solicitudes/{Id:guid}"
+@using System.ComponentModel.DataAnnotations
+@using System.Net
+@using FacturAR.Contracts.Solicitudes
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = "AdminGlobal")]
+@inject FacturarApiClient ApiClient
+@inject NavigationManager Navigation
+
+<PageTitle>Revisar solicitud - FacturAR</PageTitle>
+
+<div class="py-4 d-flex flex-wrap justify-content-between align-items-end gap-2">
+    <div>
+        <h1 class="h3 mb-1">Revisar solicitud</h1>
+        @if (_detalle is not null)
+        {
+            <p class="text-muted mb-0">
+                @_detalle.RazonSocial · CUIT <span class="font-monospace">@_detalle.Cuit</span>
+                <span class="badge ms-1 @Solicitudes.ClaseEstado(_detalle.Estado)">@_detalle.Estado</span>
+            </p>
+        }
+    </div>
+    <a class="btn btn-outline-secondary btn-sm" href="/admin/solicitudes">Volver al listado</a>
+</div>
+
+@if (_exito is not null)
+{
+    <div class="alert alert-success" role="status">@_exito</div>
+}
+@if (_advertencia is not null)
+{
+    <div class="alert alert-warning" role="alert">@_advertencia</div>
+}
+@if (_error is not null)
+{
+    <div class="alert alert-danger" role="alert">@_error</div>
+}
+
+@if (_detalle is not null)
+{
+    var pendiente = _detalle.Estado == "Pendiente";
+
+    <div class="row g-4">
+        <div class="col-12 col-lg-7">
+            <section class="card mb-4" aria-labelledby="titulo-datos">
+                <div class="card-body">
+                    <h2 id="titulo-datos" class="h5">Datos de la solicitud</h2>
+
+                    @if (pendiente && _esSuperAdmin)
+                    {
+                        <EditForm Model="Edicion" FormName="editar" OnValidSubmit="EditarAsync" Enhance>
+                            <DataAnnotationsValidator />
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label" for="razonSocial">Razón social</label>
+                                    <InputText id="razonSocial" class="form-control" @bind-Value="Edicion!.RazonSocial" />
+                                    <ValidationMessage For="() => Edicion!.RazonSocial" class="text-danger small" />
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label" for="condicionIva">Condición frente al IVA</label>
+                                    <InputSelect id="condicionIva" class="form-select" @bind-Value="Edicion!.CondicionIva">
+                                        @foreach (var opcion in CondicionesIva)
+                                        {
+                                            <option value="@opcion.Valor">@opcion.Texto</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label" for="email">Email</label>
+                                    <InputText id="email" type="email" class="form-control" @bind-Value="Edicion!.Email" />
+                                    <ValidationMessage For="() => Edicion!.Email" class="text-danger small" />
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label" for="telefono">Teléfono</label>
+                                    <InputText id="telefono" class="form-control" @bind-Value="Edicion!.Telefono" />
+                                    <ValidationMessage For="() => Edicion!.Telefono" class="text-danger small" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label" for="domicilio">Domicilio</label>
+                                    <InputText id="domicilio" class="form-control" @bind-Value="Edicion!.Domicilio" />
+                                    <ValidationMessage For="() => Edicion!.Domicilio" class="text-danger small" />
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-outline-primary btn-sm mt-3">Guardar cambios</button>
+                        </EditForm>
+                    }
+                    else
+                    {
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">Razón social</dt>
+                            <dd class="col-sm-8">@_detalle.RazonSocial</dd>
+                            <dt class="col-sm-4">Condición IVA</dt>
+                            <dd class="col-sm-8">@CondicionIva(_detalle.CondicionIva)</dd>
+                            <dt class="col-sm-4">Email</dt>
+                            <dd class="col-sm-8">@_detalle.Email</dd>
+                            <dt class="col-sm-4">Teléfono</dt>
+                            <dd class="col-sm-8">@_detalle.Telefono</dd>
+                            <dt class="col-sm-4">Domicilio</dt>
+                            <dd class="col-sm-8">@_detalle.Domicilio</dd>
+                        </dl>
+                    }
+
+                    <hr />
+                    <dl class="row mb-0 small">
+                        <dt class="col-sm-4">Solicitante</dt>
+                        <dd class="col-sm-8">@_detalle.NombreSolicitante</dd>
+                        <dt class="col-sm-4">Localidad</dt>
+                        <dd class="col-sm-8">@_detalle.Ciudad, @_detalle.Provincia (@_detalle.CodigoPostal)</dd>
+                        <dt class="col-sm-4">Recibida</dt>
+                        <dd class="col-sm-8">@Solicitudes.Fecha(_detalle.CreatedAt)</dd>
+                        @if (!string.IsNullOrWhiteSpace(_detalle.Mensaje))
+                        {
+                            <dt class="col-sm-4">Mensaje</dt>
+                            <dd class="col-sm-8">@_detalle.Mensaje</dd>
+                        }
+                        @if (_detalle.RevisadaAt is DateTime revisada)
+                        {
+                            <dt class="col-sm-4">Revisada</dt>
+                            <dd class="col-sm-8">@Solicitudes.Fecha(revisada)</dd>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(_detalle.MotivoRechazo))
+                        {
+                            <dt class="col-sm-4">Motivo del rechazo</dt>
+                            <dd class="col-sm-8">@_detalle.MotivoRechazo</dd>
+                        }
+                    </dl>
+                </div>
+            </section>
+
+            <section class="card" aria-labelledby="titulo-historial">
+                <div class="card-body">
+                    <h2 id="titulo-historial" class="h5">Historial de revisión</h2>
+                    @if (_detalle.Historial.Count == 0)
+                    {
+                        <p class="text-muted mb-0">Sin eventos registrados.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-unstyled mb-0 small">
+                            @foreach (var evento in _detalle.Historial)
+                            {
+                                <li class="py-1 border-bottom">
+                                    <span class="text-muted">@Solicitudes.Fecha(evento.CreatedAt)</span>
+                                    · @DescribirEvento(evento.Accion)
+                                    <span class="text-muted">(@evento.ActorTipo)</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </section>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            @if (pendiente)
+            {
+                @if (_esSuperAdmin)
+                {
+                    <section class="card border-success mb-4" aria-labelledby="titulo-aprobar">
+                        <div class="card-body">
+                            <h2 id="titulo-aprobar" class="h5">Aprobar</h2>
+                            <p class="small text-muted">
+                                Crea la empresa, el punto de venta 1 «Casa Central» y una invitación de 48 horas para
+                                <strong>@_detalle.Email</strong>.
+                            </p>
+                            <form method="post" @formname="aprobar" @onsubmit="AprobarAsync" data-enhance>
+                                <AntiforgeryToken />
+                                <button type="submit"
+                                        class="btn btn-success"
+                                        onclick="return confirm('¿Aprobar la solicitud y enviar la invitación?')">
+                                    Aprobar solicitud
+                                </button>
+                            </form>
+                        </div>
+                    </section>
+
+                    <section class="card border-danger" aria-labelledby="titulo-rechazar">
+                        <div class="card-body">
+                            <h2 id="titulo-rechazar" class="h5">Rechazar</h2>
+                            <EditForm Model="Rechazo" FormName="rechazar" OnValidSubmit="RechazarAsync" Enhance>
+                                <DataAnnotationsValidator />
+                                <label class="form-label" for="motivo">Motivo (se envía al solicitante)</label>
+                                <InputTextArea id="motivo" class="form-control" rows="3" @bind-Value="Rechazo!.Motivo" />
+                                <ValidationMessage For="() => Rechazo!.Motivo" class="text-danger small" />
+                                <button type="submit" class="btn btn-outline-danger mt-2">Rechazar solicitud</button>
+                            </EditForm>
+                        </div>
+                    </section>
+                }
+                else
+                {
+                    <div class="alert alert-light border" role="status">
+                        Tu rol de Soporte permite consultar la solicitud. Aprobarla o rechazarla requiere SuperAdmin.
+                    </div>
+                }
+            }
+            else if (_detalle.Estado == "Aprobada")
+            {
+                <section class="card" aria-labelledby="titulo-invitacion">
+                    <div class="card-body">
+                        <h2 id="titulo-invitacion" class="h5">Invitación</h2>
+                        @if (_detalle.Invitacion is { } invitacion)
+                        {
+                            <dl class="row small">
+                                <dt class="col-sm-5">Estado</dt>
+                                <dd class="col-sm-7">@invitacion.Estado</dd>
+                                <dt class="col-sm-5">Destinatario</dt>
+                                <dd class="col-sm-7">@invitacion.Email</dd>
+                                <dt class="col-sm-5">Token</dt>
+                                <dd class="col-sm-7 font-monospace">@(invitacion.TokenPrefix)…</dd>
+                                <dt class="col-sm-5">Vence</dt>
+                                <dd class="col-sm-7">@Solicitudes.Fecha(invitacion.ExpiraAt)</dd>
+                                <dt class="col-sm-5">Envíos</dt>
+                                <dd class="col-sm-7">
+                                    @invitacion.IntentosEnvio
+                                    @if (invitacion.UltimoEnvioAt is DateTime envio)
+                                    {
+                                        <span class="text-muted">(último: @Solicitudes.Fecha(envio))</span>
+                                    }
+                                </dd>
+                            </dl>
+                            <form method="post" @formname="reenviar" @onsubmit="ReenviarAsync" data-enhance>
+                                <AntiforgeryToken />
+                                <button type="submit"
+                                        class="btn btn-outline-primary btn-sm"
+                                        onclick="return confirm('Se revoca el link anterior y se envía uno nuevo. ¿Continuar?')">
+                                    Reenviar invitación
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <p class="text-muted mb-0">No hay una invitación pendiente: ya fue usada o no existe.</p>
+                        }
+                    </div>
+                </section>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private static readonly (int Valor, string Texto)[] CondicionesIva =
+    [
+        (1, "Responsable Inscripto"),
+        (4, "Exento"),
+        (5, "Consumidor Final"),
+        (6, "Monotributo"),
+        (7, "Sujeto No Categorizado")
+    ];
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    [SupplyParameterFromForm(FormName = "editar")]
+    private EdicionModelo? Edicion { get; set; }
+
+    [SupplyParameterFromForm(FormName = "rechazar")]
+    private RechazoModelo? Rechazo { get; set; }
+
+    private SolicitudAltaDetalleResponse? _detalle;
+    private bool _esSuperAdmin;
+    private string? _exito;
+    private string? _advertencia;
+    private string? _error;
+
+    private string? Cookie => HttpContext?.Request.Headers.Cookie.ToString();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = AuthenticationState is null ? null : (await AuthenticationState).User;
+        if (usuario is null || !Solicitudes.EsAdministradorGlobal(usuario))
+        {
+            Navigation.NavigateTo("/admin/login");
+            return;
+        }
+
+        _esSuperAdmin = usuario.HasClaim("rolGlobal", "SuperAdmin");
+
+        Edicion ??= new EdicionModelo();
+        Rechazo ??= new RechazoModelo();
+
+        await CargarAsync();
+
+        if (_detalle is not null && HttpMethods.IsGet(HttpContext?.Request.Method ?? HttpMethods.Get))
+        {
+            Edicion.RazonSocial = _detalle.RazonSocial;
+            Edicion.CondicionIva = _detalle.CondicionIva;
+            Edicion.Email = _detalle.Email;
+            Edicion.Telefono = _detalle.Telefono;
+            Edicion.Domicilio = _detalle.Domicilio;
+        }
+    }
+
+    private async Task CargarAsync()
+    {
+        var resultado = await ApiClient.ObtenerSolicitudAsync(Cookie, Id);
+        if (Manejar(resultado))
+        {
+            _detalle = resultado.Valor;
+        }
+    }
+
+    private async Task EditarAsync()
+    {
+        var resultado = await ApiClient.EditarSolicitudAsync(
+            Cookie,
+            Id,
+            new EditarSolicitudRequest(
+                Edicion!.RazonSocial,
+                Edicion.CondicionIva,
+                Edicion.Email,
+                Edicion.Telefono,
+                Edicion.Domicilio));
+
+        if (Manejar(resultado))
+        {
+            _detalle = resultado.Valor;
+            _exito = "Los cambios se guardaron.";
+        }
+    }
+
+    private async Task AprobarAsync()
+    {
+        var resultado = await ApiClient.AprobarSolicitudAsync(Cookie, Id);
+        if (Manejar(resultado))
+        {
+            _exito = "La solicitud fue aprobada y la empresa quedó creada.";
+            _advertencia = resultado.Valor!.EmailEnviado ? null : resultado.Valor.AdvertenciaEmail;
+            if (resultado.Valor.EmailEnviado)
+            {
+                _exito += " Enviamos la invitación por email.";
+            }
+        }
+
+        await CargarAsync();
+    }
+
+    private async Task RechazarAsync()
+    {
+        var resultado = await ApiClient.RechazarSolicitudAsync(Cookie, Id, Rechazo!.Motivo);
+        if (Manejar(resultado))
+        {
+            _exito = "La solicitud fue rechazada.";
+            _advertencia = resultado.Valor!.EmailEnviado ? null : resultado.Valor.AdvertenciaEmail;
+        }
+
+        await CargarAsync();
+    }
+
+    private async Task ReenviarAsync()
+    {
+        var resultado = await ApiClient.ReenviarInvitacionAsync(Cookie, Id);
+        if (resultado.Exitoso)
+        {
+            _exito = "Enviamos una nueva invitación. El link anterior quedó sin efecto.";
+        }
+        else if (resultado.Status == HttpStatusCode.BadGateway)
+        {
+            _advertencia = resultado.Mensaje;
+        }
+        else
+        {
+            Manejar(resultado);
+        }
+
+        await CargarAsync();
+    }
+
+    private bool Manejar<T>(ResultadoApi<T> resultado)
+    {
+        if (resultado.SinSesion)
+        {
+            Navigation.NavigateTo("/admin/login");
+            return false;
+        }
+
+        if (!resultado.Exitoso)
+        {
+            _error = resultado.Codigo switch
+            {
+                "SOLICITUD_YA_PROCESADA" => "La solicitud ya fue resuelta por otro administrador. Recargamos los datos.",
+                "CUIT_YA_REGISTRADO" => "El CUIT ya pertenece a una empresa registrada. No se puede aprobar.",
+                _ => resultado.Mensaje
+            };
+            return false;
+        }
+
+        return true;
+    }
+
+    private static string CondicionIva(int valor)
+        => CondicionesIva.FirstOrDefault(c => c.Valor == valor).Texto ?? valor.ToString();
+
+    private static string DescribirEvento(string accion)
+        => accion switch
+        {
+            "solicitud.creada" => "Solicitud recibida",
+            "solicitud.editada" => "Datos editados",
+            "solicitud.aprobada" => "Solicitud aprobada",
+            "solicitud.rechazada" => "Solicitud rechazada",
+            "invitacion.reenviada" => "Invitación reenviada",
+            "email.enviado" => "Email enviado",
+            "email.fallido" => "Falló el envío de un email",
+            _ => accion
+        };
+
+    private sealed class EdicionModelo
+    {
+        [Required(ErrorMessage = "La razón social es obligatoria.")]
+        [StringLength(200, MinimumLength = 3, ErrorMessage = "La razón social debe tener entre 3 y 200 caracteres.")]
+        public string RazonSocial { get; set; } = string.Empty;
+
+        public int CondicionIva { get; set; } = 1;
+
+        [Required(ErrorMessage = "El email es obligatorio.")]
+        [EmailAddress(ErrorMessage = "El email no es válido.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El teléfono es obligatorio.")]
+        [StringLength(32, MinimumLength = 8, ErrorMessage = "El teléfono no es válido.")]
+        public string Telefono { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El domicilio es obligatorio.")]
+        [StringLength(200, MinimumLength = 5, ErrorMessage = "El domicilio es obligatorio.")]
+        public string Domicilio { get; set; } = string.Empty;
+    }
+
+    private sealed class RechazoModelo
+    {
+        [Required(ErrorMessage = "El motivo del rechazo es obligatorio.")]
+        [StringLength(500, MinimumLength = 10, ErrorMessage = "El motivo debe tener entre 10 y 500 caracteres.")]
+        public string Motivo { get; set; } = string.Empty;
+    }
+}
