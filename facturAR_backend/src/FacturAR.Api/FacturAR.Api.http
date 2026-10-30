@@ -97,3 +97,22 @@ POST {{FacturAR_Api_HostAddress}}/v1/admin/solicitudes/{{solicitudId}}/reenviar-
 Cookie: {{adminCookie}}
 
 ###
+
+# Activación (US-28): pegar el token del link /activar?token=... del email de aprobación.
+@tokenInvitacion = PEGAR_TOKEN
+@passwordNueva = CAMBIAR
+
+GET {{FacturAR_Api_HostAddress}}/v1/invitaciones/{{tokenInvitacion}}
+Accept: application/json
+
+###
+
+POST {{FacturAR_Api_HostAddress}}/v1/invitaciones/{{tokenInvitacion}}/aceptar
+Content-Type: application/json
+
+{
+  "password": "{{passwordNueva}}",
+  "confirmacionPassword": "{{passwordNueva}}"
+}
+
+###

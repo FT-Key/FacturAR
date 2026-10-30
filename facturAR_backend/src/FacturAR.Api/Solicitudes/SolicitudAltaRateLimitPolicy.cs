@@ -1,4 +1,5 @@
 using System.Threading.RateLimiting;
+using FacturAR.Api.Security;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace FacturAR.Api.Solicitudes;
@@ -35,30 +36,12 @@ public sealed class SolicitudAltaRateLimitPolicy : IRateLimiterPolicy<string>
 
     public RateLimitPartition<string> GetPartition(HttpContext httpContext)
     {
-        var ip = ObtenerIp(httpContext);
+        var ip = IpCliente.Obtener(httpContext, _confiarEnProxy);
         var email = httpContext.Items[SolicitudAltaRateLimitMiddleware.ItemKey] as string;
         var clave = email is null ? ip : $"{ip}|{email}";
 
         return RateLimitPartition.Get(
             clave,
             _ => new SolicitudAltaRateLimiter(_porIp, ip, _porEmail, email));
-    }
-
-    private string ObtenerIp(HttpContext context)
-    {
-        if (_confiarEnProxy)
-        {
-            var reenviada = context.Request.Headers["X-Forwarded-For"].ToString();
-            if (!string.IsNullOrWhiteSpace(reenviada))
-            {
-                var ultima = reenviada.Split(',')[^1].Trim();
-                if (ultima.Length > 0)
-                {
-                    return ultima;
-                }
-            }
-        }
-
-        return context.Connection.RemoteIpAddress?.ToString() ?? "desconocida";
     }
 }

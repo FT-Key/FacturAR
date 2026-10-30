@@ -22,6 +22,11 @@ public sealed class LoginModel : PageModel
 
     public string? Error { get; private set; }
 
+    [BindProperty(SupportsGet = true, Name = "exito")]
+    public string? Exito { get; set; }
+
+    public bool CuentaActivada => string.Equals(Exito, "cuenta-activada", StringComparison.Ordinal);
+
     public void OnGet()
     {
     }

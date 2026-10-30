@@ -1,6 +1,7 @@
 using FacturAR.Application.Abstractions;
-using FacturAR.Infrastructure.Mongo;
 using FacturAR.Domain.Entities;
+using FacturAR.Domain.Exceptions;
+using FacturAR.Infrastructure.Mongo;
 using MongoDB.Driver;
 
 namespace FacturAR.Infrastructure.Repositories;
@@ -8,24 +9,26 @@ namespace FacturAR.Infrastructure.Repositories;
 public sealed class UsuarioRepository : IUsuarioRepository
 {
     private readonly MongoDbContext _context;
+    private readonly MongoSesionActual _sesion;
 
-    public UsuarioRepository(MongoDbContext context)
+    public UsuarioRepository(MongoDbContext context, MongoSesionActual sesion)
     {
         _context = context;
+        _sesion = sesion;
     }
 
     public async Task<Usuario?> GetByEmailAsync(string email, CancellationToken ct = default)
     {
         var normalizado = Normalizar(email);
-        return await _context.Usuarios
-            .Find(u => u.Email == normalizado)
+        return await _sesion
+            .Find(_context.Usuarios, Builders<Usuario>.Filter.Eq(u => u.Email, normalizado))
             .FirstOrDefaultAsync(ct);
     }
 
     public async Task<Usuario?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.Usuarios
-            .Find(u => u.Id == id)
+        return await _sesion
+            .Find(_context.Usuarios, Builders<Usuario>.Filter.Eq(u => u.Id, id))
             .FirstOrDefaultAsync(ct);
     }
 
@@ -33,8 +36,23 @@ public sealed class UsuarioRepository : IUsuarioRepository
     {
         usuario.Email = Normalizar(usuario.Email);
         usuario.CreatedAt = DateTime.UtcNow;
-        await _context.Usuarios.InsertOneAsync(usuario, cancellationToken: ct);
+        try
+        {
+            await _sesion.InsertOneAsync(_context.Usuarios, usuario, ct);
+        }
+        catch (MongoException ex) when (MongoErrores.EsClaveDuplicada(ex))
+        {
+            throw new UsuarioExistenteException();
+        }
     }
+
+    public Task<bool> ExistePorContribuyenteYEmailAsync(Guid contribuyenteId, string email, CancellationToken ct = default)
+        => _sesion
+            .Find(
+                _context.Usuarios,
+                Builders<Usuario>.Filter.Eq(u => u.ContribuyenteId, contribuyenteId)
+                    & Builders<Usuario>.Filter.Eq(u => u.Email, Normalizar(email)))
+            .AnyAsync(ct);
 
     public async Task UpdateAsync(Usuario usuario, CancellationToken ct = default)
     {
@@ -45,10 +63,11 @@ public sealed class UsuarioRepository : IUsuarioRepository
             .Set(u => u.UltimoAcceso, usuario.UltimoAcceso)
             .Set(u => u.EmailVerificadoAt, usuario.EmailVerificadoAt);
 
-        await _context.Usuarios.UpdateOneAsync(
-            u => u.Id == usuario.Id,
+        await _sesion.UpdateOneAsync(
+            _context.Usuarios,
+            Builders<Usuario>.Filter.Eq(u => u.Id, usuario.Id),
             update,
-            cancellationToken: ct);
+            ct);
     }
 
     private static string Normalizar(string email) => email.Trim().ToLowerInvariant();
