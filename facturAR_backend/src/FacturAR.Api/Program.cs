@@ -1,9 +1,11 @@
 using System.Threading.RateLimiting;
+using FacturAR.Api.ApiKeys;
 using FacturAR.Api.Auth;
 using FacturAR.Api.Invitaciones;
 using FacturAR.Api.Security;
 using FacturAR.Api.Solicitudes;
 using FacturAR.Application.Abstractions;
+using FacturAR.Application.ApiKeys;
 using FacturAR.Application.Auth;
 using FacturAR.Application.Comprobantes;
 using FacturAR.Application.Invitaciones;
@@ -35,6 +37,10 @@ var mongoOptions = builder.Configuration
 var authOptions = builder.Configuration
     .GetSection("Auth")
     .Get<AuthOptions>() ?? new AuthOptions();
+
+var apiKeysOptions = builder.Configuration
+    .GetSection(ApiKeysOptions.SectionName)
+    .Get<ApiKeysOptions>() ?? new ApiKeysOptions();
 
 var bootstrapAdminOptions = builder.Configuration
     .GetSection("BootstrapAdmin")
@@ -78,6 +84,7 @@ MongoSerialization.Configure();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton(mongoOptions);
 builder.Services.AddSingleton(authOptions);
+builder.Services.AddSingleton(apiKeysOptions);
 builder.Services.AddSingleton(bootstrapAdminOptions);
 builder.Services.AddSingleton(buildInformation);
 builder.Services.AddSingleton(emailOptions);
@@ -111,6 +118,13 @@ builder.Services.AddScoped<MongoSesionActual>();
 builder.Services.AddScoped<ITransaccionMongo, TransaccionMongo>();
 builder.Services.AddScoped<IInvitacionRepository, InvitacionRepository>();
 builder.Services.AddScoped<IPuntoVentaRepository, PuntoVentaRepository>();
+builder.Services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
+builder.Services.AddScoped<IApiKeyGenerator, ApiKeyGenerator>();
+builder.Services.AddScoped<IApiKeyHasher, ApiKeyHasher>();
+builder.Services.AddScoped<CrearApiKeyService>();
+builder.Services.AddScoped<ListarApiKeysService>();
+builder.Services.AddScoped<RevocarApiKeyService>();
+builder.Services.AddScoped<RegenerarApiKeyService>();
 builder.Services.AddScoped<NotificadorRevisionSolicitudes>();
 builder.Services.AddScoped<ListarSolicitudesService>();
 builder.Services.AddScoped<ObtenerSolicitudService>();
@@ -304,6 +318,7 @@ app.MapAuthEndpoints();
 app.MapSolicitudAltaEndpoints();
 app.MapSolicitudesAdminEndpoints();
 app.MapInvitacionEndpoints();
+app.MapApiKeyEndpoints();
 
 app.Run();
 
