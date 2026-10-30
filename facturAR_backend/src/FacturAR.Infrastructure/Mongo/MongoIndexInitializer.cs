@@ -93,7 +93,39 @@ public static class MongoIndexInitializer
                 Builders<EventoAuditoria>.IndexKeys
                     .Ascending(e => e.ContribuyenteId)
                     .Descending(e => e.CreatedAt),
-                new CreateIndexOptions { Name = "ix_eventos_contribuyente_fecha" })
+                new CreateIndexOptions { Name = "ix_eventos_contribuyente_fecha" }),
+            new CreateIndexModel<EventoAuditoria>(
+                Builders<EventoAuditoria>.IndexKeys
+                    .Ascending(e => e.AdministradorId)
+                    .Descending(e => e.CreatedAt),
+                new CreateIndexOptions { Name = "ix_eventos_administrador_fecha" }),
+            new CreateIndexModel<EventoAuditoria>(
+                Builders<EventoAuditoria>.IndexKeys
+                    .Ascending(e => e.Entidad)
+                    .Ascending(e => e.EntidadId)
+                    .Ascending(e => e.CreatedAt),
+                new CreateIndexOptions { Name = "ix_eventos_entidad_fecha" })
+        ], cancellationToken);
+
+        await context.Invitaciones.Indexes.CreateManyAsync(
+        [
+            new CreateIndexModel<Invitacion>(
+                Builders<Invitacion>.IndexKeys.Ascending(i => i.TokenHash),
+                new CreateIndexOptions { Unique = true, Name = "ux_invitaciones_token_hash" }),
+            new CreateIndexModel<Invitacion>(
+                Builders<Invitacion>.IndexKeys
+                    .Ascending(i => i.ContribuyenteId)
+                    .Ascending(i => i.Email)
+                    .Ascending(i => i.ExpiraAt),
+                new CreateIndexOptions { Name = "ix_invitaciones_contribuyente_email_expira" }),
+            new CreateIndexModel<Invitacion>(
+                Builders<Invitacion>.IndexKeys.Ascending(i => i.ExpiraAt),
+                new CreateIndexOptions { Name = "ix_invitaciones_expira" }),
+            new CreateIndexModel<Invitacion>(
+                Builders<Invitacion>.IndexKeys
+                    .Ascending(i => i.SolicitudId)
+                    .Ascending(i => i.Estado),
+                new CreateIndexOptions { Name = "ix_invitaciones_solicitud_estado" })
         ], cancellationToken);
 
         await context.SolicitudesAlta.Indexes.CreateManyAsync(

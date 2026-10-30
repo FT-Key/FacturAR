@@ -87,6 +87,34 @@ public sealed class FakeSolicitudAltaRepository : ISolicitudAltaRepository
 
         return Task.FromResult(EmailsPendientes.Contains(email));
     }
+
+    public Task<SolicitudAltaEmpresa?> ObtenerPorIdAsync(Guid id, CancellationToken ct = default)
+        => throw new NotSupportedException();
+
+    public Task<(IReadOnlyList<SolicitudAltaEmpresa> Items, long Total)> ListarAsync(
+        FiltroSolicitudes filtro,
+        CancellationToken ct = default)
+        => throw new NotSupportedException();
+
+    public Task<bool> ActualizarDatosPendienteAsync(SolicitudAltaEmpresa solicitud, CancellationToken ct = default)
+        => throw new NotSupportedException();
+
+    public Task<bool> AprobarPendienteAsync(
+        Guid id,
+        Guid contribuyenteId,
+        Guid invitacionId,
+        Guid administradorId,
+        DateTime revisadaAt,
+        CancellationToken ct = default)
+        => throw new NotSupportedException();
+
+    public Task<bool> RechazarPendienteAsync(
+        Guid id,
+        string motivo,
+        Guid administradorId,
+        DateTime revisadaAt,
+        CancellationToken ct = default)
+        => throw new NotSupportedException();
 }
 
 public sealed class FakeContribuyenteRepository : IContribuyenteRepository
@@ -98,6 +126,9 @@ public sealed class FakeContribuyenteRepository : IContribuyenteRepository
 
     public Task<bool> ExistePorCuitAsync(string cuit, CancellationToken ct = default)
         => Task.FromResult(Cuits.Contains(cuit));
+
+    public Task InsertarAsync(Contribuyente contribuyente, CancellationToken ct = default)
+        => throw new NotSupportedException();
 }
 
 public sealed class FakeEventoAuditoriaRepository : IEventoAuditoriaRepository
@@ -118,6 +149,12 @@ public sealed class FakeEventoAuditoriaRepository : IEventoAuditoriaRepository
         Eventos.Add(evento);
         return Task.CompletedTask;
     }
+
+    public Task<IReadOnlyList<EventoAuditoria>> ListarPorEntidadAsync(
+        string entidad,
+        string entidadId,
+        CancellationToken ct = default)
+        => throw new NotSupportedException();
 }
 
 public sealed class FakeEmailSender : IEmailSender

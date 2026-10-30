@@ -111,12 +111,12 @@ public static class SolicitudAltaValidator
         };
     }
 
-    private static bool EsEmailValido(string email)
+    internal static bool EsEmailValido(string email)
         => email.Length is > 0 and <= EmailMaximo
             && MailAddress.TryCreate(email, out var direccion)
             && direccion is not null
             && string.Equals(direccion.Address, email, StringComparison.OrdinalIgnoreCase);
 
-    private static bool EsCaracterDeTelefono(char caracter)
+    internal static bool EsCaracterDeTelefono(char caracter)
         => char.IsAsciiDigit(caracter) || caracter is ' ' or '+' or '-' or '(' or ')';
 }

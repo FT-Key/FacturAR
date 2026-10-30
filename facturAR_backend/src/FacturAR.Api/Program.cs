@@ -99,6 +99,17 @@ builder.Services.AddScoped<IContribuyenteRepository, ContribuyenteRepository>();
 builder.Services.AddScoped<IEventoAuditoriaRepository, EventoAuditoriaRepository>();
 builder.Services.AddScoped<ISolicitudAltaRepository, SolicitudAltaRepository>();
 builder.Services.AddScoped<CrearSolicitudAltaService>();
+builder.Services.AddScoped<MongoSesionActual>();
+builder.Services.AddScoped<ITransaccionMongo, TransaccionMongo>();
+builder.Services.AddScoped<IInvitacionRepository, InvitacionRepository>();
+builder.Services.AddScoped<IPuntoVentaRepository, PuntoVentaRepository>();
+builder.Services.AddScoped<NotificadorRevisionSolicitudes>();
+builder.Services.AddScoped<ListarSolicitudesService>();
+builder.Services.AddScoped<ObtenerSolicitudService>();
+builder.Services.AddScoped<EditarSolicitudService>();
+builder.Services.AddScoped<AprobarSolicitudService>();
+builder.Services.AddScoped<RechazarSolicitudService>();
+builder.Services.AddScoped<ReenviarInvitacionService>();
 builder.Services.AddSingleton<IPasswordHasher>(_ => new PasswordHasher(authOptions.PasswordHashIterations));
 builder.Services.AddSingleton<ILoginIntentStore>(_ =>
     new LoginIntentStore(authOptions.Login.MaxIntentosFallidos, TimeSpan.FromMinutes(authOptions.Login.MinutosBloqueo)));
@@ -272,6 +283,7 @@ app.MapGet("/v1/comprobantes/verificar/{cae}", async (
 
 app.MapAuthEndpoints();
 app.MapSolicitudAltaEndpoints();
+app.MapSolicitudesAdminEndpoints();
 
 app.Run();
 

@@ -5,7 +5,7 @@
 
 Simulador de facturación electrónica de AFIP/ARCA para el Trabajo Final Integrador de la carrera. Incluye onboarding de empresas con solicitud pública, aprobación por administrador global e invitación por email, además de emisión, consultas, API keys, portal y verificación pública de un CAE.
 
-> Estado actual: base funcional con API, portal Blazor/Razor, MongoDB, endpoint público de verificación, Docker y CI/CD. El onboarding, la autenticación, la emisión, el PDF y el SOAP están documentados y preparados como próximos incrementos. US-19, US-20 y US-31 están completadas; US-11 tiene base implementada; US-21 está en estado parcial.
+> Estado actual: base funcional con API, portal Blazor/Razor, MongoDB, endpoint público de verificación, Docker y CI/CD. El onboarding, la autenticación, la emisión, el PDF y el SOAP están documentados y preparados como próximos incrementos. US-19, US-20, US-27 y US-31 están completadas; US-11 tiene base implementada; US-21 está en estado parcial.
 >
 > Planificación: las historias pendientes están refinadas con **contrato técnico** (modelo de datos, endpoints, validaciones y casos de prueba) contra el [contrato transversal de la API](docs/contratos-api.md), y el [plan de implementación](docs/plan-implementacion.md) fija el orden de ejecución.
 
