@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using FacturAR.Contracts.ApiKeys;
 using FacturAR.Contracts.Auth;
 using FacturAR.Contracts.Comunes;
 using FacturAR.Contracts.Comprobantes;
@@ -209,6 +210,81 @@ public sealed class FacturarApiClient(HttpClient httpClient)
             null,
             new AceptarInvitacionRequest(password, confirmacionPassword),
             cancellationToken);
+
+    public Task<ResultadoApi<ApiKeyCreadaResponse>> CrearApiKeyAsync(
+        string? cookie,
+        CrearApiKeyRequest request,
+        CancellationToken cancellationToken = default)
+        => EnviarAsync<ApiKeyCreadaResponse>(
+            HttpMethod.Post,
+            "v1/api-keys",
+            cookie,
+            request,
+            cancellationToken);
+
+    public Task<ResultadoApi<ApiKeyListResponse>> ListarApiKeysAsync(
+        string? cookie,
+        CancellationToken cancellationToken = default)
+        => EnviarAsync<ApiKeyListResponse>(
+            HttpMethod.Get,
+            "v1/api-keys",
+            cookie,
+            null,
+            cancellationToken);
+
+    public Task<ResultadoApi<bool>> RevocarApiKeyAsync(
+        string? cookie,
+        Guid id,
+        CancellationToken cancellationToken = default)
+        => EnviarSinContenidoAsync(
+            HttpMethod.Delete,
+            $"v1/api-keys/{id}",
+            cookie,
+            cancellationToken);
+
+    public Task<ResultadoApi<ApiKeyRegeneradaResponse>> RegenerarApiKeyAsync(
+        string? cookie,
+        Guid id,
+        CancellationToken cancellationToken = default)
+        => EnviarAsync<ApiKeyRegeneradaResponse>(
+            HttpMethod.Post,
+            $"v1/api-keys/{id}/regenerar",
+            cookie,
+            null,
+            cancellationToken);
+
+    private async Task<ResultadoApi<bool>> EnviarSinContenidoAsync(
+        HttpMethod method,
+        string path,
+        string? cookie,
+        CancellationToken cancellationToken)
+    {
+        using var request = CrearRequest(method, path, cookie);
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await httpClient.SendAsync(request, cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            return ResultadoApi<bool>.Fallido(HttpStatusCode.ServiceUnavailable, null, MensajeApiNoDisponible);
+        }
+
+        using (response)
+        {
+            if (response.IsSuccessStatusCode)
+            {
+                return ResultadoApi<bool>.ConExito(true);
+            }
+
+            var error = await LeerErrorAsync(response, cancellationToken);
+            return ResultadoApi<bool>.Fallido(
+                response.StatusCode,
+                error?.Codigo,
+                error?.Mensaje ?? MensajeApiNoDisponible);
+        }
+    }
 
     private async Task<ResultadoApi<T>> EnviarAsync<T>(
         HttpMethod method,
