@@ -65,8 +65,10 @@ public sealed class AprobarSolicitudService
 
         var token = TokenInvitacion.Generar(DateTime.UtcNow);
 
-        var (aprobada, contribuyenteId, invitacionId) = await _transaccion.EjecutarAsync(
-            innerCt => AprobarEnTransaccionAsync(solicitudId, administradorId, token, innerCt),
+        var (aprobada, contribuyenteId, invitacionId) = await AprobarMapeandoCarreraAsync(
+            solicitudId,
+            administradorId,
+            token,
             ct);
 
         var emailEnviado = await _notificador.EnviarAsync(
@@ -82,6 +84,30 @@ public sealed class AprobarSolicitudService
             invitacionId,
             emailEnviado,
             emailEnviado ? null : AdvertenciaEmail);
+    }
+
+    private async Task<(SolicitudAltaEmpresa Solicitud, Guid ContribuyenteId, Guid InvitacionId)> AprobarMapeandoCarreraAsync(
+        Guid solicitudId,
+        Guid administradorId,
+        TokenInvitacion token,
+        CancellationToken ct)
+    {
+        try
+        {
+            return await _transaccion.EjecutarAsync(
+                innerCt => AprobarEnTransaccionAsync(solicitudId, administradorId, token, innerCt),
+                ct);
+        }
+        catch (CuitYaRegistradoException)
+        {
+            var actual = await _solicitudes.ObtenerPorIdAsync(solicitudId, ct);
+            if (actual is not null && actual.Estado != EstadoSolicitud.Pendiente)
+            {
+                throw new SolicitudYaProcesadaException();
+            }
+
+            throw;
+        }
     }
 
     private async Task<(SolicitudAltaEmpresa Solicitud, Guid ContribuyenteId, Guid InvitacionId)> AprobarEnTransaccionAsync(
