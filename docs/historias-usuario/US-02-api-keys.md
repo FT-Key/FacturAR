@@ -5,7 +5,8 @@
 **Estimación:** 2 días  
 **Requisito:** RF-02  
 **Depende de:** US-04, US-28  
-**Habilita:** US-03, US-14, US-18
+**Habilita:** US-03, US-14, US-18  
+**Estado:** Parcial
 
 ## Historia
 
@@ -24,20 +25,20 @@ fak_<prefijo>_<secreto>
 ## Criterios de aceptación
 
 - [ ] Solo un usuario con rol `Administrador` de la empresa puede crear, listar, revocar y regenerar API keys.
-- [ ] El `ContribuyenteId` se toma de la sesión autenticada, nunca del body.
-- [ ] El nombre de la key es obligatorio, descriptivo y tiene un límite de longitud.
-- [ ] Al crear una key se devuelve el valor completo una única vez.
-- [ ] La base guarda solo el hash y el prefijo visible.
-- [ ] El prefijo es único en el sistema.
-- [ ] La key completa tiene suficiente entropía y no se puede adivinar.
-- [ ] Listar keys no expone el hash, el secreto ni el valor completo.
-- [ ] La lista muestra nombre, prefijo, estado, fecha de creación y último uso.
+- [x] El `ContribuyenteId` se toma de la sesión autenticada, nunca del body.
+- [x] El nombre de la key es obligatorio, descriptivo y tiene un límite de longitud.
+- [x] Al crear una key se devuelve el valor completo una única vez.
+- [x] La base guarda solo el hash y el prefijo visible.
+- [x] El prefijo es único en el sistema.
+- [x] La key completa tiene suficiente entropía y no se puede adivinar.
+- [x] Listar keys no expone el hash, el secreto ni el valor completo.
+- [x] La lista muestra nombre, prefijo, estado, fecha de creación y último uso.
 - [ ] Revocar una key la marca como inactiva y deja de autenticar de inmediato.
-- [ ] Regenerar una key invalida la anterior y devuelve el nuevo valor completo una única vez.
-- [ ] Un usuario de otra empresa no puede listar, revocar ni regenerar una key ajena.
-- [ ] Las operaciones de creación, revocación y regeneración registran auditoría.
+- [x] Regenerar una key invalida la anterior y devuelve el nuevo valor completo una única vez.
+- [x] Un usuario de otra empresa no puede listar, revocar ni regenerar una key ajena.
+- [x] Las operaciones de creación, revocación y regeneración registran auditoría.
 - [ ] Se puede tener más de una key activa por empresa.
-- [ ] No se permite crear una key para un contribuyente inactivo.
+- [x] No se permite crear una key para un contribuyente inactivo.
 - [ ] La UI muestra el valor completo con una advertencia de copia única.
 
 ## Escenarios Gherkin
@@ -93,26 +94,50 @@ Scenario: Usuario Consulta no administra keys
 
 ## Tareas técnicas
 
-- [ ] Extender `ApiKey` con `RevocadaAt` y `RegeneradaAt` si el modelo lo requiere.
-- [ ] Implementar `IApiKeyRepository` en Application.
-- [ ] Implementar `CrearApiKeyService`, `ListarApiKeysService`, `RevocarApiKeyService` y `RegenerarApiKeyService`.
-- [ ] Generar prefijo y secreto con `RandomNumberGenerator`.
-- [ ] Hashear la key con SHA-256 y comparar en tiempo constante en US-03.
-- [ ] Crear `POST /v1/api-keys`, `GET /v1/api-keys`, `DELETE /v1/api-keys/{id}` y `POST /v1/api-keys/{id}/regenerar`.
-- [ ] Aplicar la política `EmpresaAdministrador`.
-- [ ] Crear la sección API keys en el portal.
-- [ ] Registrar auditoría.
-- [ ] Agregar tests de creación, listado, revocación, regeneración y aislamiento.
+- [x] Extender `ApiKey` con `RevocadaAt` y `RegeneradaAt` si el modelo lo requiere.
+- [x] Implementar `IApiKeyRepository` en Application.
+- [x] Implementar `CrearApiKeyService`, `ListarApiKeysService`, `RevocarApiKeyService` y `RegenerarApiKeyService`.
+- [x] Generar prefijo y secreto con `RandomNumberGenerator`.
+- [x] Hashear la key con SHA-256 y comparar en tiempo constante en US-03.
+- [x] Crear `POST /v1/api-keys`, `GET /v1/api-keys`, `DELETE /v1/api-keys/{id}` y `POST /v1/api-keys/{id}/regenerar`.
+- [x] Aplicar la política `EmpresaAdministrador`.
+- [x] Crear la sección API keys en el portal.
+- [x] Registrar auditoría.
+- [x] Agregar tests de creación, listado, revocación, regeneración y aislamiento.
 - [ ] Documentar endpoints y formato de key.
 
 ## Definition of Done
 
-- [ ] El valor completo no se puede recuperar después del alta.
+- [x] El valor completo no se puede recuperar después del alta.
 - [ ] La key revocada o regenerada deja de autenticar inmediatamente.
-- [ ] El aislamiento entre empresas está cubierto por tests.
+- [x] El aislamiento entre empresas está cubierto por tests.
 - [ ] La sección del portal funciona en desktop y mobile.
-- [ ] `dotnet test FacturAR.slnx` pasa.
+- [x] `dotnet test FacturAR.slnx` pasa.
 - [ ] La historia está enlazada desde el índice y el manual.
+
+## Evidencia
+
+Verificado el 2026-10-30 en `C:\Users\Fr4nc\Desktop\Code\PagosArg`.
+
+| Comando | Resultado |
+| --- | --- |
+| `dotnet build FacturAR.slnx -c Release` | OK: 0 errores, 0 warnings. |
+| `dotnet test FacturAR.slnx -c Release --no-build --logger "console;verbosity=minimal"` | `FacturAR.UnitTests`: 228 aprobados, 0 omitidos. `FacturAR.IntegrationTests`: 53 aprobados, 69 omitidos, 0 errores. |
+| `dotnet format FacturAR.slnx --verify-no-changes` | OK. |
+
+Tests unitarios que respaldan los criterios marcados:
+
+- `ApiKeyGeneratorTests`: prefijo de 12 hex, secreto de 43 base64url sin padding, formato `fak_<prefix>_<secret>` y 50 valores consecutivos distintos.
+- `ApiKeyHasherTests`: SHA-256 hex de 64 caracteres, determinístico, coincidencia con `SHA256.HashData`, `false` ante variantes, hash de otra longitud, hash no hexadecimal y vacíos.
+- `CrearApiKeyServiceTests`: nombre vacío/en blanco/65 caracteres/caracter de control rechazados, 64 válido, contribuyente inactivo o inexistente rechazado, reintento de prefijo duplicado, valor devuelto y ausencia del secreto en el documento guardado, auditoría sin secretos.
+- `ListarApiKeysServiceTests`: solo keys del contribuyente de la sesión, DTO sin `Hash`/`Valor`/`Secret` (serialización y reflexión), nombre/prefijo/estado/`CreatedAt`/`UltimoUso`/`RevocadaAt`/`RegeneradaAt`.
+- `RevocarApiKeyServiceTests` y `RegenerarApiKeyServiceTests`: `Activa`/`RevocadaAt`/`RegeneradaAt`, hash reemplazado y valor nuevo conservando `Id` y `Nombre`, key de otro contribuyente → no encontrada sin modificar, auditoría sin secretos.
+
+`FacturAR.IntegrationTests.MongoApiKeysTests` contiene CP-01 a CP-15 pero los 15 casos están marcados `[MongoFact]` y se omiten sin `MONGO_CONNECTION_STRING`; no cuentan como evidencia de comportamiento HTTP ni de Mongo real.
+
+QA: no ejecutado. Docker no disponible; API `http://localhost:5171` y portal `http://localhost:5116` no levantados; sin Playwright.
+
+Pendiente de verificación manual (registrar fecha al completarse): login con rol `Administrador`, crear key y ver el valor una sola vez, recargar, listado, revocar, regenerar, desktop y mobile.
 
 ## Contrato técnico
 
