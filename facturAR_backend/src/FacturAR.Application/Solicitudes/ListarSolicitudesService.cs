@@ -50,7 +50,15 @@ public sealed class ListarSolicitudesService
             estadoFiltro = valor;
         }
 
-        var cuitFiltro = string.IsNullOrWhiteSpace(cuit) ? null : CuitValidator.Normalize(cuit);
+        string? cuitFiltro = null;
+        if (!string.IsNullOrWhiteSpace(cuit))
+        {
+            cuitFiltro = CuitValidator.Normalize(cuit);
+            if (cuitFiltro.Length is < 3 or > 11)
+            {
+                throw new SolicitudAltaValidationException("El CUIT indicado no es válido.");
+            }
+        }
         var razonSocialFiltro = Texto(razonSocial);
         var emailFiltro = Texto(email)?.ToLowerInvariant();
 
