@@ -8,6 +8,8 @@ public sealed class ApiKey
     public string Prefix { get; set; } = string.Empty;
     public string Hash { get; set; } = string.Empty;
     public bool Activa { get; set; } = true;
+    public DateTime? RevocadaAt { get; set; }
+    public DateTime? RegeneradaAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UltimoUso { get; set; }
 }
