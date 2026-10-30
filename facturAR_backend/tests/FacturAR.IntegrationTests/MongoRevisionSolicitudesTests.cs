@@ -158,16 +158,29 @@ public sealed class MongoRevisionSolicitudesTests : IAsyncLifetime
         var solicitud = await SembrarSolicitudAsync();
         var cookie = await LoginAsync(SuperAdminEmail);
 
-        var respuestas = await Task.WhenAll(
-            Enumerable.Range(0, 4).Select(_ => PostAsync($"{Base}/{solicitud.Id}/aprobar", cookie)));
+        var inicio = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var pedidos = Enumerable.Range(0, 4)
+            .Select(async _ =>
+            {
+                await inicio.Task;
+                return await PostAsync($"{Base}/{solicitud.Id}/aprobar", cookie);
+            })
+            .ToArray();
+
+        inicio.SetResult();
+        var respuestas = await Task.WhenAll(pedidos);
 
         Assert.Single(respuestas, r => r.StatusCode == HttpStatusCode.OK);
-        Assert.All(
-            respuestas.Where(r => r.StatusCode != HttpStatusCode.OK),
-            r => Assert.Equal(HttpStatusCode.Conflict, r.StatusCode));
+        foreach (var perdedora in respuestas.Where(r => r.StatusCode != HttpStatusCode.OK))
+        {
+            await AssertErrorAsync(perdedora, HttpStatusCode.Conflict, "SOLICITUD_YA_PROCESADA");
+        }
+
         Assert.Equal(1, await ContarAsync<Contribuyente>(MongoCollections.Contribuyentes));
         Assert.Equal(1, await ContarAsync<PuntoVenta>(MongoCollections.PuntosVenta));
         Assert.Equal(1, await ContarAsync<Invitacion>(MongoCollections.Invitaciones));
+        Assert.Single(_emails.Enviados);
+        Assert.Single(await EventosDeAsync(solicitud.Id), e => e.Accion == "solicitud.aprobada");
     }
 
     [MongoFact]
