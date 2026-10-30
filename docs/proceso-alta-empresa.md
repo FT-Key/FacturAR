@@ -2,7 +2,7 @@
 
 ## Estado del documento
 
-> **Diseño objetivo del MVP.** Este documento describe el onboarding profesional simulado de FacturAR: **solicitud → aprobación → invitación → activación**. La solicitud pública (US-01) está implementada y probada automáticamente, pero falta verificar la persistencia con Mongo real. La revisión y aprobación (US-27) está implementada; la activación por invitación (US-28) sigue pendiente.
+> **Diseño objetivo del MVP.** Este documento describe el onboarding profesional simulado de FacturAR: **solicitud → aprobación → invitación → activación**. La solicitud pública (US-01) está implementada y probada automáticamente, pero falta verificar la persistencia con Mongo real. La revisión y aprobación (US-27) y la activación por invitación (US-28) están implementadas.
 
 Qué describe este documento: el flujo de alta de una empresa, los actores, los estados de la solicitud y de la invitación, los emails transaccionales y los endpoints previstos de la consola global.
 
@@ -36,7 +36,7 @@ Ningún otro endpoint del onboarding existe hoy: `/v1/admin/solicitudes/**`, `/v
 | US-04 | §4 Login de empresa y sesión | Base implementada |
 | US-02 | §4 Gestión de API keys desde el portal | Pendiente |
 | US-27 | §2 Revisión y aprobación del administrador global | Completada |
-| US-28 | §3 Invitación y activación de la cuenta | Pendiente |
+| US-28 | §3 Invitación y activación de la cuenta | Completada |
 | US-29 | Emails transaccionales del onboarding | Parcial |
 | US-30 | §5 Manual de integración online | Pendiente |
 | US-17 | Auditoría de las acciones del onboarding | Pendiente |
@@ -63,7 +63,7 @@ Este proceso reemplaza el registro libre de empresa y usuario administrador. El 
 
 ## Flujo
 
-> **Diseño objetivo — US-01, US-27, US-28 y US-29.** El diagrama muestra el flujo completo del MVP. El `POST` de solicitud (US-01) y la revisión y aprobación (US-27) ya están implementados; la activación por invitación (US-28) todavía no existe.
+> **Diseño objetivo — US-01, US-27, US-28 y US-29.** El diagrama muestra el flujo completo del MVP. La solicitud (US-01), la revisión y aprobación (US-27) y la activación por invitación (US-28) ya están implementadas.
 
 ```mermaid
 sequenceDiagram
@@ -96,7 +96,7 @@ Etapas y su estado:
 | --- | --- | --- | --- |
 | 1. Solicitud pública | El solicitante completa el formulario y la solicitud queda `Pendiente`. | US-01, US-29 | Parcial |
 | 2. Revisión del administrador global | El administrador consulta, corrige, aprueba o rechaza. | US-27 | Completada |
-| 3. Invitación y activación | El solicitante acepta la invitación y define su contraseña. | US-28, US-29 | Pendiente |
+| 3. Invitación y activación | El solicitante acepta la invitación y define su contraseña. | US-28, US-29 | Completada |
 | 4. Login y API key | El usuario de empresa inicia sesión y crea su API key. | US-04, US-02 | Parcial |
 | 5. Manual de integración | El integrador lee la guía y consume la API. | US-30 | Pendiente |
 
@@ -159,7 +159,7 @@ Errores del flujo: `404 SOLICITUD_NO_ENCONTRADA` si la solicitud no existe, `409
 
 ### 3. Invitación y activación
 
-> **Diseño objetivo — US-28 y US-29.** `GET /v1/invitaciones/{token}` y `POST /v1/invitaciones/{token}/aceptar` **todavía no están implementados**.
+> **Implementado — US-28.** La API expone `GET /v1/invitaciones/{token}` y `POST /v1/invitaciones/{token}/aceptar`, y el portal la página `/activar`.
 
 La invitación contiene un token aleatorio de alta entropía. En la base se guarda solo su hash, un prefijo visible y la fecha de expiración. Características:
 
@@ -177,11 +177,11 @@ La página de activación muestra la razón social y el email enmascarado. El so
 - Se crea el `Usuario` con el `ContribuyenteId` de la invitación, nunca con un id enviado por el navegador.
 - Se marca la invitación como usada.
 - Se registra auditoría.
-- Se redirige al login de empresa.
+- Se redirige al login de empresa (`/login?exito=cuenta-activada`). La activación no inicia sesión.
 
 Si el token es inválido, vencido o ya fue usado, se muestra un mensaje claro y se indica contactar al administrador. El administrador puede reenviar una invitación nueva.
 
-Errores del flujo: `404 INVITACION_NO_ENCONTRADA`, `410 INVITACION_VENCIDA`, `409 INVITACION_USADA`, `400 PASSWORD_DEBIL`, `400 VALIDACION` si la confirmación no coincide y `429 RATE_LIMIT`.
+Errores del flujo: `404 INVITACION_NO_ENCONTRADA`, `410 INVITACION_VENCIDA`, `409 INVITACION_USADA`, `400 PASSWORD_DEBIL`, `400 VALIDACION` si la confirmación no coincide, `403 CUENTA_INACTIVA` si la empresa está desactivada y `429 RATE_LIMIT` (20 validaciones y 10 activaciones por IP y hora, configurables en `RateLimit:Invitacion`).
 
 ### 4. Login y API key
 
@@ -280,8 +280,8 @@ Todos los endpoints de esta tabla están **especificados**. La columna Estado in
 | `POST` | `/v1/admin/solicitudes/{id}/aprobar` | `SuperAdmin`. | US-27 | Implementado |
 | `POST` | `/v1/admin/solicitudes/{id}/rechazar` | `SuperAdmin`. | US-27 | Implementado |
 | `POST` | `/v1/admin/solicitudes/{id}/reenviar-invitacion` | Administrador global. | US-27 | Implementado |
-| `GET` | `/v1/invitaciones/{token}` | Público con rate limit. | US-28 | No implementado |
-| `POST` | `/v1/invitaciones/{token}/aceptar` | Público con rate limit. | US-28 | No implementado |
+| `GET` | `/v1/invitaciones/{token}` | Público con rate limit. | US-28 | Implementado |
+| `POST` | `/v1/invitaciones/{token}/aceptar` | Público con rate limit. | US-28 | Implementado |
 | `POST` | `/v1/auth/login` | Público con rate limit. | US-04 | Implementado |
 | `POST` | `/v1/auth/logout` | Usuario autenticado. | US-04 | Implementado |
 | `GET` | `/v1/auth/me` | Usuario autenticado. | US-04 | Implementado |

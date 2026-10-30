@@ -5,7 +5,8 @@
 **Estimación:** 2 días  
 **Requisito:** RF-25  
 **Depende de:** US-04, US-27, US-29  
-**Habilita:** US-02, US-14
+**Habilita:** US-02, US-14  
+**Estado:** Completada
 
 ## Historia
 
@@ -17,23 +18,23 @@ La invitación es la prueba de control del email y el mecanismo de activación. 
 
 ## Criterios de aceptación
 
-- [ ] El link de invitación tiene formato `/activar?token=...`.
-- [ ] `GET /v1/invitaciones/{token}` valida el token y devuelve razón social, email enmascarado y fecha de expiración.
-- [ ] Un token inválido, vencido, usado o revocado devuelve un error genérico sin revelar datos.
-- [ ] La página de activación muestra la empresa y el email, y no permite editarlos.
-- [ ] El formulario solicita contraseña y confirmación.
-- [ ] La contraseña cumple mínimo 10 caracteres, al menos una letra y un número, y no es trivial.
-- [ ] El email del usuario se toma de la invitación, no del formulario.
-- [ ] El `ContribuyenteId` se toma de la invitación, no del formulario ni de la URL.
-- [ ] El usuario se crea con rol `Administrador`, activo y con email verificado.
-- [ ] Un usuario existente con el mismo email en la empresa devuelve `409` y no duplica.
-- [ ] La invitación se marca como `Usada` en la misma operación que crea el usuario.
-- [ ] Dos aceptaciones simultáneas del mismo token generan un solo usuario.
-- [ ] Aceptar una invitación no inicia sesión automáticamente; redirige al login con mensaje de éxito.
-- [ ] La contraseña se hashea y nunca se devuelve ni se loguea.
-- [ ] La aceptación tiene rate limit.
-- [ ] Se registra auditoría de activación.
-- [ ] Si la empresa está inactiva, no se permite la activación.
+- [x] El link de invitación tiene formato `/activar?token=...`.
+- [x] `GET /v1/invitaciones/{token}` valida el token y devuelve razón social, email enmascarado y fecha de expiración.
+- [x] Un token inválido, vencido, usado o revocado devuelve un error genérico sin revelar datos.
+- [x] La página de activación muestra la empresa y el email, y no permite editarlos.
+- [x] El formulario solicita contraseña y confirmación.
+- [x] La contraseña cumple mínimo 10 caracteres, al menos una letra y un número, y no es trivial.
+- [x] El email del usuario se toma de la invitación, no del formulario.
+- [x] El `ContribuyenteId` se toma de la invitación, no del formulario ni de la URL.
+- [x] El usuario se crea con rol `Administrador`, activo y con email verificado.
+- [x] Un usuario existente con el mismo email en la empresa devuelve `409` y no duplica.
+- [x] La invitación se marca como `Usada` en la misma operación que crea el usuario.
+- [x] Dos aceptaciones simultáneas del mismo token generan un solo usuario.
+- [x] Aceptar una invitación no inicia sesión automáticamente; redirige al login con mensaje de éxito.
+- [x] La contraseña se hashea y nunca se devuelve ni se loguea.
+- [x] La aceptación tiene rate limit.
+- [x] Se registra auditoría de activación.
+- [x] Si la empresa está inactiva, no se permite la activación.
 
 ## Escenarios Gherkin
 
@@ -80,27 +81,47 @@ Scenario: Aceptación concurrente
 
 ## Tareas técnicas
 
-- [ ] Implementar `IInvitacionRepository` con búsqueda por hash de token.
-- [ ] Implementar `ValidarInvitacionService`.
-- [ ] Implementar `AceptarInvitacionService` con transacción y control de concurrencia.
-- [ ] Crear `GET /v1/invitaciones/{token}`.
-- [ ] Crear `POST /v1/invitaciones/{token}/aceptar`.
-- [ ] Crear la página `/activar` y el cliente HTTP.
-- [ ] Aplicar la política de contraseña.
-- [ ] Crear el usuario con `PasswordHasher`.
-- [ ] Marcar la invitación como usada y registrar auditoría.
-- [ ] Agregar rate limit.
-- [ ] Agregar tests de token válido, vencido, usado, revocado, contraseña débil y concurrencia.
-- [ ] Documentar el flujo y los códigos de error.
+- [x] Implementar `IInvitacionRepository` con búsqueda por hash de token.
+- [x] Implementar `ValidarInvitacionService`.
+- [x] Implementar `AceptarInvitacionService` con transacción y control de concurrencia.
+- [x] Crear `GET /v1/invitaciones/{token}`.
+- [x] Crear `POST /v1/invitaciones/{token}/aceptar`.
+- [x] Crear la página `/activar` y el cliente HTTP.
+- [x] Aplicar la política de contraseña.
+- [x] Crear el usuario con `PasswordHasher`.
+- [x] Marcar la invitación como usada y registrar auditoría.
+- [x] Agregar rate limit.
+- [x] Agregar tests de token válido, vencido, usado, revocado, contraseña débil y concurrencia.
+- [x] Documentar el flujo y los códigos de error.
 
 ## Definition of Done
 
-- [ ] El flujo invitación → activación → login funciona de punta a punta.
-- [ ] Un token no puede usarse dos veces.
-- [ ] El usuario creado queda asociado a la empresa correcta.
-- [ ] El email y el contribuyente no se pueden manipular desde el formulario.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el proceso de alta.
+- [x] El flujo invitación → activación → login funciona de punta a punta.
+- [x] Un token no puede usarse dos veces.
+- [x] El usuario creado queda asociado a la empresa correcta.
+- [x] El email y el contribuyente no se pueden manipular desde el formulario.
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el proceso de alta.
+
+## Evidencia
+
+Verificado el 2026-10-30 sobre la rama `feature/us-28-invitacion-cuenta` (apilada sobre US-27), con MongoDB 8.2 local en replica set.
+
+| Qué | Cómo se verificó |
+| --- | --- |
+| Política de contraseña, validación y aceptación | `ActivacionInvitacionServiceTests` (38 tests unitarios): reglas de `PoliticaContrasena`, enmascarado del email, token inexistente/revocado/vencido/usado, empresa inactiva, contraseña débil, confirmación distinta, carrera perdida en el compare-and-set y usuario existente. |
+| Endpoints contra Mongo real | `MongoInvitacionesTests` (10 tests `MongoFact`): CP-28-01 a CP-28-14, incluida la **aceptación concurrente** (4 requests simultáneos → 1 usuario; repetida 5 veces sin fallos), campos extra del body ignorados, ausencia de `Set-Cookie` y `429 RATE_LIMIT` con `Retry-After`. |
+| Flujo de punta a punta | `FlujoCompleto_AprobarActivarEIniciarSesion`: aprobación de US-27 → token tomado del email → `GET` → `POST` → `POST /v1/auth/login` con rol `Administrador`. |
+| Portal | QA en Chromium headless con API y portal locales: el link del email abre `/activar`, muestra empresa y email enmascarado (el email completo no aparece), rechaza una contraseña trivial y una confirmación distinta, activa, redirige a `/login?exito=cuenta-activada` con el aviso, el login de empresa funciona, el link reusado muestra «ya fue usado» y un token inventado muestra «no es válido». Tras validar, el token sale de la barra de direcciones. |
+| Suite completa | `dotnet test FacturAR.slnx -c Release`: 185 unitarios y 103 de integración en verde. `dotnet format --verify-no-changes` sin cambios. |
+
+Decisiones tomadas durante la implementación:
+
+- `GET` con un token ya usado responde `409 INVITACION_USADA`, igual que el `POST`; el contrato no lo listaba para el `GET` pero es el error más claro y no expone datos.
+- Antes del compare-and-set se comprueba que no exista el usuario en la empresa; si existe, la transacción se aborta sin marcar la invitación (`409 INVITACION_USADA`), así el administrador puede reenviarla. El índice `ux_usuarios_contribuyente_email` sigue siendo la barrera final.
+- `UsuarioRepository` ahora participa de la transacción con `MongoSesionActual`, igual que los repositorios de US-27.
+- Rate limit por IP con ventana fija de una hora, configurable en `RateLimit:Invitacion:ValidacionesPorIp` (20) y `RateLimit:Invitacion:ActivacionesPorIp` (10).
+- La página `/activar` es interactiva sin prerender, para validar el token una sola vez y conservarlo solo en memoria.
 
 ## Contrato técnico
 

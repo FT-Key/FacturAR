@@ -633,6 +633,162 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Invitaciones",
+      "description": "US-28. Activación pública de la cuenta con el token del email de aprobación.",
+      "item": [
+        {
+          "name": "Validar invitación",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Solo expone datos públicos', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql(['emailEnmascarado', 'expiraAt', 'razonSocial']));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/invitaciones/{{tokenInvitacion}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "invitaciones", "{{tokenInvitacion}}"]
+            },
+            "description": "Pegar en `tokenInvitacion` el token del link del email (`/activar?token=…`). Devuelve solo razón social, email enmascarado y vencimiento."
+          },
+          "response": []
+        },
+        {
+          "name": "Aceptar con contraseña débil",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400 PASSWORD_DEBIL', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().codigo).to.eql('PASSWORD_DEBIL');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/invitaciones/{{tokenInvitacion}}/aceptar",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "invitaciones", "{{tokenInvitacion}}", "aceptar"]
+            },
+            "description": "La política exige 10 caracteres, una letra, un número y que no sea trivial. La invitación sigue vigente.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"123456\",\n  \"confirmacionPassword\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Aceptar invitación",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('No emite cookie de sesión', () => pm.expect(pm.response.headers.has('Set-Cookie')).to.be.false);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/invitaciones/{{tokenInvitacion}}/aceptar",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "invitaciones", "{{tokenInvitacion}}", "aceptar"]
+            },
+            "description": "Crea el usuario administrador con el email y la empresa de la invitación y la marca como usada. No inicia sesión. Definir antes `passwordNueva` en el environment.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"{{passwordNueva}}\",\n  \"confirmacionPassword\": \"{{passwordNueva}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Aceptar dos veces",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409 INVITACION_USADA', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "  pm.expect(pm.response.json().codigo).to.eql('INVITACION_USADA');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/invitaciones/{{tokenInvitacion}}/aceptar",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "invitaciones", "{{tokenInvitacion}}", "aceptar"]
+            },
+            "description": "El token es de un solo uso.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"{{passwordNueva}}\",\n  \"confirmacionPassword\": \"{{passwordNueva}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [
@@ -658,6 +814,16 @@
     },
     {
       "key": "solicitudId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenInvitacion",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "passwordNueva",
       "value": "",
       "type": "string"
     }
