@@ -5,7 +5,11 @@ using System.Text;
 using System.Text.Json;
 using FacturAR.Contracts.Solicitudes;
 using FacturAR.Domain.Enums;
+using MongoDB.Bson;
 using MongoDB.Driver;
+using MongoDB.Driver.Core.Clusters;
+using MongoDB.Driver.Core.Connections;
+using MongoDB.Driver.Core.Servers;
 
 namespace FacturAR.IntegrationTests;
 
@@ -83,6 +87,34 @@ public sealed class SolicitudAltaEndpointsTests
         Assert.Equal("VALIDACION", error.Codigo);
         Assert.Equal("El email no es válido.", error.Mensaje);
         Assert.Empty(factory.Solicitudes.Insertadas);
+    }
+
+    [Fact]
+    public async Task Post_ConEmailYRazonSocialInvalidos_DevuelveUnSoloMensajeSinEnumerarCampos()
+    {
+        using var factory = new SolicitudAltaWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var response = await PostAsync(
+            client,
+            Request() with { Email = "sin-arroba", RazonSocial = "   " },
+            IpUnica());
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var cuerpo = await response.Content.ReadAsStringAsync();
+        using var documento = JsonDocument.Parse(cuerpo);
+        Assert.Equal(2, documento.RootElement.EnumerateObject().Count());
+        Assert.False(documento.RootElement.TryGetProperty("errores", out _));
+
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.NotNull(error);
+        Assert.Equal("VALIDACION", error.Codigo);
+        Assert.Equal("La razón social es obligatoria.", error.Mensaje);
+        Assert.DoesNotContain("email", error.Mensaje, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(factory.Solicitudes.Insertadas);
+        Assert.Empty(factory.Emails.Enviados);
+        Assert.Empty(factory.Eventos.Eventos);
     }
 
     [Fact]
@@ -335,6 +367,105 @@ public sealed class SolicitudAltaEndpointsTests
             solicitud => Assert.Equal(victima, solicitud.EmailSolicitante));
     }
 
+    [Fact]
+    public async Task Post_ConCuerpoMayorA32Kb_DevuelveValidacionSinInsertar()
+    {
+        using var factory = new SolicitudAltaWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var response = await PostRawAsync(
+            client,
+            CuerpoConPadding(EmailValido, new string('a', 33 * 1024)),
+            IpUnica());
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.NotNull(error);
+        Assert.Equal("VALIDACION", error.Codigo);
+        Assert.Equal("El cuerpo de la solicitud no es válido.", error.Mensaje);
+        Assert.Empty(factory.Solicitudes.Insertadas);
+        Assert.Empty(factory.Emails.Enviados);
+    }
+
+    [Fact]
+    public async Task Post_ConPaddingGrandeValido_AplicaLimitePorEmail()
+    {
+        using var factory = new SolicitudAltaWebApplicationFactory { ConfiarEnProxy = true };
+        using var client = factory.CreateClient();
+        const string email = "padding-email@demo.com";
+        var cuerpo = CuerpoConPadding(email, new string('a', 30 * 1024));
+
+        for (var indice = 0; indice < 3; indice++)
+        {
+            var aceptada = await PostRawAsync(client, cuerpo, IpUnica());
+            Assert.Equal(HttpStatusCode.Accepted, aceptada.StatusCode);
+        }
+
+        var rechazada = await PostRawAsync(client, cuerpo, IpUnica());
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, rechazada.StatusCode);
+        var error = await rechazada.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.NotNull(error);
+        Assert.Equal("RATE_LIMIT", error.Codigo);
+        Assert.Equal(3, factory.Solicitudes.Insertadas.Count);
+    }
+
+    [Fact]
+    public async Task Post_ConXForwardedForDeDosEntradas_UsaLaUltimaComoParticion()
+    {
+        using var factory = new SolicitudAltaWebApplicationFactory { ConfiarEnProxy = true };
+        using var client = factory.CreateClient();
+
+        for (var indice = 0; indice < 5; indice++)
+        {
+            var aceptada = await PostAsync(
+                client,
+                Request() with { Email = $"xff-a-{indice}@demo.com" },
+                "1.1.1.1, 203.0.113.9");
+            Assert.Equal(HttpStatusCode.Accepted, aceptada.StatusCode);
+        }
+
+        for (var indice = 0; indice < 5; indice++)
+        {
+            var aceptada = await PostAsync(
+                client,
+                Request() with { Email = $"xff-b-{indice}@demo.com" },
+                "1.1.1.1, 203.0.113.10");
+            Assert.Equal(HttpStatusCode.Accepted, aceptada.StatusCode);
+        }
+
+        var rechazada = await PostAsync(
+            client,
+            Request() with { Email = "xff-a-rechazada@demo.com" },
+            "1.1.1.1, 203.0.113.9");
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, rechazada.StatusCode);
+        Assert.Equal(10, factory.Solicitudes.Insertadas.Count);
+    }
+
+    [Fact]
+    public async Task Post_ConEmailInvalido_DevuelveValidacionYNoRateLimit()
+    {
+        using var factory = new SolicitudAltaWebApplicationFactory { ConfiarEnProxy = true };
+        using var client = factory.CreateClient();
+
+        for (var indice = 0; indice < 4; indice++)
+        {
+            var response = await PostAsync(
+                client,
+                Request() with { Email = "sin-arroba" },
+                IpUnica());
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+            Assert.NotNull(error);
+            Assert.Equal("VALIDACION", error.Codigo);
+            Assert.Equal("El email no es válido.", error.Mensaje);
+        }
+
+        Assert.Empty(factory.Solicitudes.Insertadas);
+    }
+
     [Theory]
     [InlineData("timeout")]
     [InlineData("mongo")]
@@ -344,7 +475,7 @@ public sealed class SolicitudAltaEndpointsTests
         using var client = factory.CreateClient();
         factory.Solicitudes.Excepcion = tipo == "timeout"
             ? new TimeoutException("timeout de prueba.")
-            : new MongoException("sin conexión de prueba.");
+            : MongoNoDisponible();
 
         var response = await PostAsync(client, Request(), IpUnica());
 
@@ -352,6 +483,25 @@ public sealed class SolicitudAltaEndpointsTests
         var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
         Assert.NotNull(error);
         Assert.Equal("MONGO_NO_DISPONIBLE", error.Codigo);
+        Assert.Empty(factory.Solicitudes.Insertadas);
+    }
+
+    [Fact]
+    public async Task Post_ConMongoCommandException_DevuelveErrorInterno()
+    {
+        using var factory = new SolicitudAltaWebApplicationFactory();
+        using var client = factory.CreateClient();
+        factory.Solicitudes.Excepcion = new MongoCommandException(
+            new ConnectionId(new ServerId(new ClusterId(1), new DnsEndPoint("localhost", 27017))),
+            "falla de comando de prueba.",
+            new BsonDocument());
+
+        var response = await PostAsync(client, Request(), IpUnica());
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.NotNull(error);
+        Assert.Equal("ERROR_INTERNO", error.Codigo);
         Assert.Empty(factory.Solicitudes.Insertadas);
     }
 
@@ -414,15 +564,47 @@ public sealed class SolicitudAltaEndpointsTests
         return await client.SendAsync(mensaje);
     }
 
-    private static async Task<HttpResponseMessage> PostRawAsync(HttpClient client, string cuerpo)
+    private static async Task<HttpResponseMessage> PostRawAsync(
+        HttpClient client,
+        string cuerpo,
+        string? ip = null)
     {
         using var mensaje = new HttpRequestMessage(HttpMethod.Post, "/v1/solicitudes-alta")
         {
             Content = new StringContent(cuerpo, Encoding.UTF8, "application/json")
         };
 
+        if (ip is not null)
+        {
+            mensaje.Headers.Add("X-Forwarded-For", ip);
+        }
+
         return await client.SendAsync(mensaje);
     }
+
+    private static MongoConnectionException MongoNoDisponible()
+        => new(
+            new ConnectionId(new ServerId(new ClusterId(1), new DnsEndPoint("localhost", 27017))),
+            "sin conexión de prueba.");
+
+    private static string CuerpoConPadding(string email, string padding) =>
+        $$"""
+        {
+          "razonSocial": "ACME S.A.",
+          "cuit": "{{CuitValido}}",
+          "condicionIva": 1,
+          "nombreSolicitante": "Ana Pérez",
+          "email": "{{email}}",
+          "telefono": "+54 11 5555-4444",
+          "domicilio": "Av. Corrientes 1234",
+          "ciudad": "Buenos Aires",
+          "provincia": "CABA",
+          "codigoPostal": "C1043",
+          "mensaje": null,
+          "aceptaTerminos": true,
+          "padding": "{{padding}}"
+        }
+        """;
 
     private static string CuerpoConEmailDuplicado(string senuelo, string victima) =>
         $$"""

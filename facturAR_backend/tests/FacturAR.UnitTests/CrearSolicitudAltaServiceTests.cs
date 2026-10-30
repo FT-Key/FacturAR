@@ -5,6 +5,7 @@ using FacturAR.Contracts.Solicitudes;
 using FacturAR.Domain.Entities;
 using FacturAR.Domain.Enums;
 using FacturAR.Domain.Exceptions;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace FacturAR.UnitTests;
 
@@ -261,7 +262,8 @@ public sealed class CrearSolicitudAltaServiceTests
                 Eventos,
                 new EmailService(
                     Emails,
-                    new NotificacionesOptions { AdminNotificationEmail = adminNotificationEmail }));
+                    new NotificacionesOptions { AdminNotificationEmail = adminNotificationEmail }),
+                NullLogger<CrearSolicitudAltaService>.Instance);
         }
 
         public FakeSolicitudAltaRepository Solicitudes { get; } = new();
