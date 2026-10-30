@@ -15,7 +15,7 @@ public static class InvitacionEndpoints
 
     public static IEndpointRouteBuilder MapInvitacionEndpoints(this IEndpointRouteBuilder app)
     {
-        var grupo = app.MapGroup("/v1/invitaciones").WithTags("Invitaciones");
+        var grupo = app.MapGroup("/v1/invitaciones").WithTags("Invitaciones").AllowAnonymous();
 
         grupo.MapGet("/{token}", ValidarAsync)
             .WithName("ValidarInvitacion")
