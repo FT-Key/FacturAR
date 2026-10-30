@@ -4,6 +4,7 @@ using System.Text.Json;
 using FacturAR.Contracts.Auth;
 using FacturAR.Contracts.Comunes;
 using FacturAR.Contracts.Comprobantes;
+using FacturAR.Contracts.Invitaciones;
 using FacturAR.Contracts.Solicitudes;
 
 namespace FacturAR.Web.Services;
@@ -185,6 +186,28 @@ public sealed class FacturarApiClient(HttpClient httpClient)
             $"{RutaSolicitudesAdmin}/{id}/reenviar-invitacion",
             cookie,
             null,
+            cancellationToken);
+
+    public Task<ResultadoApi<InvitacionValidacionResponse>> ValidarInvitacionAsync(
+        string token,
+        CancellationToken cancellationToken = default)
+        => EnviarAsync<InvitacionValidacionResponse>(
+            HttpMethod.Get,
+            $"v1/invitaciones/{Uri.EscapeDataString(token)}",
+            null,
+            null,
+            cancellationToken);
+
+    public Task<ResultadoApi<AceptarInvitacionResponse>> AceptarInvitacionAsync(
+        string token,
+        string password,
+        string confirmacionPassword,
+        CancellationToken cancellationToken = default)
+        => EnviarAsync<AceptarInvitacionResponse>(
+            HttpMethod.Post,
+            $"v1/invitaciones/{Uri.EscapeDataString(token)}/aceptar",
+            null,
+            new AceptarInvitacionRequest(password, confirmacionPassword),
             cancellationToken);
 
     private async Task<ResultadoApi<T>> EnviarAsync<T>(
