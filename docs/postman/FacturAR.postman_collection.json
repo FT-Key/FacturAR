@@ -211,6 +211,135 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Solicitudes de alta",
+      "item": [
+        {
+          "name": "Crear solicitud válida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 202', () => pm.response.to.have.status(202));",
+                  "pm.test('No expone datos de la solicitud', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.codigo).to.eql('SOLICITUD_RECIBIDA');",
+                  "  pm.expect(Object.keys(body).sort()).to.eql(['codigo', 'mensaje']);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razonSocial\": \"Empresa Demo S.A.\",\n  \"cuit\": \"20123456786\",\n  \"condicionIva\": 1,\n  \"nombreSolicitante\": \"Ana Pérez\",\n  \"email\": \"solicitante@demo.com\",\n  \"telefono\": \"+54 11 5555-1234\",\n  \"domicilio\": \"Av. Corrientes 1234\",\n  \"ciudad\": \"Ciudad Autónoma de Buenos Aires\",\n  \"provincia\": \"Buenos Aires\",\n  \"codigoPostal\": \"C1043\",\n  \"mensaje\": \"Queremos emitir facturas A y B.\",\n  \"aceptaTerminos\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/solicitudes-alta",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "solicitudes-alta"]
+            },
+            "description": "Solicitud pública de alta. Responde 202 con un cuerpo genérico, también cuando el CUIT ya pertenece a un contribuyente."
+          },
+          "response": []
+        },
+        {
+          "name": "Solicitud con CUIT inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Código VALIDACION', () => pm.expect(pm.response.json().codigo).to.eql('VALIDACION'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razonSocial\": \"Empresa Demo S.A.\",\n  \"cuit\": \"20123456787\",\n  \"condicionIva\": 1,\n  \"nombreSolicitante\": \"Ana Pérez\",\n  \"email\": \"solicitante@demo.com\",\n  \"telefono\": \"+54 11 5555-1234\",\n  \"domicilio\": \"Av. Corrientes 1234\",\n  \"ciudad\": \"Ciudad Autónoma de Buenos Aires\",\n  \"provincia\": \"Buenos Aires\",\n  \"codigoPostal\": \"C1043\",\n  \"mensaje\": null,\n  \"aceptaTerminos\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/solicitudes-alta",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "solicitudes-alta"]
+            },
+            "description": "CUIT con dígito verificador incorrecto: 400 VALIDACION y no se guarda la solicitud."
+          },
+          "response": []
+        },
+        {
+          "name": "Solicitud duplicada pendiente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Código SOLICITUD_PENDIENTE', () => pm.expect(pm.response.json().codigo).to.eql('SOLICITUD_PENDIENTE'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razonSocial\": \"Empresa Demo S.A.\",\n  \"cuit\": \"20123456786\",\n  \"condicionIva\": 1,\n  \"nombreSolicitante\": \"Ana Pérez\",\n  \"email\": \"otro-solicitante@demo.com\",\n  \"telefono\": \"+54 11 5555-1234\",\n  \"domicilio\": \"Av. Corrientes 1234\",\n  \"ciudad\": \"Ciudad Autónoma de Buenos Aires\",\n  \"provincia\": \"Buenos Aires\",\n  \"codigoPostal\": \"C1043\",\n  \"mensaje\": null,\n  \"aceptaTerminos\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/solicitudes-alta",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "solicitudes-alta"]
+            },
+            "description": "Requiere que exista una solicitud Pendiente con el CUIT 20123456786. Responde 409 SOLICITUD_PENDIENTE sin crear una segunda solicitud ni enviar email."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [

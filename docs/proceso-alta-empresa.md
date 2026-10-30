@@ -2,7 +2,7 @@
 
 ## Estado del documento
 
-> **Diseño objetivo del MVP.** Este documento describe el onboarding profesional simulado de FacturAR: **solicitud → aprobación → invitación → activación**. **Ninguna de esas etapas está implementada todavía**: las historias US-XX que las habilitan están pendientes o en curso.
+> **Diseño objetivo del MVP.** Este documento describe el onboarding profesional simulado de FacturAR: **solicitud → aprobación → invitación → activación**. La solicitud pública (US-01) está implementada y probada automáticamente, pero falta verificar la persistencia con Mongo real; la aprobación, la invitación y la activación siguen pendientes.
 
 Qué describe este documento: el flujo de alta de una empresa, los actores, los estados de la solicitud y de la invitación, los emails transaccionales y los endpoints previstos de la consola global.
 
@@ -19,8 +19,9 @@ Base URL local: `http://localhost:5171`. En Docker: `http://localhost:8080`.
 | `GET` | `/health` | Readiness: verifica MongoDB. `200` si responde, `503` si no. |
 | `GET` | `/health/live` | Liveness: no consulta MongoDB. Siempre `200`. |
 | `GET` | `/v1/comprobantes/verificar/{cae}` | Verificación pública de un comprobante por CAE. No requiere autenticación. |
+| `POST` | `/v1/solicitudes-alta` | Solicitud pública de alta de empresa, con rate limit. No requiere autenticación. |
 
-Ningún endpoint del onboarding existe hoy: `POST /v1/solicitudes-alta`, `/v1/admin/solicitudes/**`, `/v1/invitaciones/**`, `/v1/auth/**` y `/v1/api-keys/**` responden `404` hasta que su historia se complete.
+Ningún otro endpoint del onboarding existe hoy: `/v1/admin/solicitudes/**`, `/v1/invitaciones/**`, `/v1/auth/**` y `/v1/api-keys/**` responden `404` hasta que su historia se complete.
 
 ### Reglas que no cambian con el estado de implementación
 
@@ -31,7 +32,7 @@ Ningún endpoint del onboarding existe hoy: `POST /v1/solicitudes-alta`, `/v1/ad
 
 | Historia | Qué parte del documento describe | Estado |
 | --- | --- | --- |
-| US-01 | §1 Solicitud pública de alta | Pendiente |
+| US-01 | §1 Solicitud pública de alta | Parcial |
 | US-04 | §4 Login de empresa y sesión | Base implementada |
 | US-02 | §4 Gestión de API keys desde el portal | Pendiente |
 | US-27 | §2 Revisión y aprobación del administrador global | Pendiente |
@@ -62,7 +63,7 @@ Este proceso reemplaza el registro libre de empresa y usuario administrador. El 
 
 ## Flujo
 
-> **Diseño objetivo — US-01, US-27, US-28 y US-29.** El diagrama muestra el flujo completo del MVP. Ninguno de los endpoints que aparecen existe hoy.
+> **Diseño objetivo — US-01, US-27, US-28 y US-29.** El diagrama muestra el flujo completo del MVP. El `POST` de solicitud (US-01) ya está implementado; los endpoints de aprobación, invitación y activación todavía no existen.
 
 ```mermaid
 sequenceDiagram
@@ -93,7 +94,7 @@ Etapas y su estado:
 
 | Etapa | Qué pasa | Historia | Estado |
 | --- | --- | --- | --- |
-| 1. Solicitud pública | El solicitante completa el formulario y la solicitud queda `Pendiente`. | US-01, US-29 | Pendiente |
+| 1. Solicitud pública | El solicitante completa el formulario y la solicitud queda `Pendiente`. | US-01, US-29 | Parcial |
 | 2. Revisión del administrador global | El administrador consulta, corrige, aprueba o rechaza. | US-27 | Pendiente |
 | 3. Invitación y activación | El solicitante acepta la invitación y define su contraseña. | US-28, US-29 | Pendiente |
 | 4. Login y API key | El usuario de empresa inicia sesión y crea su API key. | US-04, US-02 | Parcial |
@@ -101,7 +102,7 @@ Etapas y su estado:
 
 ### 1. Solicitud pública
 
-> **Diseño objetivo — US-01 y US-29.** `POST /v1/solicitudes-alta` **todavía no está implementado**.
+> **Estado — US-01 y US-29.** `POST /v1/solicitudes-alta` está implementado y probado automáticamente, y la página `/solicitar-alta` existe en el portal. Falta verificar la persistencia contra MongoDB real y el envío del email de confirmación en un entorno con la base disponible.
 
 El visitante completa:
 
@@ -262,7 +263,7 @@ El manual online explica:
 
 En desarrollo se usa un remitente que escribe el email completo en un archivo local; el log solo registra metadatos sin tokens. En producción se configura SMTP por variables de entorno. Un fallo de email no debe perder la solicitud ni la empresa: el administrador puede reenviar la invitación. El cuerpo con token no se persiste en claro.
 
-> **Estado de US-29:** el servicio de email ya está implementado y probado con remitente de archivo en desarrollo y SMTP configurable en producción. El disparo desde los endpoints y el reenvío desde el panel se habilitan cuando se implementen US-01 y US-27.
+> **Estado de US-29:** el servicio de email ya está implementado y probado con remitente de archivo en desarrollo y SMTP configurable en producción. US-01 ya dispara el email `SolicitudRecibida` y la notificación al administrador; el reenvío desde el panel se habilita con US-27.
 
 ## Endpoints previstos
 
@@ -270,7 +271,7 @@ Todos los endpoints de esta tabla están **especificados**. La columna Estado in
 
 | Método | Ruta | Acceso | Historia | Estado |
 | --- | --- | --- | --- | --- |
-| `POST` | `/v1/solicitudes-alta` | Público con rate limit. | US-01 | No implementado |
+| `POST` | `/v1/solicitudes-alta` | Público con rate limit. | US-01 | Implementado |
 | `POST` | `/v1/admin/auth/login` | Público con rate limit. | US-04 | Implementado |
 | `POST` | `/v1/admin/auth/logout` | Administrador global. | US-04 | Implementado |
 | `GET` | `/v1/admin/solicitudes` | Administrador global. | US-27 | No implementado |
@@ -289,7 +290,7 @@ Todos los endpoints de esta tabla están **especificados**. La columna Estado in
 | `DELETE` | `/v1/api-keys/{id}` | Administrador de empresa. | US-02 | No implementado |
 | `POST` | `/v1/api-keys/{id}/regenerar` | Administrador de empresa. | US-02 | No implementado |
 
-Estos endpoints se implementan en US-01, US-02, US-03, US-04, US-27, US-28 y US-29. Hasta entonces el manual y las historias son la referencia de contrato.
+Estos endpoints se implementan en US-01, US-02, US-03, US-04, US-27, US-28 y US-29. `POST /v1/solicitudes-alta` ya está implementado; el resto de los que figuran como no implementados responden `404` hasta que su historia se complete, y el manual y las historias siguen siendo la referencia de contrato.
 
 ## Relación con AFIP real
 
@@ -317,7 +318,7 @@ Nada de eso forma parte del MVP simulado.
 
 ## Criterios de demo
 
-> **Diseño objetivo.** Esta demo es posible cuando US-01, US-27, US-28, US-29, US-04 y US-02 estén completas. Hoy no se puede ejecutar de punta a punta: la verificación por CAE (US-11) es lo único que responde.
+> **Diseño objetivo.** Esta demo es posible cuando US-01, US-27, US-28, US-29, US-04 y US-02 estén completas. Hoy la solicitud de alta (US-01), la verificación por CAE (US-11) y el login (US-04) responden; los pasos 2 a 9 todavía no se pueden ejecutar de punta a punta.
 
 1. Enviar una solicitud desde el portal.
 2. Ver el email de confirmación en el buzón de desarrollo.
