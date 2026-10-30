@@ -10,6 +10,8 @@ public interface IInvitacionRepository
 
     Task<Invitacion?> ObtenerVigentePorSolicitudAsync(Guid solicitudId, CancellationToken ct = default);
 
+    Task<bool> MarcarUsadaAsync(Guid id, DateTime usadaAt, CancellationToken ct = default);
+
     Task<bool> RevocarAsync(Guid id, DateTime revocadaAt, CancellationToken ct = default);
 
     Task RegistrarEnvioAsync(Guid id, DateTime enviadoAt, CancellationToken ct = default);

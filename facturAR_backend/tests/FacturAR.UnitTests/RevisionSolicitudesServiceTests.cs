@@ -649,6 +649,9 @@ public sealed class RevisionSolicitudesServiceTests
             invitacion.IntentosEnvio++;
             return Task.CompletedTask;
         }
+
+        public Task<bool> MarcarUsadaAsync(Guid id, DateTime usadaAt, CancellationToken ct = default)
+            => throw new NotSupportedException();
     }
 
     private sealed class FakeEventos : IEventoAuditoriaRepository

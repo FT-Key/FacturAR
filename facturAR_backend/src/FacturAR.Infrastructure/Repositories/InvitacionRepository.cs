@@ -35,6 +35,21 @@ public sealed class InvitacionRepository : IInvitacionRepository
             .SortByDescending(i => i.CreatedAt)
             .FirstOrDefaultAsync(ct);
 
+    public async Task<bool> MarcarUsadaAsync(Guid id, DateTime usadaAt, CancellationToken ct = default)
+    {
+        var resultado = await _sesion.UpdateOneAsync(
+            _context.Invitaciones,
+            Filtro.Eq(i => i.Id, id)
+                & Filtro.Eq(i => i.Estado, EstadoInvitacion.Pendiente)
+                & Filtro.Gt(i => i.ExpiraAt, usadaAt),
+            Builders<Invitacion>.Update
+                .Set(i => i.Estado, EstadoInvitacion.Usada)
+                .Set(i => i.UsadaAt, usadaAt),
+            ct);
+
+        return resultado.ModifiedCount == 1;
+    }
+
     public async Task<bool> RevocarAsync(Guid id, DateTime revocadaAt, CancellationToken ct = default)
     {
         var resultado = await _sesion.UpdateOneAsync(
