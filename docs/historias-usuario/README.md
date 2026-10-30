@@ -57,7 +57,7 @@ La columna **Orden** es la posición dentro del sprint. La columna **Contrato** 
 
 Al día de hoy **US-11 y US-04 tienen comportamiento implementado**: la API expone `GET /`, `GET /health`, `GET /health/live`, `GET /v1/comprobantes/verificar/{cae}`, `POST /v1/auth/login`, `POST /v1/auth/logout`, `GET /v1/auth/me`, `POST /v1/admin/auth/login`, `POST /v1/admin/auth/logout` y `GET /v1/admin/auth/me`; el portal expone `/verificar`, `/login`, `/logout`, `/admin/login`, `/admin/logout` y `/admin`. US-04 queda en **Base implementada** porque el aislamiento multiempresa se completa con los endpoints de negocio de US-02, US-05 y US-09.
 
-**US-29** queda en **Parcial**: el servicio de email está implementado y probado —`IEmailSender`, `EmailService`, las cinco plantillas, remitente de archivo en desarrollo, remitente SMTP y validación de configuración al arrancar—, pero falta el disparo desde los endpoints de US-01 y US-27 y la advertencia/reenvío en el panel de solicitudes.
+**US-29** queda en **Parcial**: el servicio de email está implementado y probado —`IEmailSender`, `EmailService`, las cinco plantillas, remitente de archivo en desarrollo, remitente SMTP y validación de configuración al arrancar—. US-27 ya dispara los emails de aprobación, rechazo y reenvío y muestra la advertencia con reenvío en el panel de solicitudes; falta el disparo desde los endpoints de US-01.
 
 **US-01** queda en **Parcial**: `POST /v1/solicitudes-alta` y la página `/solicitar-alta` están implementados y cubiertos por tests automáticos (unitarios y de integración); falta la verificación con Mongo real y el QA del camino feliz.
 

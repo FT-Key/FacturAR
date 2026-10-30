@@ -440,7 +440,7 @@ public sealed class RevisionSolicitudesServiceTests
                 Solicitudes, Contribuyentes, PuntosVenta, Invitaciones, Eventos, Transaccion, email, notificador);
             Rechazar = new RechazarSolicitudService(Solicitudes, Eventos, Transaccion, email, notificador);
             Reenviar = new ReenviarInvitacionService(Solicitudes, Invitaciones, Eventos, Transaccion, email, notificador);
-            Editar = new EditarSolicitudService(Solicitudes, Eventos, notificador);
+            Editar = new EditarSolicitudService(Solicitudes, Eventos, Transaccion);
             Listar = new ListarSolicitudesService(Solicitudes);
             Obtener = new ObtenerSolicitudService(Solicitudes, Invitaciones, Eventos);
         }

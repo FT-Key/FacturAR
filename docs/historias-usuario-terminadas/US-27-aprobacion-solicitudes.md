@@ -141,7 +141,7 @@ Verificado el 2026-10-30 sobre la rama `feature/us-27-aprobacion-solicitudes`, c
 | --- | --- |
 | Reglas de aprobar, rechazar, reenviar, editar, listar y detalle | `RevisionSolicitudesServiceTests` (34 tests unitarios con repositorios falsos). |
 | Transacción real, doble aprobación, aprobación concurrente (4 requests simultáneos), CUIT duplicado, email caído, permisos de `Soporte`, filtros y paginación | `MongoRevisionSolicitudesTests` (17 tests `MongoFact` con `WebApplicationFactory`). CP-27-01 a CP-27-13 cubiertos. |
-| Suite completa | `dotnet test FacturAR.slnx -c Release`: 147 unitarios y 93 de integración en verde. `dotnet format --verify-no-changes` sin cambios. |
+| Suite completa | `dotnet test FacturAR.slnx -c Release`: 147 unitarios en verde; 49 de integración sin Mongo y 45 `MongoFact` que corren en CI contra el replica set (no se omiten porque `MONGO_CONNECTION_STRING` está definida). `dotnet format --verify-no-changes` sin cambios. |
 | Panel del portal | QA manual con API y portal locales: login de `SuperAdmin`, listado y filtro, edición, aprobación, intento de doble aprobación, reenvío, rechazo con motivo corto (validación) y con motivo válido. Se generaron los emails `SolicitudAprobada`, `InvitacionReenviada` y `SolicitudRechazada`. Sin sesión, `/admin/solicitudes` redirige a `/admin/login`. |
 | Replica set en CI | PR `ci/mongo-replica-set`: la CI levanta `mongo:8.2` con `--replSet rs0`. |
 

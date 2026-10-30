@@ -2,6 +2,8 @@
 @using System.ComponentModel.DataAnnotations
 @using System.Net
 @using FacturAR.Contracts.Solicitudes
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = "AdminGlobal")]
 @inject FacturarApiClient ApiClient
 @inject NavigationManager Navigation
 
