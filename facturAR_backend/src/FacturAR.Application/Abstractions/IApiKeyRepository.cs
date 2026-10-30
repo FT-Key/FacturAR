@@ -13,4 +13,11 @@ public interface IApiKeyRepository
     Task InsertAsync(ApiKey apiKey, CancellationToken ct = default);
 
     Task UpdateAsync(ApiKey apiKey, CancellationToken ct = default);
+
+    Task<bool> ActualizarUltimoUsoAsync(
+        Guid id,
+        Guid contribuyenteId,
+        DateTime ahoraUtc,
+        TimeSpan intervalo,
+        CancellationToken ct = default);
 }
