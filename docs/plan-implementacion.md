@@ -48,7 +48,7 @@ Si alguno de esos once pasos no funciona de punta a punta, **el sprint todavía 
 | Decisión | Motivo |
 | --- | --- |
 | Azure App Service (Web Apps para contenedor Linux, plan B1) | Despliegue gestionado, Always On, TLS automático, health check nativo y costo bajo. Cubre RNF-20. |
-| MongoDB Atlas M0 | Ya es replica set, requisito de las transacciones de US-05, US-07 y US-08. |
+| MongoDB Atlas M0 | Ya es replica set, requisito de las transacciones de US-27, US-28, US-05, US-07 y US-08. |
 | Docker Hub público con tags inmutables por SHA | El deploy nunca usa `latest`. Permite rollback instantáneo a cualquier versión. |
 | GitHub Actions con CI y CD separados | La CD solo se dispara si la CI del mismo commit fue exitosa. |
 | **Sin Kubernetes** | Decisión fechada el 2026-10-28. Ver abajo. |
@@ -78,7 +78,7 @@ Estos puntos bloquean historias concretas. Hay que resolverlos **antes** de empe
 
 | Prerrequisito | Bloquea | Acción | Responsable |
 | --- | --- | --- | --- |
-| MongoDB local como replica set | US-05, US-07, US-08 | Agregar `--replSet rs0` al servicio `mongo` de `docker-compose.yml` e inicializarlo con `rs.initiate()`. Atlas M0 ya es replica set. | Infra |
+| MongoDB local como replica set | US-27, US-28, US-05, US-07, US-08 | Resuelto: la CI levanta `mongo:8.2` con `--replSet rs0` y lo inicializa con `rs.initiate()`; en local, `docker compose --profile mongo-local up -d mongo` hace lo mismo y se conecta con `mongodb://localhost:27017/?directConnection=true`. Atlas M0 ya es replica set. | Hecho |
 | Health check path de Azure en `/health/live` | Operación | `az webapp config set --health-check-path /health/live` en ambas Web Apps. Evita que una caída transitoria de Atlas reinicie el contenedor en loop. | Infra |
 | `SOURCE_COMMIT` y `APP_VERSION` en el build | Operación | Ya resueltos: el CD los inyecta como build args. Los endpoints `/` y `/health` los informan. | Hecho |
 | `MONGO_CONNECTION_STRING` de desarrollo | Todos los tests de integración | `.env` local o variable de entorno. Los tests `MongoFact` se omiten sin ella. | Todos |
@@ -156,7 +156,7 @@ Objetivo: que se emitan comprobantes correctos, numerados e idempotentes.
 
 **Salida de bloque:** `POST /v1/comprobantes` emite con número correlativo, CAE único y `Idempotency-Key` funcional.
 
-> US-05, US-07 y US-08 requieren transacciones. Sin replica set local, sus tests de concurrencia y rollback no pueden pasar. Resolver el prerrequisito de §4.
+> US-27, US-28, US-05, US-07 y US-08 requieren transacciones. Sin replica set local, sus tests de concurrencia y rollback no pueden pasar. Resolver el prerrequisito de §4.
 
 ### Bloque 5 — Consultas, documentos y portal
 
@@ -288,7 +288,7 @@ Qué tiene que recibir el grupo externo y en qué orden.
 | Las entidades e índices existen pero no hay comportamiento. Se percibe avance que no existe. | Alto | Cada historia entrega endpoint o pantalla verificable. La demo de §7 es el criterio de avance. |
 | El equipo implementa en paralelo dos historias con contratos incompatibles. | Alto | `docs/contratos-api.md` es normativo. En la revisión de código, una desviación del contrato es un hallazgo `blocker`. |
 | La CI queda roja por el entorno de MongoDB y frena la promoción. | Medio | `mongo:8.2` ya está fijado en `development`. Ante una falla de runner, fijar la versión de imagen del runner. |
-| Replica set no disponible en local y los tests de concurrencia se omiten. | Alto | Prerrequisito de §4. Sin replica set, US-05, US-07 y US-08 no cierran. |
+| Replica set no disponible en local y los tests de concurrencia se omiten. | Alto | Prerrequisito de §4. Sin replica set, US-27, US-28, US-05, US-07 y US-08 no cierran. |
 | El despliegue en `main` queda desactualizado respecto de `development`. | Medio | Promover con PR `development → main` después de cada bloque de historias. El CD despliega desde `main`. |
 | Los documentos describen funcionalidad futura como si existiera. | Medio | El bloque de estado al inicio de `manual-integracion.md` y `proceso-alta-empresa.md` y el criterio de US-21 lo controlan. |
 | El smoke test da verde falso con un contenedor viejo. | Medio | Resuelto: el smoke test compara el `commit` de `/health/live` con el SHA esperado. |
