@@ -14,6 +14,8 @@ public sealed class FacturarApiClient(HttpClient httpClient)
     private const string SetCookieHeader = "Set-Cookie";
     private const string MensajeSolicitudRecibida = "Recibimos tu solicitud.";
     private const string MensajeErrorSolicitud = "No pudimos enviar la solicitud. Intentá de nuevo en unos minutos.";
+    private const string MensajeApiNoDisponible = "No pudimos contactar al servicio. Intentá de nuevo en unos minutos.";
+    private const string RutaSolicitudesAdmin = "v1/admin/solicitudes";
 
     public async Task<VerificacionResponse?> VerificarAsync(string cae, CancellationToken cancellationToken = default)
     {
@@ -104,6 +106,135 @@ public sealed class FacturarApiClient(HttpClient httpClient)
         string? cookie,
         CancellationToken cancellationToken = default)
         => LogoutAsync("v1/admin/auth/logout", cookie, cancellationToken);
+
+    public Task<ResultadoApi<PaginaResponse<SolicitudAltaResumenResponse>>> ListarSolicitudesAsync(
+        string? cookie,
+        int page,
+        string? estado,
+        string? cuit,
+        string? razonSocial,
+        string? email,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new List<string> { $"page={page}", "pageSize=20" };
+        AgregarFiltro(query, "estado", estado);
+        AgregarFiltro(query, "cuit", cuit);
+        AgregarFiltro(query, "razonSocial", razonSocial);
+        AgregarFiltro(query, "email", email);
+
+        return EnviarAsync<PaginaResponse<SolicitudAltaResumenResponse>>(
+            HttpMethod.Get,
+            $"{RutaSolicitudesAdmin}?{string.Join('&', query)}",
+            cookie,
+            null,
+            cancellationToken);
+    }
+
+    public Task<ResultadoApi<SolicitudAltaDetalleResponse>> ObtenerSolicitudAsync(
+        string? cookie,
+        Guid id,
+        CancellationToken cancellationToken = default)
+        => EnviarAsync<SolicitudAltaDetalleResponse>(
+            HttpMethod.Get,
+            $"{RutaSolicitudesAdmin}/{id}",
+            cookie,
+            null,
+            cancellationToken);
+
+    public Task<ResultadoApi<SolicitudAltaDetalleResponse>> EditarSolicitudAsync(
+        string? cookie,
+        Guid id,
+        EditarSolicitudRequest request,
+        CancellationToken cancellationToken = default)
+        => EnviarAsync<SolicitudAltaDetalleResponse>(
+            HttpMethod.Put,
+            $"{RutaSolicitudesAdmin}/{id}",
+            cookie,
+            request,
+            cancellationToken);
+
+    public Task<ResultadoApi<AprobarSolicitudResponse>> AprobarSolicitudAsync(
+        string? cookie,
+        Guid id,
+        CancellationToken cancellationToken = default)
+        => EnviarAsync<AprobarSolicitudResponse>(
+            HttpMethod.Post,
+            $"{RutaSolicitudesAdmin}/{id}/aprobar",
+            cookie,
+            null,
+            cancellationToken);
+
+    public Task<ResultadoApi<RechazarSolicitudResponse>> RechazarSolicitudAsync(
+        string? cookie,
+        Guid id,
+        string motivo,
+        CancellationToken cancellationToken = default)
+        => EnviarAsync<RechazarSolicitudResponse>(
+            HttpMethod.Post,
+            $"{RutaSolicitudesAdmin}/{id}/rechazar",
+            cookie,
+            new RechazarSolicitudRequest(motivo),
+            cancellationToken);
+
+    public Task<ResultadoApi<ReenviarInvitacionResponse>> ReenviarInvitacionAsync(
+        string? cookie,
+        Guid id,
+        CancellationToken cancellationToken = default)
+        => EnviarAsync<ReenviarInvitacionResponse>(
+            HttpMethod.Post,
+            $"{RutaSolicitudesAdmin}/{id}/reenviar-invitacion",
+            cookie,
+            null,
+            cancellationToken);
+
+    private async Task<ResultadoApi<T>> EnviarAsync<T>(
+        HttpMethod method,
+        string path,
+        string? cookie,
+        object? body,
+        CancellationToken cancellationToken)
+    {
+        using var request = CrearRequest(method, path, cookie);
+        if (body is not null)
+        {
+            request.Content = JsonContent.Create(body, body.GetType());
+        }
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await httpClient.SendAsync(request, cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            return ResultadoApi<T>.Fallido(HttpStatusCode.ServiceUnavailable, null, MensajeApiNoDisponible);
+        }
+
+        using (response)
+        {
+            if (response.IsSuccessStatusCode)
+            {
+                var valor = await response.Content.ReadFromJsonAsync<T>(cancellationToken);
+                return valor is null
+                    ? ResultadoApi<T>.Fallido(response.StatusCode, null, MensajeApiNoDisponible)
+                    : ResultadoApi<T>.ConExito(valor);
+            }
+
+            var error = await LeerErrorAsync(response, cancellationToken);
+            return ResultadoApi<T>.Fallido(
+                response.StatusCode,
+                error?.Codigo,
+                error?.Mensaje ?? MensajeApiNoDisponible);
+        }
+    }
+
+    private static void AgregarFiltro(List<string> query, string nombre, string? valor)
+    {
+        if (!string.IsNullOrWhiteSpace(valor))
+        {
+            query.Add($"{nombre}={Uri.EscapeDataString(valor.Trim())}");
+        }
+    }
 
     private async Task<IReadOnlyList<string>?> LoginAsync(
         string path,
