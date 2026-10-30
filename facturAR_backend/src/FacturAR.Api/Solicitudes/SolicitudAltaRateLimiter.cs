@@ -2,39 +2,117 @@ using System.Threading.RateLimiting;
 
 namespace FacturAR.Api.Solicitudes;
 
-public sealed class SolicitudAltaRateLimiter : IDisposable
+public sealed class SolicitudAltaRateLimiter : RateLimiter
 {
     private readonly PartitionedRateLimiter<string> _porIp;
+    private readonly string _ip;
     private readonly PartitionedRateLimiter<string> _porEmail;
+    private readonly string? _email;
 
-    public SolicitudAltaRateLimiter(SolicitudAltaRateLimitOptions options)
+    public SolicitudAltaRateLimiter(
+        PartitionedRateLimiter<string> porIp,
+        string ip,
+        PartitionedRateLimiter<string> porEmail,
+        string? email)
     {
-        _porIp = PartitionedRateLimiter.Create<string, string>(clave =>
-            RateLimitPartition.GetFixedWindowLimiter(clave, _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = options.PorIp,
-                Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 0
-            }));
-
-        _porEmail = PartitionedRateLimiter.Create<string, string>(clave =>
-            RateLimitPartition.GetFixedWindowLimiter(clave, _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = options.PorEmail,
-                Window = TimeSpan.FromHours(1),
-                QueueLimit = 0
-            }));
+        _porIp = porIp;
+        _ip = ip;
+        _porEmail = porEmail;
+        _email = email;
     }
 
-    public ValueTask<RateLimitLease> AdquirirPorIpAsync(string ip, CancellationToken ct)
-        => _porIp.AcquireAsync(ip, cancellationToken: ct);
+    public override TimeSpan? IdleDuration => TimeSpan.FromHours(1);
 
-    public ValueTask<RateLimitLease> AdquirirPorEmailAsync(string email, CancellationToken ct)
-        => _porEmail.AcquireAsync(email, cancellationToken: ct);
+    public override RateLimiterStatistics? GetStatistics() => null;
 
-    public void Dispose()
+    protected override RateLimitLease AttemptAcquireCore(int permitCount)
     {
-        _porIp.Dispose();
-        _porEmail.Dispose();
+        var leaseIp = _porIp.AttemptAcquire(_ip, permitCount);
+        if (!leaseIp.IsAcquired || _email is null)
+        {
+            return leaseIp;
+        }
+
+        var leaseEmail = _porEmail.AttemptAcquire(_email, permitCount);
+        if (!leaseEmail.IsAcquired)
+        {
+            leaseIp.Dispose();
+            return leaseEmail;
+        }
+
+        return new LeaseCombinado(leaseIp, leaseEmail);
+    }
+
+    protected override ValueTask<RateLimitLease> AcquireAsyncCore(
+        int permitCount,
+        CancellationToken cancellationToken)
+        => AdquirirAsync(permitCount, cancellationToken);
+
+    private async ValueTask<RateLimitLease> AdquirirAsync(
+        int permitCount,
+        CancellationToken cancellationToken)
+    {
+        var leaseIp = await _porIp.AcquireAsync(_ip, permitCount, cancellationToken);
+        if (!leaseIp.IsAcquired || _email is null)
+        {
+            return leaseIp;
+        }
+
+        RateLimitLease leaseEmail;
+        try
+        {
+            leaseEmail = await _porEmail.AcquireAsync(_email, permitCount, cancellationToken);
+        }
+        catch
+        {
+            leaseIp.Dispose();
+            throw;
+        }
+
+        if (!leaseEmail.IsAcquired)
+        {
+            leaseIp.Dispose();
+            return leaseEmail;
+        }
+
+        return new LeaseCombinado(leaseIp, leaseEmail);
+    }
+
+    private sealed class LeaseCombinado : RateLimitLease
+    {
+        private readonly RateLimitLease _ip;
+        private readonly RateLimitLease _email;
+
+        public LeaseCombinado(RateLimitLease ip, RateLimitLease email)
+        {
+            _ip = ip;
+            _email = email;
+        }
+
+        public override bool IsAcquired => true;
+
+        public override IEnumerable<string> MetadataNames
+            => _ip.MetadataNames.Concat(_email.MetadataNames).Distinct(StringComparer.Ordinal);
+
+        public override bool TryGetMetadata(string metadataName, out object? metadata)
+        {
+            if (_ip.TryGetMetadata(metadataName, out metadata))
+            {
+                return true;
+            }
+
+            return _email.TryGetMetadata(metadataName, out metadata);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _ip.Dispose();
+                _email.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
     }
 }

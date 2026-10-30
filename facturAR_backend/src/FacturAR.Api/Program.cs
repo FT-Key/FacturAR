@@ -61,6 +61,8 @@ var solicitudAltaRateLimitOptions = builder.Configuration
     .GetSection(SolicitudAltaRateLimitOptions.SectionName)
     .Get<SolicitudAltaRateLimitOptions>() ?? new SolicitudAltaRateLimitOptions();
 
+SolicitudAltaRateLimitOptionsValidator.Validar(solicitudAltaRateLimitOptions);
+
 NotificacionesConfigurationValidator.Validar(emailOptions, notificacionesOptions, builder.Environment.IsDevelopment());
 
 MongoSerialization.Configure();
@@ -73,7 +75,6 @@ builder.Services.AddSingleton(buildInformation);
 builder.Services.AddSingleton(emailOptions);
 builder.Services.AddSingleton(notificacionesOptions);
 builder.Services.AddSingleton(solicitudAltaRateLimitOptions);
-builder.Services.AddSingleton<SolicitudAltaRateLimiter>();
 
 if (string.Equals(emailOptions.Provider, "Smtp", StringComparison.OrdinalIgnoreCase))
 {
@@ -110,6 +111,8 @@ builder.Services.AddHostedService<AdminGlobalBootstrapHostedService>();
 
 builder.Services.AddFacturarCookies(authOptions, builder.Environment.IsDevelopment());
 
+var solicitudAltaPolicy = new SolicitudAltaRateLimitPolicy(solicitudAltaRateLimitOptions);
+
 builder.Services.AddRateLimiter(options =>
 {
     options.AddPolicy("login", context =>
@@ -123,6 +126,8 @@ builder.Services.AddRateLimiter(options =>
             QueueLimit = 0
         });
     });
+
+    options.AddPolicy<string>("solicitud-alta", solicitudAltaPolicy);
 
     options.OnRejected = async (context, cancellationToken) =>
     {
@@ -158,7 +163,6 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 }));
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseRateLimiter();
 app.UseWhen(
     ctx => string.Equals(
             ctx.Request.Path.Value?.TrimEnd('/'),
@@ -166,6 +170,7 @@ app.UseWhen(
             StringComparison.OrdinalIgnoreCase)
         && HttpMethods.IsPost(ctx.Request.Method),
     branch => branch.UseMiddleware<SolicitudAltaRateLimitMiddleware>());
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {

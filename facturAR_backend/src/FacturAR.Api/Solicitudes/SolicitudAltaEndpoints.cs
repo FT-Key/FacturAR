@@ -15,6 +15,7 @@ public static class SolicitudAltaEndpoints
         app.MapPost("/v1/solicitudes-alta", CrearAsync)
             .WithName("CrearSolicitudAlta")
             .WithTags("Solicitudes")
+            .RequireRateLimiting("solicitud-alta")
             .Produces<SolicitudAltaResponse>(StatusCodes.Status202Accepted)
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ErrorResponse>(StatusCodes.Status409Conflict)
@@ -45,7 +46,7 @@ public static class SolicitudAltaEndpoints
                 new ErrorResponse("SOLICITUD_PENDIENTE", ex.Message),
                 statusCode: StatusCodes.Status409Conflict);
         }
-        catch (Exception ex) when (ex is MongoException or TimeoutException)
+        catch (Exception ex) when (ex is MongoConnectionException or TimeoutException)
         {
             return Results.Json(
                 new ErrorResponse("MONGO_NO_DISPONIBLE", MensajeMongoNoDisponible),

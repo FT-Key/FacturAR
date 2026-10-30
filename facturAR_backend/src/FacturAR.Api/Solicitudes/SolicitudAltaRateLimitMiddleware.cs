@@ -1,92 +1,50 @@
-using System.Globalization;
 using System.Net.Mail;
 using System.Text.Json;
-using System.Threading.RateLimiting;
 using FacturAR.Contracts.Comunes;
 
 namespace FacturAR.Api.Solicitudes;
 
 public sealed class SolicitudAltaRateLimitMiddleware
 {
-    private const int LimiteLecturaBytes = 16 * 1024;
+    public const string ItemKey = "SolicitudAlta.Email";
+
+    private const int LimiteLecturaBytes = 32 * 1024;
     private const int EmailMaximo = 254;
-    private const int SegundosReintentoPorDefecto = 60;
-    private const string MensajeRateLimit = "Demasiadas solicitudes. Intentá de nuevo más tarde.";
+    private const string MensajeValidacion = "El cuerpo de la solicitud no es válido.";
 
     private readonly RequestDelegate _next;
-    private readonly SolicitudAltaRateLimiter _limiter;
-    private readonly bool _confiarEnProxy;
 
-    public SolicitudAltaRateLimitMiddleware(
-        RequestDelegate next,
-        SolicitudAltaRateLimiter limiter,
-        SolicitudAltaRateLimitOptions options)
-    {
-        _next = next;
-        _limiter = limiter;
-        _confiarEnProxy = options.ConfiarEnProxy;
-    }
+    public SolicitudAltaRateLimitMiddleware(RequestDelegate next)
+        => _next = next;
 
     public async Task InvokeAsync(HttpContext context)
     {
-        var ip = ObtenerIp(context);
-        var email = await LeerEmailAsync(context);
+        var (valido, email) = await LeerEmailAsync(context);
 
-        using var leaseIp = await _limiter.AdquirirPorIpAsync(ip, context.RequestAborted);
-        if (!leaseIp.IsAcquired)
+        if (!valido)
         {
-            await RechazarAsync(context, leaseIp);
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await context.Response.WriteAsJsonAsync(
+                new ErrorResponse("VALIDACION", MensajeValidacion),
+                context.RequestAborted);
             return;
         }
 
-        using var leaseEmail = await _limiter.AdquirirPorEmailAsync(email ?? ip, context.RequestAborted);
-        if (!leaseEmail.IsAcquired)
+        if (email is not null)
         {
-            await RechazarAsync(context, leaseEmail);
-            return;
+            context.Items[ItemKey] = email;
         }
 
         await _next(context);
     }
 
-    private static async Task RechazarAsync(HttpContext context, RateLimitLease lease)
-    {
-        var segundos = lease.TryGetMetadata(MetadataName.RetryAfter, out var reintento)
-            ? (int)Math.Ceiling(reintento.TotalSeconds)
-            : SegundosReintentoPorDefecto;
-
-        context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-        context.Response.Headers["Retry-After"] = segundos.ToString(CultureInfo.InvariantCulture);
-        await context.Response.WriteAsJsonAsync(
-            new ErrorResponse("RATE_LIMIT", MensajeRateLimit),
-            context.RequestAborted);
-    }
-
-    private string ObtenerIp(HttpContext context)
-    {
-        if (_confiarEnProxy)
-        {
-            var reenviada = context.Request.Headers["X-Forwarded-For"].ToString();
-            if (!string.IsNullOrWhiteSpace(reenviada))
-            {
-                var primera = reenviada.Split(',')[0].Trim();
-                if (primera.Length > 0)
-                {
-                    return primera;
-                }
-            }
-        }
-
-        return context.Connection.RemoteIpAddress?.ToString() ?? "desconocida";
-    }
-
-    private static async Task<string?> LeerEmailAsync(HttpContext context)
+    private static async Task<(bool Valido, string? Email)> LeerEmailAsync(HttpContext context)
     {
         context.Request.EnableBuffering();
 
         try
         {
-            var buffer = new byte[LimiteLecturaBytes];
+            var buffer = new byte[LimiteLecturaBytes + 1];
             var leidos = 0;
 
             while (leidos < buffer.Length)
@@ -103,6 +61,11 @@ public sealed class SolicitudAltaRateLimitMiddleware
                 leidos += lectura;
             }
 
+            if (leidos > LimiteLecturaBytes)
+            {
+                return (false, null);
+            }
+
             return ExtraerEmail(buffer.AsSpan(0, leidos));
         }
         finally
@@ -111,11 +74,11 @@ public sealed class SolicitudAltaRateLimitMiddleware
         }
     }
 
-    private static string? ExtraerEmail(ReadOnlySpan<byte> cuerpo)
+    private static (bool Valido, string? Email) ExtraerEmail(ReadOnlySpan<byte> cuerpo)
     {
         if (cuerpo.IsEmpty)
         {
-            return null;
+            return (false, null);
         }
 
         try
@@ -123,7 +86,7 @@ public sealed class SolicitudAltaRateLimitMiddleware
             using var documento = JsonDocument.Parse(cuerpo.ToArray());
             if (documento.RootElement.ValueKind != JsonValueKind.Object)
             {
-                return null;
+                return (false, null);
             }
 
             string? email = null;
@@ -142,17 +105,12 @@ public sealed class SolicitudAltaRateLimitMiddleware
                     : null;
             }
 
-            if (encontrado)
-            {
-                return NormalizarEmail(email);
-            }
+            return (true, encontrado ? NormalizarEmail(email) : null);
         }
         catch (JsonException)
         {
-            return null;
+            return (false, null);
         }
-
-        return null;
     }
 
     private static string? NormalizarEmail(string? email)
