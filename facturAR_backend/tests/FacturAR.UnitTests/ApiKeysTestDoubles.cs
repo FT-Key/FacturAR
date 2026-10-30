@@ -15,6 +15,12 @@ internal sealed class FakeApiKeyRepository : IApiKeyRepository
 
     public int Actualizaciones { get; private set; }
 
+    public int ActualizacionesUltimoUso { get; private set; }
+
+    public int IntentosActualizacionUltimoUso { get; private set; }
+
+    public int ConsultasPorPrefijo { get; private set; }
+
     public Task<ApiKey?> GetByIdAsync(Guid id, Guid contribuyenteId, CancellationToken ct = default)
         => Task.FromResult(ApiKeys.FirstOrDefault(a => a.Id == id && a.ContribuyenteId == contribuyenteId));
 
@@ -25,7 +31,10 @@ internal sealed class FakeApiKeyRepository : IApiKeyRepository
             ApiKeys.Where(a => a.ContribuyenteId == contribuyenteId).ToList());
 
     public Task<ApiKey?> GetByPrefixAsync(string prefix, CancellationToken ct = default)
-        => Task.FromResult(ApiKeys.FirstOrDefault(a => a.Prefix == prefix));
+    {
+        ConsultasPorPrefijo++;
+        return Task.FromResult(ApiKeys.FirstOrDefault(a => a.Prefix == prefix));
+    }
 
     public Task InsertAsync(ApiKey apiKey, CancellationToken ct = default)
     {
@@ -59,6 +68,28 @@ internal sealed class FakeApiKeyRepository : IApiKeyRepository
         Actualizaciones++;
 
         return Task.CompletedTask;
+    }
+
+    public Task<bool> ActualizarUltimoUsoAsync(
+        Guid id,
+        Guid contribuyenteId,
+        DateTime ahoraUtc,
+        TimeSpan intervalo,
+        CancellationToken ct = default)
+    {
+        IntentosActualizacionUltimoUso++;
+
+        var existente = ApiKeys.FirstOrDefault(
+            a => a.Id == id && a.ContribuyenteId == contribuyenteId);
+
+        if (existente is null || (existente.UltimoUso is not null && existente.UltimoUso >= ahoraUtc - intervalo))
+        {
+            return Task.FromResult(false);
+        }
+
+        existente.UltimoUso = ahoraUtc;
+        ActualizacionesUltimoUso++;
+        return Task.FromResult(true);
     }
 }
 
