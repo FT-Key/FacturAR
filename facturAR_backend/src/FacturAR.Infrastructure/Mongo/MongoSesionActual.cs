@@ -22,4 +22,19 @@ public sealed class MongoSesionActual
         => Sesion is null
             ? coleccion.UpdateOneAsync(filtro, update, cancellationToken: ct)
             : coleccion.UpdateOneAsync(Sesion, filtro, update, cancellationToken: ct);
+
+    public async Task<T?> FindOneAndUpdateAsync<T>(
+        IMongoCollection<T> coleccion,
+        FilterDefinition<T> filtro,
+        UpdateDefinition<T> update,
+        FindOneAndUpdateOptions<T> opciones,
+        CancellationToken ct = default)
+    {
+        if (Sesion is null)
+        {
+            return await coleccion.FindOneAndUpdateAsync(filtro, update, opciones, ct);
+        }
+
+        return await coleccion.FindOneAndUpdateAsync(Sesion, filtro, update, opciones, ct);
+    }
 }
