@@ -64,12 +64,12 @@ Scenario: Secuencias independientes
 
 ## Tareas técnicas
 
-- [ ] Crear `Secuencia` y `ISecuenciaRepository`.
-- [ ] Implementar `ObtenerSiguienteNumeroAsync`.
-- [ ] Configurar transacciones de MongoDB.
-- [ ] Crear el índice único de secuencias.
+- [x] Crear `Secuencia` y `ISecuenciaRepository`. — La entidad ya existía; `ISecuenciaRepository` y `SecuenciaRepository` son nuevos. Evidencia: `dotnet build FacturAR.slnx -c Release` sin errores.
+- [x] Implementar `ObtenerSiguienteNumeroAsync`. — `SecuenciaService` + `SecuenciaRepository` (`FindOneAndUpdate`, `$inc` 1L, `ReturnDocument.After`, `IsUpsert`, `$setOnInsert Id`). Evidencia: `SecuenciaServiceTests` verdes en la suite unitaria.
+- [x] Configurar transacciones de MongoDB. — Se reutiliza `ITransaccionMongo`/`MongoSesionActual` previo; el repositorio exige sesión activa y lanza `InvalidOperationException` si falta. Evidencia: guard cubierto por `SecuenciaRepositoryTests` (unitario verde).
+- [x] Crear el índice único de secuencias. — `ux_secuencias_contribuyente_punto_tipo` ya existía en `MongoIndexInitializer`. Sin verificación en runtime: no hay MongoDB disponible.
 - [ ] Integrar la asignación en `EmitirComprobanteService`.
-- [ ] Agregar tests de concurrencia y rollback.
+- [x] Agregar tests de concurrencia y rollback. — `MongoSecuenciasTests` escrito y compilado (11 casos `[MongoFact]`); se omiten sin `MONGO_CONNECTION_STRING`.
 - [ ] Documentar la regla de numeración.
 
 ## Definition of Done
@@ -271,3 +271,37 @@ Numero asignado = Secuencia.UltimoNumero después del $inc
 - No implementa reinicio anual de secuencias.
 - No implementa numeración por sucursal fuera del punto de venta.
 - No implementa autorización de números por AFIP.
+
+## Estado de cierre
+
+**Estado: Base implementada.** No se marca ningún criterio de aceptación ni ítem del Definition of Done porque el comportamiento contra MongoDB real no se ejecutó.
+
+**Implementado**
+
+- `ISecuenciaRepository`, `SecuenciaService`, `PuntoVentaNoEncontradoException`, `PuntoVentaInactivoException`.
+- `SecuenciaRepository` con `FindOneAndUpdate`, `$inc` de `1L`, `ReturnDocument.After`, `IsUpsert` y `$setOnInsert Id`; exige una transacción activa.
+- `IPuntoVentaRepository.ObtenerPorNumeroAsync` y registro de dependencias en `Program.cs`.
+- Tests unitarios `SecuenciaServiceTests` y `SecuenciaRepositoryTests`.
+- Infraestructura previa reutilizada: entidad `Secuencia`, índice `ux_secuencias_contribuyente_punto_tipo`, `ITransaccionMongo`/`TransaccionMongo`/`MongoSesionActual` e índice `ux_comprobantes_numeracion`.
+
+**Evidencia ejecutada**
+
+| Comando | Resultado |
+| --- | --- |
+| `dotnet build FacturAR.slnx -c Release` | Compilación correcta; 0 advertencias, 0 errores. |
+| `dotnet test FacturAR.slnx -c Release --no-build --logger "console;verbosity=minimal"` | UnitTests: 258 superados, 0 errores. IntegrationTests: 66 superados, 89 omitidos, 0 errores. |
+| `dotnet format FacturAR.slnx --verify-no-changes` | Exit 0. |
+
+**Sin verificar**
+
+- Los 11 casos `[MongoFact]` de `tests/FacturAR.IntegrationTests/MongoSecuenciasTests.cs` se omiten porque no hay MongoDB, Docker ni `MONGO_CONNECTION_STRING` en la máquina: CP-07-01/02/03/04/07/08/09/11/12 y el caso de punto de venta de otro contribuyente.
+- El contrato §7.3 exige verificar concurrencia y rollback contra un deployment con replica set; sin esa corrida no se puede afirmar que dos emisiones simultáneas obtengan números distintos ni que un fallo no consuma el número.
+
+**Depende de otras historias**
+
+- US-05: integrar la asignación en `EmitirComprobanteService` y mapear a HTTP `404`/`409`. `EmitirComprobanteService` no existe todavía.
+- US-09: consulta de último autorizado (`GET /v1/comprobantes/ultimo-autorizado`).
+
+**Inconsistencia detectada**
+
+La historia define `404 COMPROBANTE_NO_ENCONTRADO` para el punto de venta inexistente, mientras que `docs/contratos-api.md` §7.3 establece que el punto de venta "debe existir y estar activo. Si no, `409 PUNTO_VENTA_INACTIVO`". La decisión de mapeo corresponde a US-05, que es donde se expone el error HTTP; el contrato es normativo. No se editó `docs/contratos-api.md`.

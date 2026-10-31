@@ -118,6 +118,8 @@ builder.Services.AddScoped<MongoSesionActual>();
 builder.Services.AddScoped<ITransaccionMongo, TransaccionMongo>();
 builder.Services.AddScoped<IInvitacionRepository, InvitacionRepository>();
 builder.Services.AddScoped<IPuntoVentaRepository, PuntoVentaRepository>();
+builder.Services.AddScoped<ISecuenciaRepository, SecuenciaRepository>();
+builder.Services.AddScoped<ISecuenciaService, SecuenciaService>();
 builder.Services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
 builder.Services.AddScoped<IApiKeyGenerator, ApiKeyGenerator>();
 builder.Services.AddScoped<IApiKeyHasher, ApiKeyHasher>();

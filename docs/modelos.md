@@ -151,7 +151,7 @@ Contador atómico por contribuyente, punto de venta y tipo.
 | `TipoComprobante` | `TipoComprobante` | Sí | Parte de la clave lógica. |
 | `UltimoNumero` | `long` | Sí | Último número asignado. |
 
-La asignación se realiza con `findOneAndUpdate` y `$inc`, dentro de una transacción junto con la inserción del comprobante.
+La asignación se realiza con `findOneAndUpdate` y `$inc`, dentro de una transacción junto con la inserción del comprobante. La secuencia se crea de forma implícita en la primera emisión con `UltimoNumero = 0`; el primer número es `1`.
 
 ### Comprobante
 
