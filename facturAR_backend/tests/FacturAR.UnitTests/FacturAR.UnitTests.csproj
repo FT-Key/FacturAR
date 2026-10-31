@@ -22,6 +22,11 @@
     <ProjectReference Include="..\..\src\FacturAR.Domain\FacturAR.Domain.csproj" />
     <ProjectReference Include="..\..\src\FacturAR.Application\FacturAR.Application.csproj" />
     <ProjectReference Include="..\..\src\FacturAR.Infrastructure\FacturAR.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\FacturAR.Api\FacturAR.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
 </Project>

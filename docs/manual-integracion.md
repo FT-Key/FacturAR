@@ -53,7 +53,7 @@ La API key viaja en el header `X-Api-Key`. La sesión del portal usa cookies con
 
 | Header | Dónde | Regla |
 | --- | --- | --- |
-| `X-Api-Key` | Endpoints de negocio | Obligatorio. Formato `^fak_[0-9a-f]{12}_[A-Za-z0-9_-]{43}$`. Si falta: `401 API_KEY_AUSENTE`. Si no existe, está revocada o no coincide el hash: `401 API_KEY_INVALIDA`. |
+| `X-Api-Key` | Endpoints de negocio | Obligatorio. Nombre configurable con `ApiKeys__HeaderName` (default `X-Api-Key`). Formato `^fak_[0-9a-f]{12}_[A-Za-z0-9_-]{43}$`, máximo 200 caracteres. Si falta: `401 API_KEY_AUSENTE`. Si no existe, está revocada, el hash no coincide o la empresa está inactiva: `401 API_KEY_INVALIDA`. Si Mongo no responde: `503 MONGO_NO_DISPONIBLE`. |
 | `Idempotency-Key` | `POST /v1/comprobantes` | Obligatorio. Máximo 128 caracteres. Alcance `(empresa, clave)`. La misma clave con otro payload: `409 IDEMPOTENCIA_CONFLICTO`. |
 
 ### Códigos de error
@@ -97,7 +97,7 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 | --- | --- | --- |
 | US-01 | §1 Solicitar acceso: formulario público de alta | Pendiente |
 | US-02 | §3 Crear una API key | Pendiente |
-| US-03 | §4 Autenticar requests con API key | Pendiente |
+| US-03 | §4 Autenticar requests con API key | Base implementada |
 | US-04 | §2 Activar la cuenta: login de empresa y roles | Pendiente |
 | US-05 | §5 Emitir una factura | Pendiente |
 | US-06 | §6 Idempotencia | Pendiente |
@@ -193,25 +193,38 @@ La key pertenece a una única empresa. No se comparte entre empresas ni se enví
 
 ## 4. Autenticar requests
 
-> **Diseño objetivo — US-03.** La autenticación por API key **todavía no está implementada**. Sin ella, los endpoints de negocio responden `404`.
+> **Base implementada — US-03.** El esquema `ApiKey`, la política `ApiKeyNegocio` y el registro de `UltimoUso` están implementados y probados. Los endpoints de negocio que los consumen llegan con US-05 y US-09: hasta entonces esas rutas responden `404` porque el endpoint todavía no existe.
 
-Enviar la API key en el header `X-Api-Key`:
+Enviar la API key en el header `X-Api-Key`. El nombre del header es configurable con `ApiKeys__HeaderName` (default `X-Api-Key`):
 
 ```http
-GET /v1/comprobantes/9 HTTP/1.1
+GET /v1/comprobantes HTTP/1.1
 Host: localhost:5171
-X-Api-Key: fak_9f3a1c7b2e40_<secreto>
+X-Api-Key: fak_9f3a1c7b2e40_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 Accept: application/json
 ```
 
+Formato: `fak_` + 12 caracteres hexadecimales del prefijo + `_` + 43 caracteres base64url del secreto. La expresión regular es `^fak_[0-9a-f]{12}_[A-Za-z0-9_-]{43}$` y el valor admitido tiene como máximo 200 caracteres.
+
 Reglas:
 
-- Sin key: `401 API_KEY_AUSENTE`.
-- Key inválida o revocada: `401 API_KEY_INVALIDA`.
-- La key resuelve la empresa; nunca se envía `contribuyenteId` en el body.
-- La verificación pública por CAE no requiere API key.
+- Sin header, o con el header vacío: `401 API_KEY_AUSENTE`.
+- Key mal formada, inexistente, revocada o de un contribuyente inactivo: `401 API_KEY_INVALIDA`. El mensaje es el mismo en todos los casos: la respuesta no revela si el prefijo existe.
+- Si MongoDB no responde durante la autenticación: `503 MONGO_NO_DISPONIBLE`.
+- La key resuelve la empresa. El tenant sale **solo** del claim `contribuyenteId` derivado de la key; nunca se envía `contribuyenteId` en el body ni en el query string y, si se envía, se ignora.
+- La cookie del portal no autoriza la API de negocio, y la API key no autoriza los endpoints de cookie.
+- La verificación pública por CAE (`GET /v1/comprobantes/verificar/{cae}`) permanece anónima y no requiere API key.
 
-La API actualiza `UltimoUso` en cada autenticación exitosa.
+Ejemplo de error de autenticación:
+
+```json
+{
+  "codigo": "API_KEY_AUSENTE",
+  "mensaje": "Se requiere el header X-Api-Key."
+}
+```
+
+La API actualiza `UltimoUso` en cada autenticación exitosa, con granularidad de `ApiKeys__IntervaloActualizacionUltimoUsoMinutos` (default 1 minuto). Si esa actualización falla, la respuesta de negocio no se bloquea ni se rompe; el fallo solo queda como advertencia en el log.
 
 ## 5. Emitir una factura
 

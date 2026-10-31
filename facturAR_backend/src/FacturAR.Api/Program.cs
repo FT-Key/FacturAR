@@ -121,6 +121,8 @@ builder.Services.AddScoped<IPuntoVentaRepository, PuntoVentaRepository>();
 builder.Services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
 builder.Services.AddScoped<IApiKeyGenerator, ApiKeyGenerator>();
 builder.Services.AddScoped<IApiKeyHasher, ApiKeyHasher>();
+builder.Services.AddScoped<IApiKeyAuthenticator, ApiKeyAuthenticator>();
+builder.Services.AddSingleton<ApiKeyUsageRegistrar>();
 builder.Services.AddScoped<CrearApiKeyService>();
 builder.Services.AddScoped<ListarApiKeysService>();
 builder.Services.AddScoped<RevocarApiKeyService>();
@@ -145,6 +147,7 @@ builder.Services.AddScoped<AdminGlobalBootstrapService>();
 builder.Services.AddHostedService<AdminGlobalBootstrapHostedService>();
 
 builder.Services.AddFacturarCookies(authOptions, builder.Environment.IsDevelopment());
+builder.Services.AddFacturarApiKeyAuthentication();
 
 var solicitudAltaPolicy = new SolicitudAltaRateLimitPolicy(solicitudAltaRateLimitOptions);
 
@@ -244,6 +247,7 @@ app.MapGet("/", (BuildInformation build) => Results.Ok(new
     commit = build.Commit,
     documentacion = "/openapi/v1.json"
 }))
+.AllowAnonymous()
 .WithTags("Sistema");
 
 app.MapGet("/health", async (
@@ -276,6 +280,7 @@ app.MapGet("/health", async (
             statusCode: StatusCodes.Status503ServiceUnavailable);
     }
 })
+.AllowAnonymous()
 .WithTags("Sistema")
 .Produces<EstadoSaludResponse>()
 .Produces<EstadoSaludResponse>(StatusCodes.Status503ServiceUnavailable);
@@ -284,6 +289,7 @@ app.MapGet("/health/live", (BuildInformation build) => Results.Ok(new EstadoVivo
     "ok",
     build.Version,
     build.Commit)))
+.AllowAnonymous()
 .WithTags("Sistema")
 .Produces<EstadoVivoResponse>();
 
@@ -309,6 +315,7 @@ app.MapGet("/v1/comprobantes/verificar/{cae}", async (
         : Results.Ok(comprobante);
 })
 .WithName("VerificarComprobante")
+.AllowAnonymous()
 .WithTags("Comprobantes")
 .Produces<VerificacionResponse>()
 .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)

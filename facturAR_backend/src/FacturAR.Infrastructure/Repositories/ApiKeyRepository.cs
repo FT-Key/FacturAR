@@ -79,4 +79,24 @@ public sealed class ApiKeyRepository : IApiKeyRepository
             throw new ApiKeyNoEncontradaException();
         }
     }
+
+    public async Task<bool> ActualizarUltimoUsoAsync(
+        Guid id,
+        Guid contribuyenteId,
+        DateTime ahoraUtc,
+        TimeSpan intervalo,
+        CancellationToken ct = default)
+    {
+        DateTime? umbral = ahoraUtc - intervalo;
+
+        var resultado = await _sesion.UpdateOneAsync(
+            _context.ApiKeys,
+            Filtro.Eq(a => a.Id, id)
+                & Filtro.Eq(a => a.ContribuyenteId, contribuyenteId)
+                & (Filtro.Eq(a => a.UltimoUso, (DateTime?)null) | Filtro.Lt(a => a.UltimoUso, umbral)),
+            Update.Set(a => a.UltimoUso, ahoraUtc),
+            ct);
+
+        return resultado.MatchedCount > 0;
+    }
 }
