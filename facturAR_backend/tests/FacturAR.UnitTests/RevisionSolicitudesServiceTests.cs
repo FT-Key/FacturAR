@@ -608,6 +608,9 @@ public sealed class RevisionSolicitudesServiceTests
             Insertados.Add(puntoVenta);
             return Task.CompletedTask;
         }
+
+        public Task<PuntoVenta?> ObtenerPorNumeroAsync(Guid contribuyenteId, int numero, CancellationToken ct = default)
+            => Task.FromResult(Insertados.FirstOrDefault(p => p.ContribuyenteId == contribuyenteId && p.Numero == numero));
     }
 
     private sealed class FakeInvitaciones : IInvitacionRepository
