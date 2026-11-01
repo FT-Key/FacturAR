@@ -156,5 +156,14 @@ public static class MongoIndexInitializer
                     .Descending(s => s.CreatedAt),
                 new CreateIndexOptions { Name = "ix_solicitudes_alta_estado_fecha" })
         ], cancellationToken);
+
+        await context.Parametros.Indexes.CreateManyAsync(
+        [
+            new CreateIndexModel<Parametro>(
+                Builders<Parametro>.IndexKeys
+                    .Ascending(p => p.ContribuyenteId)
+                    .Ascending(p => p.Clave),
+                new CreateIndexOptions { Unique = true, Name = "ux_parametros_contribuyente_clave" })
+        ], cancellationToken);
     }
 }
