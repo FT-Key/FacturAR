@@ -61,12 +61,25 @@ public sealed class CaeTests
     }
 
     [Fact]
-    public void CalcularVencimiento_SumaDiezDias()
+    public void CalcularVencimiento_SumaDiezDiasPorDefecto()
     {
         var emision = new DateTime(2026, 10, 25, 18, 30, 0, DateTimeKind.Utc);
 
-        var vencimiento = CaeGenerator.CalcularVencimiento(emision);
+        var vencimiento = CaeGenerator.CalcularVencimiento(emision, 10);
 
         Assert.Equal(new DateTime(2026, 11, 4), vencimiento);
+    }
+
+    [Theory]
+    [InlineData(0, "2026-10-25")]
+    [InlineData(5, "2026-10-30")]
+    [InlineData(10, "2026-11-04")]
+    public void CalcularVencimiento_UsaLosDiasRecibidos(int dias, string esperado)
+    {
+        var emision = new DateTime(2026, 10, 25, 18, 30, 0, DateTimeKind.Utc);
+
+        var vencimiento = CaeGenerator.CalcularVencimiento(emision, dias);
+
+        Assert.Equal(DateTime.Parse(esperado, System.Globalization.CultureInfo.InvariantCulture), vencimiento);
     }
 }

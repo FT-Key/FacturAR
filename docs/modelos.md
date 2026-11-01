@@ -153,6 +153,20 @@ Contador atómico por contribuyente, punto de venta y tipo.
 
 La asignación se realiza con `findOneAndUpdate` y `$inc`, dentro de una transacción junto con la inserción del comprobante. La secuencia se crea de forma implícita en la primera emisión con `UltimoNumero = 0`; el primer número es `1`.
 
+### Parametro
+
+Override de un parámetro de facturación por contribuyente. El seed también persiste valores globales informativos con `ContribuyenteId = null`, que no se consultan en la resolución.
+
+| Campo | Tipo | Obligatorio | Notas |
+| --- | --- | --- | --- |
+| `Id` | `Guid` | Sí | Clave primaria. |
+| `ContribuyenteId` | `Guid?` | Sí | `null` para un valor global informativo. |
+| `Clave` | `string` | Sí | Nombre del parámetro, por ejemplo `DiasVencimientoCae`. |
+| `Valor` | `string` | Sí | Valor serializado. Las listas se separan con `;`. |
+| `UpdatedAt` | `DateTime` | Sí | UTC. |
+
+El orden de resolución es: override del contribuyente → sección `Facturacion` de la configuración → default de código.
+
 ### Comprobante
 
 Documento fiscal emitido.
@@ -345,6 +359,7 @@ erDiagram
 | `apiKeys` | `Prefix` | Único |
 | `puntosVenta` | `ContribuyenteId + Numero` | Único |
 | `secuencias` | `ContribuyenteId + PuntoVenta + TipoComprobante` | Único |
+| `parametros` | `ContribuyenteId + Clave` | Único |
 | `comprobantes` | `Cae` | Único |
 | `comprobantes` | `ContribuyenteId + PuntoVenta + TipoComprobante + Numero` | Único |
 | `comprobantes` | `ContribuyenteId + IdempotencyKey` | Único |
@@ -362,7 +377,7 @@ La inicialización se ejecuta al arrancar la API si `Mongo__InitializeIndexes=tr
 - `CuitValidator` normaliza separadores y valida el dígito verificador.
 - `CaeValidator` exige exactamente 14 dígitos.
 - `CaeGenerator` genera 14 dígitos aleatorios con primer dígito distinto de cero.
-- El vencimiento del CAE es la fecha de emisión más 10 días.
+- El vencimiento del CAE es la fecha de emisión más `Facturacion__DiasVencimientoCae` (default `10`); un override por contribuyente en `parametros` tiene prioridad.
 - No se permiten montos negativos salvo en notas de crédito, que se modelan con su propio tipo.
 - El email se normaliza a minúsculas y se valida con formato.
 - La contraseña exige al menos 10 caracteres, una letra y un número; no se guarda en texto plano.

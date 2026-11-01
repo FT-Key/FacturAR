@@ -44,4 +44,7 @@ public sealed class MongoDbContext
 
     public IMongoCollection<Invitacion> Invitaciones
         => _database.GetCollection<Invitacion>(MongoCollections.Invitaciones);
+
+    public IMongoCollection<Parametro> Parametros
+        => _database.GetCollection<Parametro>(MongoCollections.Parametros);
 }

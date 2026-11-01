@@ -18,8 +18,26 @@ services:
       Email__DirectorioSalida: ${EMAIL_DIRECTORIO_SALIDA:-emails}
       Portal__BaseUrl: ${PORTAL_BASEURL:-http://localhost:8081}
       Admin__NotificationEmail: ${ADMIN_NOTIFICATION_EMAIL:-}
+      Facturacion__DiasVencimientoCae: ${FACTURACION_DIAS_VENCIMIENTO_CAE:-10}
+      Facturacion__AlicuotasPermitidas__0: ${FACTURACION_ALICUOTA_0:-0}
+      Facturacion__AlicuotasPermitidas__1: ${FACTURACION_ALICUOTA_1:-5}
+      Facturacion__AlicuotasPermitidas__2: ${FACTURACION_ALICUOTA_2:-10.5}
+      Facturacion__AlicuotasPermitidas__3: ${FACTURACION_ALICUOTA_3:-21}
+      Facturacion__AlicuotasPermitidas__4: ${FACTURACION_ALICUOTA_4:-27}
+      Facturacion__PuntoVentaPorDefecto: ${FACTURACION_PUNTO_VENTA_POR_DEFECTO:-1}
+      Facturacion__Moneda: ${FACTURACION_MONEDA:-ARS}
+      Facturacion__PaginaPorDefecto: ${FACTURACION_PAGINA_POR_DEFECTO:-20}
+      Facturacion__PaginaMaxima: ${FACTURACION_PAGINA_MAXIMA:-100}
+      Seed__Enabled: ${SEED_ENABLED:-false}
+      Seed__Cuit: ${SEED_CUIT:-20123456786}
+      Seed__RazonSocial: "${SEED_RAZON_SOCIAL:-Empresa Demo (simulada)}"
+      Seed__Email: ${SEED_EMAIL:-admin@demo.facturar.local}
+      Seed__Nombre: ${SEED_NOMBRE:-Administrador Demo}
+      Seed__Password: ${SEED_PASSWORD:-}
+      Seed__ApiKeyDemo: ${SEED_API_KEY_DEMO:-false}
     volumes:
       - emails-dev:/app/emails
+      - seed-dev:/app/seed
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
@@ -55,4 +73,5 @@ services:
 
 volumes:
   emails-dev:
+  seed-dev:
   mongo-dev:

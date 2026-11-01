@@ -34,6 +34,21 @@ public sealed class SecuenciaRepositoryTests
             () => servicio.ObtenerSiguienteNumeroAsync(Guid.NewGuid(), 1, TipoComprobante.FacturaC));
     }
 
+    [Fact]
+    public async Task FindOneAndUpdate_SinSesionActiva_LanzaInvalidOperationException()
+    {
+        var sesion = new MongoSesionActual();
+
+        var excepcion = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => sesion.FindOneAndUpdateAsync(
+                ContextoSinServidor().Secuencias,
+                Builders<Secuencia>.Filter.Empty,
+                Builders<Secuencia>.Update.Inc(s => s.UltimoNumero, 1L),
+                new FindOneAndUpdateOptions<Secuencia> { IsUpsert = true }));
+
+        Assert.Contains("transacción", excepcion.Message);
+    }
+
     private static MongoDbContext ContextoSinServidor()
         => new(new MongoClient(ConnectionStringInalcanzable).GetDatabase("facturar_unit"));
 

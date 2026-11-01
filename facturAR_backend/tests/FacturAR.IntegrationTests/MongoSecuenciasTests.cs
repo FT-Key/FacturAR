@@ -113,7 +113,7 @@ public sealed class MongoSecuenciasTests : IAsyncLifetime
     }
 
     [MongoFact]
-    public async Task PuntoVentaDeOtroContribuyente_DevuelveNoEncontrado()
+    public async Task PuntoVentaDeOtroContribuyente_DevuelveInactivo()
     {
         var servicio = CrearServicio();
         var puntosVenta = new PuntoVentaRepository(_context!, new MongoSesionActual());
@@ -126,7 +126,7 @@ public sealed class MongoSecuenciasTests : IAsyncLifetime
             Activo = true
         });
 
-        await Assert.ThrowsAsync<PuntoVentaNoEncontradoException>(
+        await Assert.ThrowsAsync<PuntoVentaInactivoException>(
             () => servicio.ObtenerSiguienteNumeroAsync(ContribuyenteA, 1, TipoComprobante.FacturaC));
 
         Assert.Equal(0, await _context!.Secuencias.CountDocumentsAsync(FilterDefinition<Secuencia>.Empty));
@@ -156,23 +156,29 @@ public sealed class MongoSecuenciasTests : IAsyncLifetime
             (ContribuyenteA, 3, TipoComprobante.FacturaA, 0)
         ];
 
-        foreach (var escenario in escenarios)
+        for (var iteracion = 0; iteracion < 5; iteracion++)
         {
-            await SembrarSecuenciaAsync(escenario.ContribuyenteId, escenario.PuntoVenta, escenario.Tipo, escenario.Inicial);
+            await _context!.Comprobantes.DeleteManyAsync(FilterDefinition<Comprobante>.Empty);
+            await _context.Secuencias.DeleteManyAsync(FilterDefinition<Secuencia>.Empty);
 
-            var numeros = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ =>
-                EmitirAsync(escenario.ContribuyenteId, escenario.PuntoVenta, escenario.Tipo)));
+            foreach (var escenario in escenarios)
+            {
+                await SembrarSecuenciaAsync(escenario.ContribuyenteId, escenario.PuntoVenta, escenario.Tipo, escenario.Inicial);
 
-            var esperados = Enumerable.Range(1, 6).Select(i => escenario.Inicial + i).ToArray();
-            Assert.Equal(esperados, numeros.Order());
-            await AssertNumeracionPersistidaAsync(
-                escenario.ContribuyenteId,
-                escenario.PuntoVenta,
-                escenario.Tipo,
-                esperados);
-            Assert.Equal(
-                esperados[^1],
-                (await SecuenciaAsync(escenario.ContribuyenteId, escenario.PuntoVenta, escenario.Tipo)).UltimoNumero);
+                var numeros = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ =>
+                    EmitirAsync(escenario.ContribuyenteId, escenario.PuntoVenta, escenario.Tipo)));
+
+                var esperados = Enumerable.Range(1, 6).Select(i => escenario.Inicial + i).ToArray();
+                Assert.Equal(esperados, numeros.Order());
+                await AssertNumeracionPersistidaAsync(
+                    escenario.ContribuyenteId,
+                    escenario.PuntoVenta,
+                    escenario.Tipo,
+                    esperados);
+                Assert.Equal(
+                    esperados[^1],
+                    (await SecuenciaAsync(escenario.ContribuyenteId, escenario.PuntoVenta, escenario.Tipo)).UltimoNumero);
+            }
         }
     }
 

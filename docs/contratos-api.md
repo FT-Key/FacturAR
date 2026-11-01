@@ -259,7 +259,7 @@ Reglas de validación:
 ### 7.4 CAE
 
 - El CAE se genera con `FacturAR.Application.Comprobantes.CaeGenerator.Generar()`: **14 dígitos aleatorios**, sin dígito verificador. El CAE es **simulado** y no reproduce el algoritmo de la AFIP.
-- `CaeVencimiento` es la fecha de emisión más 10 días (`CaeGenerator.CalcularVencimiento`). El valor es fijo en el MVP.
+- `CaeVencimiento` es la fecha de emisión más `Facturacion__DiasVencimientoCae` (default `10`). El caso de uso de emisión resuelve los días con `IParametrosResolver`, incluido el override por contribuyente, y los pasa a `CaeGenerator.CalcularVencimiento`.
 - El CAE es **único** en toda la base: índice `ux_comprobantes_cae`, único y sin filtro.
 
 ### 7.5 Notas de crédito y débito (US-08)
@@ -302,26 +302,36 @@ Se leen de la sección `Facturacion` de la configuración y se permiten sobrescr
 
 | Clave | Tipo | Default | Uso |
 | --- | --- | --- | --- |
-| `Facturacion__DiasVencimientoCae` | int | `10` | Días de vigencia del CAE. |
+| `Facturacion__DiasVencimientoCae` | int | `10` | Días de vigencia del CAE. Es la **única fuente** del vencimiento. |
 | `Facturacion__AlicuotasPermitidas` | lista | `0, 5, 10.5, 21, 27` | Alícuotas de IVA aceptadas. |
 | `Facturacion__PuntoVentaPorDefecto` | int | `1` | Punto de venta sugerido al crear el contribuyente. |
 | `Facturacion__Moneda` | string | `ARS` | Moneda única del MVP. |
+| `Facturacion__PaginaPorDefecto` | int | `20` | `pageSize` por defecto de los listados (§6). |
+| `Facturacion__PaginaMaxima` | int | `100` | `pageSize` máximo de los listados (§6). |
 
-La colección `parametros` permite override por contribuyente con clave `(ContribuyenteId, Clave)`.
+La lista de alícuotas se configura por índice: `Facturacion__AlicuotasPermitidas__0` … `Facturacion__AlicuotasPermitidas__4`. El binder no toma una clave escalar `Facturacion__AlicuotasPermitidas` para un array. El default es `0, 5, 10.5, 21, 27`.
+
+`CaeGenerator.CalcularVencimiento` recibe la fecha de emisión y los días ya resueltos. Con el default `10` el comportamiento es idéntico al de US-05; cualquier otro valor altera ese comportamiento y debe quedar registrado en la configuración del ambiente.
+
+La colección `parametros` permite override por contribuyente con clave `(ContribuyenteId, Clave)`. El orden de resolución es: override del contribuyente → valor de la sección `Facturacion` → default de código. Los documentos globales que escribe el seed (`ContribuyenteId = null`) son informativos y **no** se consultan en la resolución.
 
 ## 11. Seed y datos de demostración (US-18)
 
-El seed corre **solo** cuando `Seed__Enabled=true`. Es idempotente: se puede ejecutar varias veces sin duplicar.
+El seed corre al arrancar la API únicamente cuando `Seed__Enabled=true`. Es la **única autorización**, incluso en Production: con `false` (default) no se carga nada en ningún ambiente. En Production con `true` la carga ocurre y la API registra una advertencia sin secretos. Es idempotente: se puede ejecutar varias veces sin duplicar datos ni reiniciar secuencias.
 
 | Entidad | Datos |
 | --- | --- |
-| `contribuyentes` | 1 empresa demo con CUIT válido, razón social y email. |
-| `usuarios` | 1 `Administrador` de la empresa demo y 1 `SuperAdmin` de plataforma. Contraseña de demo definida por `Seed__Password`. |
-| `puntosVenta` | Punto de venta `1` activo para el contribuyente demo. |
-| `secuencias` | Secuencias `FacturaA`, `FacturaB` y `FacturaC` en `0`. |
-| `parametros` | Parámetros por defecto de la sección `Facturacion`. |
+| `contribuyentes` | 1 empresa demo con CUIT válido, razón social, email y `CondicionIva = ResponsableInscripto`. |
+| `usuarios` | 3 usuarios de la empresa demo: `Administrador`, `Emisor` y `Consulta`. `Seed__Email` identifica al `Administrador`; `Emisor` y `Consulta` se derivan insertando `+emisor` y `+consulta` antes de la `@`. |
+| `administradores` | 1 `SuperAdmin` de plataforma, con `Seed__Nombre` como nombre visible y el email derivado con `+superadmin`. |
+| `puntosVenta` | Punto de venta `Facturacion__PuntoVentaPorDefecto` (default `1`) activo para el contribuyente demo. |
+| `secuencias` | Secuencias `FacturaA`, `FacturaB` y `FacturaC` en `0`. Una secuencia existente nunca se reinicia. |
+| `parametros` | Valores por defecto de la sección `Facturacion`, con `ContribuyenteId = null`. |
+| `apiKeys` | En Development y con `Seed__ApiKeyDemo=true`, 1 API key demo de la empresa. |
 
-En Development, el seed deja además una API key de demostración de la empresa demo. Su valor **nunca** se escribe en un log ni en el repositorio: se expone solo por la respuesta de creación, igual que cualquier otra key.
+`Seed__Password` es obligatoria cuando el seed está habilitado; se valida con la política de contraseñas, se hashea antes de persistir y nunca se escribe en logs ni en el repositorio. El CUIT se valida con `CuitValidator`. Si la configuración es inválida, el seed no escribe nada y la API registra una advertencia sin la contraseña.
+
+En Development, el valor completo de la API key demo se entrega **una sola vez** en `seed/api-key-demo.txt`, relativo a la raíz de contenido. Nunca se escribe en un log ni en la base en claro: solo quedan `Prefix` y `Hash`. La carpeta `seed/` está excluida de git y de la imagen de Docker y debe tratarse como secreto local. Sin `Seed__ApiKeyDemo=true` no se crea ninguna API key; para una key de prueba se usa el flujo normal de US-02 o US-14.
 
 ## 12. Correo (US-29)
 

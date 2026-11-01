@@ -3,6 +3,7 @@ using FacturAR.Api.ApiKeys;
 using FacturAR.Api.Auth;
 using FacturAR.Api.Invitaciones;
 using FacturAR.Api.Security;
+using FacturAR.Api.Seed;
 using FacturAR.Api.Solicitudes;
 using FacturAR.Application.Abstractions;
 using FacturAR.Application.ApiKeys;
@@ -10,6 +11,8 @@ using FacturAR.Application.Auth;
 using FacturAR.Application.Comprobantes;
 using FacturAR.Application.Invitaciones;
 using FacturAR.Application.Notificaciones;
+using FacturAR.Application.Parametros;
+using FacturAR.Application.Seed;
 using FacturAR.Application.Solicitudes;
 using FacturAR.Contracts.Comunes;
 using FacturAR.Contracts.Comprobantes;
@@ -22,6 +25,7 @@ using FacturAR.Infrastructure.Password;
 using FacturAR.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -45,6 +49,21 @@ var apiKeysOptions = builder.Configuration
 var bootstrapAdminOptions = builder.Configuration
     .GetSection("BootstrapAdmin")
     .Get<BootstrapAdminOptions>() ?? new BootstrapAdminOptions();
+
+builder.Services.AddOptions<ParametrosFacturacion>()
+    .Configure(options => options.AlicuotasPermitidas = [])
+    .Bind(builder.Configuration.GetSection(ParametrosFacturacion.SectionName))
+    .PostConfigure(options =>
+    {
+        if (options.AlicuotasPermitidas is null || options.AlicuotasPermitidas.Length == 0)
+        {
+            options.AlicuotasPermitidas = [.. ParametrosFacturacion.AlicuotasPredeterminadas];
+        }
+    });
+
+var seedOptions = builder.Configuration
+    .GetSection(SeedOptions.SectionName)
+    .Get<SeedOptions>() ?? new SeedOptions();
 
 var buildInformation = new BuildInformation(
     builder.Configuration[BuildInformation.VersionKey] ?? BuildInformation.DefaultVersion,
@@ -86,6 +105,8 @@ builder.Services.AddSingleton(mongoOptions);
 builder.Services.AddSingleton(authOptions);
 builder.Services.AddSingleton(apiKeysOptions);
 builder.Services.AddSingleton(bootstrapAdminOptions);
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<ParametrosFacturacion>>().Value);
+builder.Services.AddSingleton(seedOptions);
 builder.Services.AddSingleton(buildInformation);
 builder.Services.AddSingleton(emailOptions);
 builder.Services.AddSingleton(notificacionesOptions);
@@ -120,6 +141,12 @@ builder.Services.AddScoped<IInvitacionRepository, InvitacionRepository>();
 builder.Services.AddScoped<IPuntoVentaRepository, PuntoVentaRepository>();
 builder.Services.AddScoped<ISecuenciaRepository, SecuenciaRepository>();
 builder.Services.AddScoped<ISecuenciaService, SecuenciaService>();
+builder.Services.AddScoped<IParametrosRepository, ParametrosRepository>();
+builder.Services.AddScoped<ParametrosService>();
+builder.Services.AddScoped<IParametrosResolver>(sp => sp.GetRequiredService<ParametrosService>());
+builder.Services.AddScoped<ISeedRepository, SeedRepository>();
+builder.Services.AddScoped<SeedService>();
+builder.Services.AddSingleton<SeedApiKeyDemoFile>();
 builder.Services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
 builder.Services.AddScoped<IApiKeyGenerator, ApiKeyGenerator>();
 builder.Services.AddScoped<IApiKeyHasher, ApiKeyHasher>();
@@ -147,6 +174,7 @@ builder.Services.AddScoped<AutenticarAdminGlobalService>();
 builder.Services.AddScoped<RegistrarAccesoService>();
 builder.Services.AddScoped<AdminGlobalBootstrapService>();
 builder.Services.AddHostedService<AdminGlobalBootstrapHostedService>();
+builder.Services.AddHostedService<SeedHostedService>();
 
 builder.Services.AddFacturarCookies(authOptions, builder.Environment.IsDevelopment());
 builder.Services.AddFacturarApiKeyAuthentication();
