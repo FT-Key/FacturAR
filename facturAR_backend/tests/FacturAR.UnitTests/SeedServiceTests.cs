@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using FacturAR.Application.Abstractions;
 using FacturAR.Application.Parametros;
 using FacturAR.Application.Seed;
@@ -8,7 +9,8 @@ namespace FacturAR.UnitTests;
 
 public sealed class SeedServiceTests
 {
-    private const string PasswordDemo = "DemoSegura2026";
+    private static readonly string PasswordDemo =
+        $"Demo{Convert.ToHexString(RandomNumberGenerator.GetBytes(8))}9";
 
     [Fact]
     public async Task EjecutarAsync_Deshabilitado_NoEscribeNada()
@@ -343,7 +345,11 @@ public sealed class SeedServiceTests
     private sealed class ApiKeyGeneratorFake : IApiKeyGenerator
     {
         public ApiKeyGeneratorValue Generar()
-            => new("0123456789ab", new string('a', 43), $"fak_0123456789ab_{new string('a', 43)}");
+        {
+            var prefix = Guid.NewGuid().ToString("N")[..12];
+            var secret = (Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N"))[..43];
+            return new ApiKeyGeneratorValue(prefix, secret, $"fak_{prefix}_{secret}");
+        }
     }
 
     private sealed class ApiKeyHasherFake : IApiKeyHasher

@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using FacturAR.Application.ApiKeys;
 using FacturAR.Application.Parametros;
 using FacturAR.Application.Seed;
@@ -12,7 +13,8 @@ namespace FacturAR.IntegrationTests;
 
 public sealed class MongoSeedTests : IAsyncLifetime
 {
-    private const string PasswordDemo = "DemoSegura2026";
+    private static readonly string PasswordDemo =
+        $"Demo{Convert.ToHexString(RandomNumberGenerator.GetBytes(8))}9";
 
     private readonly string _databaseName = $"facturar_it_{Guid.NewGuid():N}"[..28];
 
