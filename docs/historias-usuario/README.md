@@ -34,7 +34,7 @@ La columna **Orden** es la posición dentro del sprint. La columna **Contrato** 
 | 6 | [US-02](US-02-api-keys.md) | Gestión de API keys | Integraciones | 3 | Alta | 2 | RF-02 | Parcial | Sí |
 | 7 | [US-03](US-03-autenticacion-api-key.md) | Autenticación por API key | Integraciones | 3 | Alta | 1 | RF-03 | Base implementada | Sí |
 | 8 | [US-07](US-07-numeracion-atomica.md) | Numeración atómica | Emisión | 3 | Alta | 1 | RF-06 | Base implementada | Sí |
-| 9 | [US-18](US-18-parametros-seed.md) | Parámetros y datos semilla | Operación | 3 | Media | 1 | RF-18 | Pendiente | Sí |
+| 9 | [US-18](US-18-parametros-seed.md) | Parámetros y datos semilla | Operación | 3 | Media | 1 | RF-18 | Parcial | Sí |
 | 10 | [US-05](US-05-emision-facturas.md) | Emisión de facturas A, B y C | Emisión | 4 | Alta | 3 | RF-04 | Pendiente | Sí |
 | 11 | [US-06](US-06-idempotencia.md) | Idempotencia de emisión | Emisión | 4 | Alta | 1 | RF-05 | Pendiente | Sí |
 | 12 | [US-08](US-08-notas-credito-debito.md) | Notas de crédito y débito | Emisión | 4 | Alta | 2 | RF-07 | Pendiente | Sí |
@@ -60,6 +60,8 @@ Al día de hoy **US-11, US-04 y US-03 tienen comportamiento implementado**: la A
 **US-29** queda en **Parcial**: el servicio de email está implementado y probado —`IEmailSender`, `EmailService`, las cinco plantillas, remitente de archivo en desarrollo, remitente SMTP y validación de configuración al arrancar—. US-27 ya dispara los emails de aprobación, rechazo y reenvío y muestra la advertencia con reenvío en el panel de solicitudes; falta el disparo desde los endpoints de US-01.
 
 **US-01** queda en **Parcial**: `POST /v1/solicitudes-alta` y la página `/solicitar-alta` están implementados y cubiertos por tests automáticos (unitarios y de integración); falta la verificación con Mongo real y el QA del camino feliz.
+
+**US-18** queda en **Parcial**: `ParametrosFacturacion`, `ParametrosService` y la colección `parametros` con índice único están implementados; el seed (`SeedService`, `SeedRepository`, `SeedHostedService`) crea la empresa demo, los usuarios `Administrador`, `Emisor` y `Consulta`, el `SuperAdmin`, el punto de venta, las secuencias y los parámetros globales con idempotencia lógica, y la API key demo opcional solo en Development. Los tests unitarios y de integración sin Mongo pasan. Faltan la verificación real con Mongo de CP-18.06/07/08/11/13/14/15 y del índice único de `parametros`, el QA manual del seed y CP-18.04/18.05 de punta a punta, que dependen de `EmitirComprobanteService` (US-05).
 
 **US-27** queda **Completada**: la consola global lista, filtra, edita, aprueba, rechaza y reenvía invitaciones (`/v1/admin/solicitudes` y `/admin/solicitudes` en el portal). La aprobación crea contribuyente, punto de venta e invitación en una transacción de MongoDB y dispara los emails de US-29 después del commit.
 

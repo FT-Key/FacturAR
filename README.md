@@ -155,6 +155,64 @@ docker compose exec api ls /app/emails
 docker compose cp api:/app/emails ./emails-export
 ```
 
+### Datos semilla (US-18)
+
+El seed corre al arrancar la API **solo** cuando `Seed__Enabled=true`. Es idempotente: se puede ejecutar más de una vez sin duplicar datos. Todo lo que crea es **simulado**, incluida la empresa `Empresa Demo (simulada)`; no representa a un contribuyente real ni emite comprobantes fiscales.
+
+| Variable | Descripción | Default |
+| --- | --- | --- |
+| `Seed__Enabled` | Habilita el seed al arrancar la API | `false` |
+| `Seed__Password` | Contraseña de los usuarios demo; obligatoria si se habilita. Se hashea y nunca se versiona | — |
+| `Seed__ApiKeyDemo` | Crea una API key demo; solo tiene efecto en `Development` | `false` |
+| `Seed__Cuit` | CUIT de la empresa demo | `20123456786` |
+| `Seed__RazonSocial` | Razón social de la empresa demo | `Empresa Demo (simulada)` |
+| `Seed__Email` | Email base del usuario `Administrador` | `admin@demo.facturar.local` |
+| `Seed__Nombre` | Nombre visible del `SuperAdmin` demo | `Administrador Demo` |
+
+`Seed__Email` identifica al usuario `Administrador` de la empresa. Los usuarios `Emisor` y `Consulta` y el `SuperAdmin` global usan emails derivados con `+emisor`, `+consulta` y `+superadmin` respectivamente (por ejemplo, `admin+emisor@demo.facturar.local`). Todos comparten la contraseña de `Seed__Password`.
+
+El seed también crea el punto de venta `1` y las secuencias `FacturaA`, `FacturaB` y `FacturaC` en `0`. Las secuencias existentes no se reinician: si ya tienen numeración, se conservan sus contadores.
+
+Ejecución local con variables de entorno:
+
+```powershell
+$env:Seed__Enabled = "true"
+$env:Seed__Password = "<password-segura>"
+dotnet run --project facturAR_backend/src/FacturAR.Api
+```
+
+En Docker, definir las variables en `.env` y recrear los contenedores:
+
+```text
+SEED_ENABLED=true
+SEED_PASSWORD=<password-segura>
+```
+
+```powershell
+docker compose --env-file .env up --build
+```
+
+Si `Seed__ApiKeyDemo=true` en `Development`, la API key demo se entrega una sola vez: se escribe en `seed/api-key-demo.txt` y no vuelve a mostrarse. Leerla con:
+
+```powershell
+docker compose exec api cat /app/seed/api-key-demo.txt
+```
+
+En local el archivo queda en `facturAR_backend/src/FacturAR.Api/seed/api-key-demo.txt`. Ese archivo es un **secreto local**: está excluido de git (`.gitignore`) y de la imagen de Docker (`.dockerignore`), y no debe versionarse ni publicarse.
+
+Parámetros de facturación (`Facturacion__*`) que el seed persiste como parámetros globales:
+
+| Variable | Descripción | Default |
+| --- | --- | --- |
+| `Facturacion__DiasVencimientoCae` | Días para el vencimiento del CAE | `10` |
+| `Facturacion__AlicuotasPermitidas` | Alícuotas de IVA permitidas | `0`, `5`, `10.5`, `21`, `27` |
+| `Facturacion__PuntoVentaPorDefecto` | Punto de venta por defecto | `1` |
+| `Facturacion__Moneda` | Moneda por defecto | `ARS` |
+| `Facturacion__PaginaPorDefecto` | Tamaño de página por defecto en listados | `20` |
+| `Facturacion__PaginaMaxima` | Tamaño máximo de página en listados | `100` |
+
+La lista de alícuotas se configura por índice: `Facturacion__AlicuotasPermitidas__0` … `Facturacion__AlicuotasPermitidas__4`. El binder no toma una clave escalar `Facturacion__AlicuotasPermitidas` para un array. El default es `0`, `5`, `10.5`, `21`, `27`.
+
 ## Ejecución local
 
 ```powershell
