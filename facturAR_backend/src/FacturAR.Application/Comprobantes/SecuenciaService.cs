@@ -16,12 +16,7 @@ public sealed class SecuenciaService(
     {
         var existente = await puntoVentaRepository.ObtenerPorNumeroAsync(contribuyenteId, puntoVenta, ct);
 
-        if (existente is null)
-        {
-            throw new PuntoVentaNoEncontradoException();
-        }
-
-        if (!existente.Activo)
+        if (existente is null || !existente.Activo)
         {
             throw new PuntoVentaInactivoException();
         }

@@ -303,7 +303,7 @@ Reglas de importes:
 
 La emisión asigna número y CAE dentro de una transacción. El número es correlativo por empresa, punto de venta y tipo. El CAE tiene 14 dígitos y vence a los 10 días.
 
-Errores del flujo: `400 VALIDACION`, `400 EMISION_INVALIDA`, `400 CUIT_INVALIDO`, `409 PUNTO_VENTA_INACTIVO` y `404 COMPROBANTE_NO_ENCONTRADO` si el punto de venta no existe o es de otra empresa.
+Errores del flujo: `400 VALIDACION`, `400 EMISION_INVALIDA`, `400 CUIT_INVALIDO` y `409 PUNTO_VENTA_INACTIVO`. El punto de venta debe existir y estar activo; si no existe, es de otra empresa o está inactivo, responde `409 PUNTO_VENTA_INACTIVO`.
 
 ## 6. Idempotencia
 

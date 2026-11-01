@@ -11,13 +11,13 @@ public sealed class SecuenciaServiceTests
     private static readonly Guid ContribuyenteId = Guid.NewGuid();
 
     [Fact]
-    public async Task ObtenerSiguienteNumero_PuntoVentaInexistente_LanzaNoEncontradoSinTocarLaSecuencia()
+    public async Task ObtenerSiguienteNumero_PuntoVentaInexistente_LanzaInactivoSinTocarLaSecuencia()
     {
         var puntosVenta = new PuntoVentaRepositoryFake(null);
         var secuencias = new SecuenciaRepositoryFake(1);
         var servicio = new SecuenciaService(puntosVenta, secuencias);
 
-        await Assert.ThrowsAsync<PuntoVentaNoEncontradoException>(
+        await Assert.ThrowsAsync<PuntoVentaInactivoException>(
             () => servicio.ObtenerSiguienteNumeroAsync(ContribuyenteId, 1, TipoComprobante.FacturaC));
 
         Assert.Equal(0, secuencias.Llamadas);

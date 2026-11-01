@@ -30,11 +30,9 @@ public sealed class MongoSesionActual
         FindOneAndUpdateOptions<T> opciones,
         CancellationToken ct = default)
     {
-        if (Sesion is null)
-        {
-            return await coleccion.FindOneAndUpdateAsync(filtro, update, opciones, ct);
-        }
+        var sesion = Sesion
+            ?? throw new InvalidOperationException("La operación requiere una transacción activa.");
 
-        return await coleccion.FindOneAndUpdateAsync(Sesion, filtro, update, opciones, ct);
+        return await coleccion.FindOneAndUpdateAsync(sesion, filtro, update, opciones, ct);
     }
 }
