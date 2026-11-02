@@ -1,6 +1,7 @@
 using System.Threading.RateLimiting;
 using FacturAR.Api.ApiKeys;
 using FacturAR.Api.Auth;
+using FacturAR.Api.Comprobantes;
 using FacturAR.Api.Invitaciones;
 using FacturAR.Api.Security;
 using FacturAR.Api.Seed;
@@ -129,6 +130,7 @@ builder.Services.AddSingleton<MongoDbContext>();
 
 builder.Services.AddScoped<IComprobanteRepository, ComprobanteRepository>();
 builder.Services.AddScoped<VerificarComprobanteService>();
+builder.Services.AddScoped<IEmitirComprobanteService, EmitirComprobanteService>();
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IAdministradorRepository, AdministradorRepository>();
 builder.Services.AddScoped<IContribuyenteRepository, ContribuyenteRepository>();
@@ -356,6 +358,7 @@ app.MapSolicitudAltaEndpoints();
 app.MapSolicitudesAdminEndpoints();
 app.MapInvitacionEndpoints();
 app.MapApiKeyEndpoints();
+app.MapComprobanteEndpoints();
 
 app.Run();
 
