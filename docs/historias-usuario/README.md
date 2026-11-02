@@ -35,7 +35,7 @@ La columna **Orden** es la posición dentro del sprint. La columna **Contrato** 
 | 7 | [US-03](US-03-autenticacion-api-key.md) | Autenticación por API key | Integraciones | 3 | Alta | 1 | RF-03 | Base implementada | Sí |
 | 8 | [US-07](US-07-numeracion-atomica.md) | Numeración atómica | Emisión | 3 | Alta | 1 | RF-06 | Base implementada | Sí |
 | 9 | [US-18](US-18-parametros-seed.md) | Parámetros y datos semilla | Operación | 3 | Media | 1 | RF-18 | Parcial | Sí |
-| 10 | [US-05](US-05-emision-facturas.md) | Emisión de facturas A, B y C | Emisión | 4 | Alta | 3 | RF-04 | Pendiente | Sí |
+| 10 | [US-05](US-05-emision-facturas.md) | Emisión de facturas A, B y C | Emisión | 4 | Alta | 3 | RF-04 | Parcial | Sí |
 | 11 | [US-06](US-06-idempotencia.md) | Idempotencia de emisión | Emisión | 4 | Alta | 1 | RF-05 | Pendiente | Sí |
 | 12 | [US-08](US-08-notas-credito-debito.md) | Notas de crédito y débito | Emisión | 4 | Alta | 2 | RF-07 | Pendiente | Sí |
 | 13 | [US-09](US-09-consultas-comprobantes.md) | Consultas y último autorizado | Consultas | 5 | Alta | 1 | RF-08 | Pendiente | Sí |
@@ -72,6 +72,8 @@ Al día de hoy **US-11, US-04 y US-03 tienen comportamiento implementado**: la A
 **US-03** queda en **Base implementada**: el esquema `ApiKey` (`ApiKeyAuthenticationHandler`), la política `ApiKeyNegocio` con `RequireApiKey()`, `IApiKeyAuthenticator` (formato `fak_<12hex>_<43 base64url>`, búsqueda por prefijo y comparación con `FixedTimeEquals`), los claims `contribuyenteId`/`apikeyId`/`plano`, el registro de `UltimoUso` tolerante a fallos y los tests unitarios y de integración están implementados. Falta aplicarlo a endpoints de negocio reales cuando existan US-05/US-09 y correr los casos con Mongo real (`MongoApiKeyAuthenticationTests` se omiten sin connection string). La verificación pública por CAE sigue anónima.
 
 **US-07** queda en **Base implementada**: `ISecuenciaRepository`, `SecuenciaService` y `SecuenciaRepository` (`FindOneAndUpdate` con `$inc`, `ReturnDocument.After` e `IsUpsert`) están implementados, con guard de transacción activa, excepciones de punto de venta y tests unitarios verdes. Los 11 casos `[MongoFact]` de `MongoSecuenciasTests` se omiten sin connection string, así que la concurrencia y el rollback contra MongoDB con replica set siguen sin verificar. La integración en `EmitirComprobanteService`, el mapeo HTTP `404`/`409` y el último autorizado dependen de US-05 y US-09.
+
+**US-05** queda en **Parcial**: `POST /v1/comprobantes` emite facturas A, B y C con API key y `Idempotency-Key`, valida emisor, punto de venta, receptor, ítems e importes, calcula neto/IVA/total por tipo, asigna el número con US-07, genera el CAE, persiste el comprobante con el evento `comprobante.emitido` dentro de la transacción y responde `201` con `ComprobanteResponse`. Está cubierto por tests unitarios y de integración sin Mongo (465 aprobados, 121 omitidos, 0 fallos) y documentado en OpenAPI, Postman y el manual. Faltan la verificación real con MongoDB en replica set de la transacción, el rollback, la concurrencia CP-05-18 y el índice único de CAE, además del QA manual del camino feliz. La emisión desde el portal es US-13.
 
 El resto de las historias tiene el **modelo de dominio y los índices de MongoDB preparados**, pero sin casos de uso, endpoints ni pantallas. Eso no cuenta como avance: una historia está terminada cuando entrega comportamiento verificable con test.
 

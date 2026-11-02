@@ -182,7 +182,7 @@ Documento fiscal emitido.
 | `Numero` | `long` | Sí | Correlativo. |
 | `FechaEmision` | `DateTime` | Sí | UTC. |
 | `Cae` | `string` | Sí | 14 dígitos, único. |
-| `CaeVencimiento` | `DateTime` | Sí | Emisión + 10 días. |
+| `CaeVencimiento` | `DateTime` | Sí | Emisión + `Facturacion__DiasVencimientoCae` (default 10, override por contribuyente). |
 | `ReceptorDocumentoTipo` | `string` | Sí | `99` para consumidor final. |
 | `ReceptorDocumentoNumero` | `string` | Sí | CUIT/DNI del receptor. |
 | `ReceptorRazonSocial` | `string` | Sí | Nombre o razón social. |

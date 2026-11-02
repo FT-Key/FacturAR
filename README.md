@@ -5,7 +5,7 @@
 
 Simulador de facturación electrónica de AFIP/ARCA para el Trabajo Final Integrador de la carrera. Incluye onboarding de empresas con solicitud pública, aprobación por administrador global e invitación por email, además de emisión, consultas, API keys, portal y verificación pública de un CAE.
 
-> Estado actual: base funcional con API, portal Blazor/Razor, MongoDB, endpoint público de verificación, Docker y CI/CD. El onboarding, la autenticación, la emisión, el PDF y el SOAP están documentados y preparados como próximos incrementos. US-19, US-20, US-27, US-28 y US-31 están completadas; US-11 tiene base implementada; US-21 está en estado parcial.
+> Estado actual: base funcional con API, portal Blazor/Razor, MongoDB, emisión de facturas A, B y C por API key, endpoint público de verificación, Docker y CI/CD. La emisión está implementada y cubierta por tests unitarios y de integración sin Mongo; la verificación real de transacción, concurrencia e índice único con MongoDB replica set sigue pendiente. El PDF, las consultas y el SOAP están documentados y preparados como próximos incrementos. US-19, US-20, US-27, US-28 y US-31 están completadas; US-05 está en estado parcial; US-11 tiene base implementada; US-21 está en estado parcial.
 >
 > Planificación: las historias pendientes están refinadas con **contrato técnico** (modelo de datos, endpoints, validaciones y casos de prueba) contra el [contrato transversal de la API](docs/contratos-api.md), y el [plan de implementación](docs/plan-implementacion.md) fija el orden de ejecución.
 
@@ -303,6 +303,7 @@ Para volver a una versión anterior, cambiar `IMAGE_TAG` en `.env.production` po
 | `GET` | `/health/live` | Liveness: el proceso está vivo, con `version` y `commit`. No consulta MongoDB |
 | `GET` | `/openapi/v1.json` | Documento OpenAPI (solo Development) |
 | `GET` | `/v1/comprobantes/verificar/{cae}` | Verificación pública de un comprobante |
+| `POST` | `/v1/comprobantes` | Emisión de facturas A, B y C. Requiere API key e `Idempotency-Key` |
 
 Endpoints de onboarding planificados (todavía no implementados):
 
@@ -394,9 +395,9 @@ El environment usa `http://localhost:8080` para Docker. Para ejecución local, c
 dotnet test FacturAR.slnx
 ```
 
-La suite local tiene 18 tests unitarios y 9 de integración. Los unitarios cubren validación de CUIT, CAE y el caso de uso de verificación. Los de integración levantan la API en memoria y validan el endpoint raíz, OpenAPI y el rechazo de CAE inválidos sin requerir MongoDB.
+La suite local tiene 383 tests unitarios y 82 de integración que pasan sin servicios externos; 121 tests de integración marcados con `MongoFact` se omiten cuando no hay connection string. Los unitarios cubren validación de CUIT, CAE, emisión de facturas A/B/C, cálculo de importes y reglas de receptor e ítems. Los de integración levantan la API en memoria y validan salud, OpenAPI, autenticación por API key y errores de emisión sin requerir MongoDB.
 
-Los tests marcados con `MongoFact` validan la API contra MongoDB real: inserción de un comprobante, verificación pública, `404`, ausencia de datos internos y creación del índice único de CAE. Se omiten automáticamente si no existe `MONGO_CONNECTION_STRING` o `Mongo__ConnectionString`. Cuando se ejecutan, usan una base temporal `facturar_it_*` y la eliminan al finalizar.
+Los tests marcados con `MongoFact` validan la API contra MongoDB real: emisión de facturas A/B/C, rollback, concurrencia, índice único de CAE, inserción de un comprobante, verificación pública, `404` y ausencia de datos internos. Se omiten automáticamente si no existe `MONGO_CONNECTION_STRING` o `Mongo__ConnectionString`. Cuando se ejecutan, usan una base temporal `facturar_it_*` y la eliminan al finalizar.
 
 ```powershell
 $env:MONGO_CONNECTION_STRING = "mongodb+srv://..."
@@ -531,7 +532,7 @@ Para rollback, cambiar `IMAGE_TAG` en `.env.production` por el SHA de un build a
 
 ## Alcance y supuestos
 
-- El CAE es simulado, con 14 dígitos y vencimiento a 10 días.
+- El CAE es simulado, con 14 dígitos y vencimiento configurable (`Facturacion__DiasVencimientoCae`, default 10 días).
 - No se realizan llamadas reales a AFIP/ARCA en el alcance obligatorio.
 - No hay registro libre: el alta es por solicitud y aprobación manual.
 - El CUIT es público y no prueba la titularidad de la empresa.

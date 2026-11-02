@@ -209,6 +209,167 @@
             "description": "CAE con formato válido pero sin comprobante asociado."
           },
           "response": []
+        },
+        {
+          "name": "Emitir factura C",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Devuelve CAE de 14 dígitos y estado Emitido', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.cae).to.match(/^[1-9][0-9]{13}$/);",
+                  "  pm.expect(body.estado).to.eql('Emitido');",
+                  "  pm.expect(body.importeIva).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Api-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoComprobante\": 11,\n  \"puntoVenta\": 1,\n  \"receptor\": {\n    \"documentoTipo\": \"99\",\n    \"documentoNumero\": \"0\",\n    \"razonSocial\": \"Consumidor Final\",\n    \"condicionIva\": 5\n  },\n  \"items\": [\n    {\n      \"descripcion\": \"Curso de programación\",\n      \"cantidad\": 1,\n      \"precioUnitario\": 10000,\n      \"alicuotaIva\": 0\n    }\n  ],\n  \"observaciones\": \"Venta de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "comprobantes"]
+            },
+            "description": "US-05. Requiere una API key de una empresa monotributista o exenta con el punto de venta 1 activo. La factura C no discrimina IVA: `importeIva` 0 e `importeTotal` igual a `importeNeto`. La `Idempotency-Key` se genera con `{{$guid}}` para que cada ejecución sea única."
+          },
+          "response": []
+        },
+        {
+          "name": "Emitir factura A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Discrimina IVA', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.tipoComprobante).to.eql(1);",
+                  "  pm.expect(body.importeNeto).to.eql(10000);",
+                  "  pm.expect(body.importeIva).to.eql(2100);",
+                  "  pm.expect(body.importeTotal).to.eql(12100);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Api-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoComprobante\": 1,\n  \"puntoVenta\": 1,\n  \"receptor\": {\n    \"documentoTipo\": \"CUIT\",\n    \"documentoNumero\": \"30712345671\",\n    \"razonSocial\": \"Cliente S.A.\",\n    \"condicionIva\": 1\n  },\n  \"items\": [\n    {\n      \"descripcion\": \"Servicio de prueba\",\n      \"cantidad\": 2,\n      \"precioUnitario\": 5000,\n      \"alicuotaIva\": 21\n    }\n  ],\n  \"importeTotal\": 12100\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "comprobantes"]
+            },
+            "description": "US-05. Requiere una empresa responsable inscripto. El receptor debe ser responsable inscripto con CUIT válido y el IVA se discrimina."
+          },
+          "response": []
+        },
+        {
+          "name": "Emitir factura B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Incluye el IVA sin discriminarlo', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.tipoComprobante).to.eql(6);",
+                  "  pm.expect(body.importeNeto).to.eql(12100);",
+                  "  pm.expect(body.importeIva).to.eql(0);",
+                  "  pm.expect(body.importeTotal).to.eql(12100);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Api-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoComprobante\": 6,\n  \"puntoVenta\": 1,\n  \"receptor\": {\n    \"documentoTipo\": \"99\",\n    \"documentoNumero\": \"12345678\",\n    \"razonSocial\": \"Consumidor Final\",\n    \"condicionIva\": 5\n  },\n  \"items\": [\n    {\n      \"descripcion\": \"Curso con IVA incluido\",\n      \"cantidad\": 1,\n      \"precioUnitario\": 12100,\n      \"alicuotaIva\": 21\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "comprobantes"]
+            },
+            "description": "US-05. La factura B incluye el IVA en el precio unitario y no lo discrimina: `importeIva` 0. Con `documentoTipo` 99 el documento admite DNI de 7 u 8 dígitos o un CUIT válido."
+          },
+          "response": []
         }
       ]
     },
@@ -824,6 +985,11 @@
     },
     {
       "key": "passwordNueva",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
       "value": "",
       "type": "string"
     }

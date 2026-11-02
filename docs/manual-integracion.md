@@ -2,7 +2,7 @@
 
 ## Estado de la API
 
-> **Diseño objetivo del MVP.** Este manual describe el contrato que la API de FacturAR va a exponer. **Casi nada de eso existe todavía en el código**: las historias US-XX que lo habilitan están pendientes o en curso. Lo único que responde hoy es lo que figura en "Endpoints disponibles hoy".
+> **Diseño objetivo del MVP.** Este manual describe el contrato que la API de FacturAR expone. El estado de cada ruta está en las tablas siguientes: las que todavía no tienen su historia completada responden `404` hasta que se implementen. Lo que ya responde hoy figura en "Endpoints disponibles hoy".
 
 Qué describe este documento: cómo un tercero pide acceso, activa su cuenta, crea una API key, emite comprobantes, los consulta, usa idempotencia y verifica un comprobante por su CAE.
 
@@ -19,6 +19,7 @@ Base URL local: `http://localhost:5171`. En Docker: `http://localhost:8080`.
 | `GET` | `/health` | Readiness: verifica MongoDB. `200` si responde, `503` si no. |
 | `GET` | `/health/live` | Liveness: no consulta MongoDB. Siempre `200`. |
 | `GET` | `/v1/comprobantes/verificar/{cae}` | Verificación pública de un comprobante por CAE. No requiere autenticación. |
+| `POST` | `/v1/comprobantes` | Emisión de facturas A, B y C con CAE simulado. Requiere API key e `Idempotency-Key`. |
 
 Todo lo demás que aparece en este manual está **especificado pero no implementado**: esas rutas responden `404` hasta que su historia se complete.
 
@@ -41,7 +42,7 @@ Todo lo demás que aparece en este manual está **especificado pero no implement
 | `POST` | `/v1/api-keys` | cookie de empresa | especificado, pendiente de implementar (US-02) |
 | `DELETE` | `/v1/api-keys/{id}` | cookie de empresa | especificado, pendiente de implementar (US-02) |
 | `POST` | `/v1/api-keys/{id}/regenerar` | cookie de empresa | especificado, pendiente de implementar (US-02) |
-| `POST` | `/v1/comprobantes` | API key | especificado, pendiente de implementar (US-05) |
+| `POST` | `/v1/comprobantes` | API key | implementado (US-05) |
 | `GET` | `/v1/comprobantes` | API key | especificado, pendiente de implementar (US-09) |
 | `GET` | `/v1/comprobantes/{id}` | API key | especificado, pendiente de implementar (US-09) |
 | `GET` | `/v1/comprobantes/ultimo-autorizado` | API key | especificado, pendiente de implementar (US-09) |
@@ -54,7 +55,7 @@ La API key viaja en el header `X-Api-Key`. La sesión del portal usa cookies con
 | Header | Dónde | Regla |
 | --- | --- | --- |
 | `X-Api-Key` | Endpoints de negocio | Obligatorio. Nombre configurable con `ApiKeys__HeaderName` (default `X-Api-Key`). Formato `^fak_[0-9a-f]{12}_[A-Za-z0-9_-]{43}$`, máximo 200 caracteres. Si falta: `401 API_KEY_AUSENTE`. Si no existe, está revocada, el hash no coincide o la empresa está inactiva: `401 API_KEY_INVALIDA`. Si Mongo no responde: `503 MONGO_NO_DISPONIBLE`. |
-| `Idempotency-Key` | `POST /v1/comprobantes` | Obligatorio. Máximo 128 caracteres. Alcance `(empresa, clave)`. La misma clave con otro payload: `409 IDEMPOTENCIA_CONFLICTO`. |
+| `Idempotency-Key` | `POST /v1/comprobantes` | Obligatorio. Máximo 128 caracteres. Alcance `(empresa, clave)`; hasta US-06 la clave debe ser única por empresa. El reintento con la misma clave (`200` con el comprobante original) y el `409 IDEMPOTENCIA_CONFLICTO` por payload distinto llegan con US-06. |
 
 ### Códigos de error
 
@@ -82,7 +83,7 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 | `CUIT_YA_REGISTRADO` | `409` | Al aprobar, el CUIT de la solicitud ya pertenece a otro contribuyente. |
 | `SOLICITUD_YA_PROCESADA` | `409` | La solicitud ya fue aprobada o rechazada. |
 | `INVITACION_USADA` | `409` | El token de invitación ya fue aceptado. |
-| `IDEMPOTENCIA_CONFLICTO` | `409` | La misma `Idempotency-Key` llegó con un payload diferente. |
+| `IDEMPOTENCIA_CONFLICTO` | `409` | La misma `Idempotency-Key` llegó con un payload diferente (US-06). |
 | `COMPROBANTE_ANULADO` | `409` | El comprobante está anulado y no admite la operación. |
 | `PUNTO_VENTA_INACTIVO` | `409` | El punto de venta no está activo. |
 | `INVITACION_VENCIDA` | `410` | El token de invitación superó las 48 horas. |
@@ -99,7 +100,7 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 | US-02 | §3 Crear una API key | Pendiente |
 | US-03 | §4 Autenticar requests con API key | Base implementada |
 | US-04 | §2 Activar la cuenta: login de empresa y roles | Pendiente |
-| US-05 | §5 Emitir una factura | Pendiente |
+| US-05 | §5 Emitir una factura | Parcial |
 | US-06 | §6 Idempotencia | Pendiente |
 | US-07 | Numeración correlativa del comprobante (reglas de §5) | Pendiente |
 | US-09 | §7 Consultar comprobantes | Pendiente |
@@ -113,7 +114,7 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 
 ## Qué es FacturAR
 
-FacturAR es un simulador de facturación electrónica argentina. El diseño del MVP permite solicitar el alta de una empresa, activar una cuenta, crear API keys, emitir comprobantes con CAE simulado y verificar un comprobante por su CAE. De ese recorrido, hoy solo la verificación por CAE está implementada: ver [Estado de la API](#estado-de-la-api).
+FacturAR es un simulador de facturación electrónica argentina. El diseño del MVP permite solicitar el alta de una empresa, activar una cuenta, crear API keys, emitir comprobantes con CAE simulado y verificar un comprobante por su CAE. De ese recorrido, hoy están implementadas la emisión por API key y la verificación por CAE; el alta, la activación, las API keys y las consultas siguen pendientes: ver [Estado de la API](#estado-de-la-api).
 
 > Importante: el CAE es simulado y los comprobantes no tienen validez fiscal. No se realizan llamadas reales a AFIP/ARCA.
 
@@ -193,7 +194,7 @@ La key pertenece a una única empresa. No se comparte entre empresas ni se enví
 
 ## 4. Autenticar requests
 
-> **Base implementada — US-03.** El esquema `ApiKey`, la política `ApiKeyNegocio` y el registro de `UltimoUso` están implementados y probados. Los endpoints de negocio que los consumen llegan con US-05 y US-09: hasta entonces esas rutas responden `404` porque el endpoint todavía no existe.
+> **Base implementada — US-03.** El esquema `ApiKey`, la política `ApiKeyNegocio` y el registro de `UltimoUso` están implementados y probados. `POST /v1/comprobantes` ya consume el esquema (US-05); el resto de los endpoints de negocio llega con US-09 y US-16.
 
 Enviar la API key en el header `X-Api-Key`. El nombre del header es configurable con `ApiKeys__HeaderName` (default `X-Api-Key`):
 
@@ -228,7 +229,12 @@ La API actualiza `UltimoUso` en cada autenticación exitosa, con granularidad de
 
 ## 5. Emitir una factura
 
-> **Diseño objetivo — US-05 y US-07.** La emisión **todavía no está implementada**. `POST /v1/comprobantes` responde `404` hasta que US-05 se complete.
+> **Implementado — US-05.** `POST /v1/comprobantes` acepta facturas A (`1`), B (`6`) y C (`11`). Requiere API key e `Idempotency-Key`; la cookie del portal no autoriza este endpoint. La emisión manual desde el portal llega con US-13. La lógica y el endpoint están cubiertos por tests unitarios y de integración sin Mongo; la verificación real con MongoDB replica set (transacción, concurrencia e índice único) sigue pendiente.
+
+| Header | Regla |
+| --- | --- |
+| `X-Api-Key` | Obligatorio. Si falta: `401 API_KEY_AUSENTE`. Si no existe, está revocada o la empresa está inactiva: `401 API_KEY_INVALIDA`. |
+| `Idempotency-Key` | Obligatorio, máximo 128 caracteres. Se persiste y es única por empresa. Hasta US-06 no hay reintento idempotente: reutilizar una clave ya usada hace fallar la emisión en lugar de devolver el comprobante original. Usar una clave distinta por operación. |
 
 ```http
 POST /v1/comprobantes HTTP/1.1
@@ -260,16 +266,32 @@ Content-Type: application/json
 }
 ```
 
-Respuesta esperada `201`:
+- `tipoComprobante`: `1` (A), `6` (B) u `11` (C). Las notas de crédito y débito llegan con US-08.
+- `puntoVenta`: obligatorio y positivo. Debe existir y estar activo para la empresa autenticada.
+- `fechaEmision`: opcional, en UTC. Si no viene, se usa el momento de la emisión.
+- `receptor`: `documentoTipo`, `documentoNumero`, `razonSocial` y `condicionIva` (`1` responsable inscripto, `4` exento, `5` consumidor final, `6` monotributo). La factura A exige CUIT válido y responsable inscripto; la B admite consumidor final, monotributo o exento; la C exige consumidor final y acepta `documentoTipo` `99` o `CUIT` con CUIT válido.
+- `items`: entre 1 y 500. `cantidad` mayor que cero, `precioUnitario` no negativo, `alicuotaIva` en `0`, `5`, `10.5`, `21` o `27`.
+- `importeTotal`: opcional. Si viene, debe coincidir con el total calculado.
+- `observaciones`: opcional, hasta 500 caracteres.
+
+Respuesta `201` (`FacturAR.Contracts.Comprobantes.ComprobanteResponse`):
 
 ```json
 {
   "id": "4a4f3f4e-7d7a-4f4e-9a5e-2f6b8c9d0e1f",
-  "puntoVenta": 1,
   "tipoComprobante": 11,
+  "tipoComprobanteDescripcion": "Factura C",
+  "puntoVenta": 1,
   "numero": 1,
+  "fechaEmision": "2026-10-25T15:30:00Z",
   "cae": "12345678901234",
   "caeVencimiento": "2026-11-04T00:00:00Z",
+  "receptor": {
+    "documentoTipo": "99",
+    "documentoNumero": "0",
+    "razonSocial": "Consumidor Final",
+    "condicionIva": 5
+  },
   "importeNeto": 10000,
   "importeIva": 0,
   "importeTotal": 10000,
@@ -301,13 +323,27 @@ Reglas de importes:
 - Alícuotas admitidas: `0`, `5`, `10,5`, `21`, `27`.
 - El cálculo es con `decimal` y se redondea a 2 decimales.
 
-La emisión asigna número y CAE dentro de una transacción. El número es correlativo por empresa, punto de venta y tipo. El CAE tiene 14 dígitos y vence a los 10 días.
+La emisión asigna número y CAE dentro de una transacción. El número es correlativo por empresa, punto de venta y tipo. El CAE tiene 14 dígitos y vence según `Facturacion__DiasVencimientoCae` (default 10 días, con override por contribuyente).
 
-Errores del flujo: `400 VALIDACION`, `400 EMISION_INVALIDA`, `400 CUIT_INVALIDO` y `409 PUNTO_VENTA_INACTIVO`. El punto de venta debe existir y estar activo; si no existe, es de otra empresa o está inactivo, responde `409 PUNTO_VENTA_INACTIVO`.
+El punto de venta debe existir y estar activo. Si no existe o pertenece a otra empresa, responde `404 COMPROBANTE_NO_ENCONTRADO`; si existe pero está inactivo, responde `409 PUNTO_VENTA_INACTIVO`.
+
+| Código | HTTP | Cuándo ocurre |
+| --- | --- | --- |
+| `VALIDACION` | `400` | Falta `Idempotency-Key`, supera 128 caracteres, o el body no cumple las reglas de tipo, receptor, ítems, observaciones o `importeTotal`. |
+| `EMISION_INVALIDA` | `400` | El emisor consumidor final intenta emitir una factura A. |
+| `CUIT_INVALIDO` | `400` | El CUIT o documento del receptor no supera la validación. |
+| `API_KEY_AUSENTE` | `401` | Falta el header `X-Api-Key`. |
+| `API_KEY_INVALIDA` | `401` | La key no existe, está revocada, el hash no coincide o la empresa está inactiva. |
+| `CUENTA_INACTIVA` | `403` | El contribuyente autenticado está inactivo. Es un guard del servicio; por API key, la autenticación de US-03 ya responde `401 API_KEY_INVALIDA`. |
+| `SIN_PERMISOS` | `403` | El rol del principal no permite emitir comprobantes. |
+| `COMPROBANTE_NO_ENCONTRADO` | `404` | El punto de venta no existe o pertenece a otra empresa. |
+| `PUNTO_VENTA_INACTIVO` | `409` | El punto de venta existe y pertenece a la empresa, pero está inactivo. |
+| `MONGO_NO_DISPONIBLE` | `503` | No hay conexión con MongoDB o la operación agota el tiempo. |
+| `ERROR_INTERNO` | `500` | Falla inesperada; el detalle queda en el log y no en la respuesta. |
 
 ## 6. Idempotencia
 
-> **Diseño objetivo — US-06.** La idempotencia **todavía no está implementada**: viene con el endpoint de emisión de US-05.
+> **Parcial — US-05 y US-06.** El header ya es obligatorio en `POST /v1/comprobantes` y se persiste con el comprobante. La semántica de reintento —`200` con el mismo comprobante o `409 IDEMPOTENCIA_CONFLICTO`— llega con US-06. Hasta entonces, la clave debe ser única por empresa: reutilizarla hace fallar la emisión, no devuelve el comprobante original.
 
 Enviar un header `Idempotency-Key` único por operación:
 
@@ -317,7 +353,7 @@ Idempotency-Key: pedido-2026-0001
 
 El header es obligatorio en `POST /v1/comprobantes` y admite hasta 128 caracteres. La clave es única por empresa: la misma clave en otra empresa es una operación distinta.
 
-Si el mismo request se repite con la misma key, la API devuelve el comprobante original sin volver a numerar ni generar un CAE nuevo. Si la misma clave llega con otro payload, responde `409 IDEMPOTENCIA_CONFLICTO`.
+Hasta US-06, repetir la misma key no devuelve el comprobante original: la emisión falla por el índice único `(empresa, clave)`. US-06 agrega el reintento idempotente (`200` con el mismo comprobante, sin renumerar ni generar otro CAE) y el `409 IDEMPOTENCIA_CONFLICTO` cuando la misma clave llega con otro payload.
 
 Usar una key distinta para cada operación real. No reutilizar la key de un pedido exitoso para otro pedido.
 
@@ -341,7 +377,7 @@ X-Api-Key: fak_9f3a1c7b2e40_<secreto>
 
 ## 8. Verificar un comprobante
 
-> **Disponible hoy — US-11 (base implementada).** Este es el único endpoint de negocio que responde: no requiere API key.
+> **Disponible hoy — US-11 (base implementada).** La verificación no requiere API key. La emisión (`POST /v1/comprobantes`) también está disponible y sí requiere API key.
 
 La verificación es pública y no requiere API key:
 
@@ -379,7 +415,7 @@ La respuesta no expone datos internos, secretos ni API keys.
 
 ## 9. Ejemplos
 
-> **Diseño objetivo — US-05.** Los ejemplos de emisión funcionan cuando exista `POST /v1/comprobantes`. Hoy no hay forma de emitir una factura desde la API.
+> **Disponible — US-05.** Los ejemplos de emisión funcionan contra `POST /v1/comprobantes`; requieren API key e `Idempotency-Key`.
 
 ### curl
 
@@ -512,7 +548,7 @@ El catálogo cerrado de códigos está en [Estado de la API](#estado-de-la-api) 
 ## 12. Preguntas frecuentes
 
 **¿Qué puedo consumir hoy?**
-Solo la verificación pública por CAE (`GET /v1/comprobantes/verificar/{cae}`) y los endpoints de salud. El resto del contrato está especificado en `docs/contratos-api.md` y pendiente de implementación.
+La emisión de facturas A, B y C (`POST /v1/comprobantes`, con API key e `Idempotency-Key`), la verificación pública por CAE (`GET /v1/comprobantes/verificar/{cae}`) y los endpoints de salud. El alta, la activación, las API keys y las consultas siguen especificados en `docs/contratos-api.md` y pendientes de implementación.
 
 **¿Puedo registrarme solo con el CUIT?**
 No. El CUIT es público. La cuenta se activa con una invitación enviada al email del solicitante y aprobada por un administrador global.
@@ -530,4 +566,4 @@ No. Cada key pertenece a una única empresa.
 No se recomienda. La API key quedaría expuesta. Usar un backend propio.
 
 **¿El CAE es real?**
-No. Es un CAE simulado de 14 dígitos con vencimiento a 10 días. No tiene validez fiscal.
+No. Es un CAE simulado de 14 dígitos con vencimiento configurable (`Facturacion__DiasVencimientoCae`, default 10 días). No tiene validez fiscal.

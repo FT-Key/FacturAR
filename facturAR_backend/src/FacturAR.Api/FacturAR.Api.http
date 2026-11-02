@@ -20,6 +20,37 @@ Accept: application/json
 
 ###
 
+# Emisión (US-05): pegar una API key válida de la empresa y una Idempotency-Key única por request.
+@apiKey = fak_000000000000_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+@idempotencyKey = pedido-2026-0001
+
+POST {{FacturAR_Api_HostAddress}}/v1/comprobantes
+X-Api-Key: {{apiKey}}
+Idempotency-Key: {{idempotencyKey}}
+Content-Type: application/json
+
+{
+  "tipoComprobante": 11,
+  "puntoVenta": 1,
+  "receptor": {
+    "documentoTipo": "99",
+    "documentoNumero": "0",
+    "razonSocial": "Consumidor Final",
+    "condicionIva": 5
+  },
+  "items": [
+    {
+      "descripcion": "Curso de programación",
+      "cantidad": 1,
+      "precioUnitario": 10000,
+      "alicuotaIva": 0
+    }
+  ],
+  "observaciones": "Venta de prueba"
+}
+
+###
+
 POST {{FacturAR_Api_HostAddress}}/v1/solicitudes-alta
 Content-Type: application/json
 
