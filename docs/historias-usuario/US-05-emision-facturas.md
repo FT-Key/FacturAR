@@ -17,22 +17,22 @@ La emisión usa el `ContribuyenteId` autenticado. El número y el CAE se asignan
 
 ## Criterios de aceptación
 
-- [ ] Se aceptan facturas A (`1`), B (`6`) y C (`11`) con los códigos AFIP correspondientes.
-- [ ] El emisor se resuelve desde la sesión o la API key; no se acepta en el body.
-- [ ] Se valida que el contribuyente y el punto de venta estén activos y pertenezcan al emisor.
-- [ ] Se valida el receptor: tipo y número de documento, razón social y condición IVA.
-- [ ] Se validan los ítems: descripción, cantidad mayor que cero, precio no negativo y alícuota permitida.
-- [ ] Una factura A se emite a responsables inscriptos y discrimina IVA.
-- [ ] Una factura B se emite a consumidor final, monotributista o exento; el IVA se incluye y no se discrimina.
-- [ ] Una factura C se emite a consumidor final y no discrimina IVA.
-- [ ] El total se calcula como neto + IVA y no se acepta un total inconsistente.
+- [x] Se aceptan facturas A (`1`), B (`6`) y C (`11`) con los códigos AFIP correspondientes.
+- [x] El emisor se resuelve desde la sesión o la API key; no se acepta en el body.
+- [x] Se valida que el contribuyente y el punto de venta estén activos y pertenezcan al emisor.
+- [x] Se valida el receptor: tipo y número de documento, razón social y condición IVA.
+- [x] Se validan los ítems: descripción, cantidad mayor que cero, precio no negativo y alícuota permitida.
+- [x] Una factura A se emite a responsables inscriptos y discrimina IVA.
+- [x] Una factura B se emite a consumidor final, monotributista o exento; el IVA se incluye y no se discrimina.
+- [x] Una factura C se emite a consumidor final y no discrimina IVA.
+- [x] El total se calcula como neto + IVA y no se acepta un total inconsistente.
 - [ ] La emisión asigna número y CAE dentro de una transacción.
-- [ ] El CAE tiene 14 dígitos, es único y vence a los 10 días.
-- [ ] La respuesta `201` incluye id, número, CAE, vencimiento, importes y estado.
+- [x] El CAE tiene 14 dígitos, es único y vence a los 10 días.
+- [x] La respuesta `201` incluye id, número, CAE, vencimiento, importes y estado.
 - [ ] Un error de validación devuelve `400` con `ErrorResponse` y detalles por campo.
-- [ ] Un punto de venta ajeno o inexistente devuelve `404`.
+- [x] Un punto de venta ajeno o inexistente devuelve `404`.
 - [ ] Un contribuyente inactivo devuelve `403`.
-- [ ] La emisión registra un evento de auditoría.
+- [x] La emisión registra un evento de auditoría.
 - [ ] El comprobante queda disponible para consulta y verificación por CAE.
 
 ## Escenarios Gherkin
@@ -82,26 +82,26 @@ Scenario: CAE único
 
 ## Tareas técnicas
 
-- [ ] Crear `Comprobante`, `ComprobanteItem` y enums si no existen.
-- [ ] Crear `IEmitirComprobanteService` y `IComprobanteRepository`.
-- [ ] Implementar validaciones de emisor, receptor, ítems e importes.
-- [ ] Implementar el cálculo de neto, IVA y total por tipo.
-- [ ] Integrar la asignación atómica de número de US-07.
-- [ ] Generar el CAE con `CaeGenerator` y calcular el vencimiento.
+- [x] Crear `Comprobante`, `ComprobanteItem` y enums si no existen.
+- [x] Crear `IEmitirComprobanteService` y `IComprobanteRepository`.
+- [x] Implementar validaciones de emisor, receptor, ítems e importes.
+- [x] Implementar el cálculo de neto, IVA y total por tipo.
+- [x] Integrar la asignación atómica de número de US-07.
+- [x] Generar el CAE con `CaeGenerator` y calcular el vencimiento.
 - [ ] Persistir el comprobante y sus ítems en una transacción.
-- [ ] Crear `POST /v1/comprobantes` con autenticación por API key.
-- [ ] Registrar auditoría.
-- [ ] Agregar tests de factura A, B, C, validaciones y aislamiento.
-- [ ] Documentar el contrato, ejemplos y errores en OpenAPI, Postman y manual.
+- [x] Crear `POST /v1/comprobantes` con autenticación por API key.
+- [x] Registrar auditoría.
+- [x] Agregar tests de factura A, B, C, validaciones y aislamiento.
+- [x] Documentar el contrato, ejemplos y errores en OpenAPI, Postman y manual.
 
 ## Definition of Done
 
 - [ ] Se emiten facturas A, B y C con numeración y CAE correctos.
 - [ ] El comprobante se recupera por CAE.
-- [ ] No se consumen números ni se persisten comprobantes ante errores.
-- [ ] El aislamiento por empresa está cubierto por tests.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el manual.
+- [x] No se consumen números ni se persisten comprobantes ante errores.
+- [x] El aislamiento por empresa está cubierto por tests.
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el manual.
 
 ## Contrato técnico
 
@@ -130,7 +130,7 @@ Scenario: CAE único
 | `Numero` | `long` | US-07 | Sale de `FindOneAndUpdate` con `$inc`. |
 | `FechaEmision` | `DateTime` (UTC) | body opcional | Si no viene, `DateTime.UtcNow`. |
 | `Cae` | `string` | `CaeGenerator.Generar()` | 14 dígitos aleatorios, sin dígito verificador: el CAE es simulado y no reproduce el algoritmo de AFIP. |
-| `CaeVencimiento` | `DateTime` (UTC) | `CaeGenerator.CalcularVencimiento(fechaEmision)` | Fecha de emisión + 10 días. Valor fijo en el MVP: US-18 no lo parametriza. |
+| `CaeVencimiento` | `DateTime` (UTC) | `CaeGenerator.CalcularVencimiento(fechaEmision)` | Fecha de emisión + `Facturacion__DiasVencimientoCae`, resuelto con `IParametrosResolver` (default 10 días, override por contribuyente). |
 | `ReceptorDocumentoTipo` | `string` | body | `99` = consumidor final. |
 | `ReceptorDocumentoNumero` | `string` | body | CUIT o documento del receptor. |
 | `ReceptorRazonSocial` | `string` | body | Solo puede quedar vacía en tipo C. |
@@ -255,7 +255,7 @@ Ninguno de estos tipos conoce `MongoDB.Driver`. La única implementación que lo
 | Emisor con `CondicionIva` `ConsumidorFinal` que emite una factura A | "Un emisor consumidor final no puede emitir una factura A." | `400 EMISION_INVALIDA` |
 | Tipo A sin CUIT válido en el receptor | "El receptor de una factura A debe tener un CUIT válido." | `400 CUIT_INVALIDO` |
 | Tipo B sin `99` y sin CUIT válido en el receptor | "El documento del receptor no es válido." | `400 CUIT_INVALIDO` |
-| Tipo C con `documentoTipo` distinto de `99` | "La factura C se emite a consumidor final." | `400 VALIDACION` |
+| Tipo C sin `documentoTipo` `99` ni `CUIT` válido | "La factura C se emite a consumidor final." | `400 VALIDACION` |
 | `condicionIva` del receptor no admisible para el tipo | "La condición frente al IVA del receptor no es admisible para este tipo de comprobante." | `400 VALIDACION` |
 | `razonSocial` del receptor vacía en tipo A o B | "La razón social del receptor es obligatoria." | `400 VALIDACION` |
 | `observaciones` con más de 500 caracteres | "Las observaciones admiten hasta 500 caracteres." | `400 VALIDACION` |
@@ -271,7 +271,7 @@ Ninguno de estos tipos conoce `MongoDB.Driver`. La única implementación que lo
 | --- | --- | --- | --- | --- |
 | A (`1`) | Se persiste literal. Solo `99` tiene significado en el MVP. | CUIT válido (11 dígitos, dígito verificador). | `ResponsableInscripto` | Obligatoria. |
 | B (`6`) | `99` o un valor persistente cualquiera. | Obligatorio: si `documentoTipo` es `99` puede ser DNI o CUIT; si no, debe ser un CUIT válido. | `ConsumidorFinal`, `Monotributo` o `Exento` | Obligatoria. |
-| C (`11`) | `99` | Opcional. | `ConsumidorFinal` | Opcional. |
+| C (`11`) | `99` o `CUIT`. | Opcional; si el tipo es `CUIT`, CUIT válido. | `ConsumidorFinal` | Opcional. |
 
 ### Cálculos
 
@@ -342,7 +342,7 @@ Ejemplo (tipo C): 1 × 10000; `ImporteNeto` 10000, `ImporteIva` 0, `ImporteTotal
 | US-11 | Verifica por CAE: US-05 garantiza que `Cae` sea único y que `Estado` sea `Emitido`. |
 | US-13 | Emisión manual desde el portal: reutiliza el mismo caso de uso con la sesión en lugar de la API key. |
 | US-17 | Formaliza auditoría y outbox. US-05 escribe solo el evento de auditoría, sin outbox. |
-| US-18 | Aporta `Facturacion__AlicuotasPermitidas` y `Facturacion__Moneda`. El vencimiento del CAE es fijo (10 días) y US-18 no lo parametriza. |
+| US-18 | Aporta `Facturacion__AlicuotasPermitidas`, `Facturacion__Moneda` y `Facturacion__DiasVencimientoCae`. El vencimiento del CAE se resuelve con `IParametrosResolver` (contrato §7.4 y §10). |
 
 ## Casos de prueba
 
@@ -421,3 +421,29 @@ Ejemplo (tipo C): 1 × 10000; `ImporteNeto` 10000, `ImporteIva` 0, `ImporteTotal
 - No implementa idempotencia; eso corresponde a US-06.
 - No implementa PDF ni QR; eso corresponde a US-10.
 - No llama a AFIP/ARCA.
+
+## Notas de implementación
+
+Estado: **Parcial**. El código de producción, los tests automáticos sin Mongo y la documentación están implementados; falta la verificación real con MongoDB en replica set.
+
+Evidencia ejecutada: `dotnet build FacturAR.slnx -c Release` sin errores ni advertencias, `dotnet format FacturAR.slnx --verify-no-changes` limpio y `dotnet test FacturAR.slnx -c Release --no-build` con 465 tests aprobados, 121 omitidos y 0 fallos. Los omitidos son los `[MongoFact]`, incluidos los 18 de `MongoComprobantesTests`.
+
+Decisiones tomadas:
+
+1. **Autenticación.** `docs/contratos-api.md` §4.2 manda sobre la tabla de esta historia: `POST /v1/comprobantes` exige solo API key `X-Api-Key` y la cookie del portal no autoriza endpoints de negocio. La emisión desde el portal corresponde a US-13, que reutiliza el caso de uso con la sesión.
+2. **Vencimiento del CAE.** Se resuelve con `IParametrosResolver` (`Facturacion__DiasVencimientoCae`, default 10 días, override por contribuyente), según el contrato §7.4 y §10. No es un valor fijo.
+3. **Factura C.** Se acepta `documentoTipo` `99` o `CUIT` con CUIT válido, según el contrato §7.2. La condición IVA del receptor sigue siendo obligatoriamente `ConsumidorFinal`.
+4. **Punto de venta.** Inexistente o de otra empresa devuelve `404 COMPROBANTE_NO_ENCONTRADO`; existente pero inactivo devuelve `409 PUNTO_VENTA_INACTIVO`. Lo fijan la tabla de endpoints, el escenario Gherkin y CP-05-07.
+5. **Contribuyente inactivo.** Por API key, US-03 devuelve `401 API_KEY_INVALIDA` antes de llegar al caso de uso. El `403 CUENTA_INACTIVA` queda como guard del servicio, cubierto por test unitario, y será alcanzable por HTTP cuando la emisión use la sesión del portal (US-13).
+6. **Idempotencia.** Hasta US-06 solo se exige y se persiste el header. La clave debe ser única por empresa; el reintento con la misma clave y el `409 IDEMPOTENCIA_CONFLICTO` llegan con US-06.
+7. **Detalle por campo.** Los `400` devuelven solo `Codigo` y `Mensaje`, como fija el contrato §2. El detalle por campo queda como extensión futura.
+
+Pendiente de verificación con MongoDB en replica set:
+
+- Emisión de punta a punta de los tipos A, B y C con número correlativo y CAE persistidos (`MongoComprobantesTests`).
+- Transacción: rollback sin comprobante persistido ni número consumido cuando falla la auditoría.
+- Concurrencia CP-05-18: dos emisiones simultáneas con números consecutivos distintos y CAE distintos.
+- Índice único `ux_comprobantes_cae` rechazando un CAE duplicado.
+- Recuperación del comprobante emitido con `GET /v1/comprobantes/verificar/{cae}`.
+- CP-05-11 por HTTP y QA manual del camino feliz.
+
