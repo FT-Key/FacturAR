@@ -42,7 +42,7 @@ La columna **Orden** es la posición dentro del sprint. La columna **Contrato** 
 | 14 | [US-10](US-10-pdf-qr.md) | PDF con código QR | Documentos | 5 | Alta | 2 | RF-09 | Pendiente | Sí |
 | 15 | [US-12](US-12-dashboard-listado.md) | Dashboard y listado | Portal | 5 | Media | 2 | RF-13 | Pendiente | Sí |
 | 16 | [US-13](US-13-emision-manual.md) | Emisión manual desde el portal | Portal | 5 | Media | 2 | RF-12 | Pendiente | Sí |
-| 17 | [US-14](US-14-api-keys-portal.md) | API keys desde el portal | Portal | 5 | Media | 1 | RF-14 | Pendiente | Sí |
+| 17 | [US-14](US-14-api-keys-portal.md) | API keys desde el portal | Portal | 5 | Media | 1 | RF-14 | Parcial | Sí |
 | 18 | [US-15](US-15-soap-emision.md) | SOAP de emisión | Interoperabilidad | 6 | Alta | 2 | RF-15 | Pendiente | Sí |
 | 19 | [US-16](US-16-soap-consultas.md) | SOAP de consultas | Interoperabilidad | 6 | Media | 1 | RF-16 | Pendiente | Sí |
 | 20 | [US-17](US-17-auditoria-outbox.md) | Auditoría y outbox | Operación | 6 | Media | 2 | RF-17 | Pendiente | Sí |
@@ -55,7 +55,7 @@ La columna **Orden** es la posición dentro del sprint. La columna **Contrato** 
 
 ### Estado real de la implementación
 
-Al día de hoy **US-11, US-04 y US-03 tienen comportamiento implementado**: la API expone `GET /`, `GET /health`, `GET /health/live`, `GET /v1/comprobantes/verificar/{cae}`, `POST /v1/auth/login`, `POST /v1/auth/logout`, `GET /v1/auth/me`, `POST /v1/admin/auth/login`, `POST /v1/admin/auth/logout` y `GET /v1/admin/auth/me`; el portal expone `/verificar`, `/login`, `/logout`, `/admin/login`, `/admin/logout` y `/admin`. US-04 queda en **Base implementada** porque el aislamiento multiempresa se completa con los endpoints de negocio de US-02, US-05 y US-09. US-03 aporta el esquema de autenticación por API key, sin endpoints propios todavía.
+Al día de hoy **US-11, US-04, US-03, US-05 y US-14 tienen comportamiento implementado**: la API expone `GET /`, `GET /health`, `GET /health/live`, `GET /v1/comprobantes/verificar/{cae}`, `POST /v1/comprobantes`, `POST /v1/auth/login`, `POST /v1/auth/logout`, `GET /v1/auth/me`, `POST /v1/admin/auth/login`, `POST /v1/admin/auth/logout`, `GET /v1/admin/auth/me` y los cuatro endpoints de `/v1/api-keys` (US-02); el portal expone `/verificar`, `/login`, `/logout`, `/admin/login`, `/admin/logout`, `/admin` y `/api-keys`. US-04 queda en **Base implementada** porque el aislamiento multiempresa se completa con los endpoints de negocio de US-02, US-05 y US-09. US-03 aporta el esquema de autenticación por API key, sin endpoints propios todavía.
 
 **US-29** queda en **Parcial**: el servicio de email está implementado y probado —`IEmailSender`, `EmailService`, las cinco plantillas, remitente de archivo en desarrollo, remitente SMTP y validación de configuración al arrancar—. US-27 ya dispara los emails de aprobación, rechazo y reenvío y muestra la advertencia con reenvío en el panel de solicitudes; falta el disparo desde los endpoints de US-01.
 
@@ -67,7 +67,9 @@ Al día de hoy **US-11, US-04 y US-03 tienen comportamiento implementado**: la A
 
 **US-28** queda **Completada**: el link del email abre `/activar`, valida el token (`GET /v1/invitaciones/{token}`) y crea el usuario administrador de la empresa en una transacción que marca la invitación como usada (`POST /v1/invitaciones/{token}/aceptar`). Con US-01, US-27 y US-28 el onboarding funciona de punta a punta.
 
-**US-02** queda **Parcial**: los cuatro endpoints de `/v1/api-keys` con la política `EmpresaAdministrador`, el generador/hasher y los servicios de creación, listado, revocación y regeneración están implementados y cubiertos por tests unitarios; falta la corrida real con Mongo (`MongoApiKeysTests` CP-01 a CP-15 se omiten sin connection string), el QA manual del portal y la actualización de `docs/manual-integracion.md` y `docs/proceso-alta-empresa.md`, que todavía marcan los endpoints como no implementados.
+**US-02** queda **Parcial**: los cuatro endpoints de `/v1/api-keys` con la política `EmpresaAdministrador`, el generador/hasher y los servicios de creación, listado, revocación y regeneración están implementados y cubiertos por tests unitarios; falta la corrida real con Mongo (`MongoApiKeysTests` CP-01 a CP-15 se omiten sin connection string) y las verificaciones de punta a punta con la API real.
+
+**US-14** queda en **Parcial**: la página `/api-keys` del portal lista, crea, revoca y regenera keys contra los endpoints de US-02, muestra el valor completo una sola vez en un modal con botón «Copiar» y aplica la autorización por rol: un usuario `Consulta` recibe «Acceso denegado» y la API responde `403 SIN_PERMISOS`. La verificación en Chrome headless contra un stub de la API aprobó CP-01 a CP-09, CP-11 a CP-13 y CP-15. Faltan las verificaciones contra la API y MongoDB reales: CP-10 y el aislamiento por empresa, que la key revocada o regenerada deje de autenticar en `GET /v1/comprobantes`, CP-14 (contexto no seguro), CP-05/CP-13 contra la API real, y la revisión responsive y de foco visible en móvil.
 
 **US-03** queda en **Base implementada**: el esquema `ApiKey` (`ApiKeyAuthenticationHandler`), la política `ApiKeyNegocio` con `RequireApiKey()`, `IApiKeyAuthenticator` (formato `fak_<12hex>_<43 base64url>`, búsqueda por prefijo y comparación con `FixedTimeEquals`), los claims `contribuyenteId`/`apikeyId`/`plano`, el registro de `UltimoUso` tolerante a fallos y los tests unitarios y de integración están implementados. Falta aplicarlo a endpoints de negocio reales cuando existan US-05/US-09 y correr los casos con Mongo real (`MongoApiKeyAuthenticationTests` se omiten sin connection string). La verificación pública por CAE sigue anónima.
 

@@ -19,6 +19,10 @@ Base URL local: `http://localhost:5171`. En Docker: `http://localhost:8080`.
 | `GET` | `/health` | Readiness: verifica MongoDB. `200` si responde, `503` si no. |
 | `GET` | `/health/live` | Liveness: no consulta MongoDB. Siempre `200`. |
 | `GET` | `/v1/comprobantes/verificar/{cae}` | Verificación pública de un comprobante por CAE. No requiere autenticación. |
+| `GET` | `/v1/api-keys` | Lista las API keys de la empresa. Requiere cookie de empresa (rol `Administrador`). |
+| `POST` | `/v1/api-keys` | Crea una key y devuelve el valor completo una única vez. Requiere cookie de empresa (rol `Administrador`). |
+| `DELETE` | `/v1/api-keys/{id}` | Revoca una key. Requiere cookie de empresa (rol `Administrador`). |
+| `POST` | `/v1/api-keys/{id}/regenerar` | Regenera el secreto de una key y devuelve el valor nuevo una única vez. Requiere cookie de empresa (rol `Administrador`). |
 | `POST` | `/v1/comprobantes` | Emisión de facturas A, B y C con CAE simulado. Requiere API key e `Idempotency-Key`. |
 
 Todo lo demás que aparece en este manual está **especificado pero no implementado**: esas rutas responden `404` hasta que su historia se complete.
@@ -38,10 +42,10 @@ Todo lo demás que aparece en este manual está **especificado pero no implement
 | `POST` | `/v1/admin/solicitudes/{id}/reenviar-invitacion` | cookie de consola global | especificado, pendiente de implementar (US-27) |
 | `GET` | `/v1/invitaciones/{token}` | público, con rate limit | implementado (US-28) |
 | `POST` | `/v1/invitaciones/{token}/aceptar` | público, con rate limit | implementado (US-28) |
-| `GET` | `/v1/api-keys` | cookie de empresa | especificado, pendiente de implementar (US-02) |
-| `POST` | `/v1/api-keys` | cookie de empresa | especificado, pendiente de implementar (US-02) |
-| `DELETE` | `/v1/api-keys/{id}` | cookie de empresa | especificado, pendiente de implementar (US-02) |
-| `POST` | `/v1/api-keys/{id}/regenerar` | cookie de empresa | especificado, pendiente de implementar (US-02) |
+| `GET` | `/v1/api-keys` | cookie de empresa | implementado (US-02) |
+| `POST` | `/v1/api-keys` | cookie de empresa | implementado (US-02) |
+| `DELETE` | `/v1/api-keys/{id}` | cookie de empresa | implementado (US-02) |
+| `POST` | `/v1/api-keys/{id}/regenerar` | cookie de empresa | implementado (US-02) |
 | `POST` | `/v1/comprobantes` | API key | implementado (US-05) |
 | `GET` | `/v1/comprobantes` | API key | especificado, pendiente de implementar (US-09) |
 | `GET` | `/v1/comprobantes/{id}` | API key | especificado, pendiente de implementar (US-09) |
@@ -97,7 +101,7 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 | Historia | Qué parte del manual describe | Estado |
 | --- | --- | --- |
 | US-01 | §1 Solicitar acceso: formulario público de alta | Pendiente |
-| US-02 | §3 Crear una API key | Pendiente |
+| US-02 | §3 Crear una API key | Implementado |
 | US-03 | §4 Autenticar requests con API key | Base implementada |
 | US-04 | §2 Activar la cuenta: login de empresa y roles | Pendiente |
 | US-05 | §5 Emitir una factura | Parcial |
@@ -114,7 +118,7 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 
 ## Qué es FacturAR
 
-FacturAR es un simulador de facturación electrónica argentina. El diseño del MVP permite solicitar el alta de una empresa, activar una cuenta, crear API keys, emitir comprobantes con CAE simulado y verificar un comprobante por su CAE. De ese recorrido, hoy están implementadas la emisión por API key y la verificación por CAE; el alta, la activación, las API keys y las consultas siguen pendientes: ver [Estado de la API](#estado-de-la-api).
+FacturAR es un simulador de facturación electrónica argentina. El diseño del MVP permite solicitar el alta de una empresa, activar una cuenta, crear API keys, emitir comprobantes con CAE simulado y verificar un comprobante por su CAE. De ese recorrido, hoy están disponibles la emisión por API key (US-05), la gestión de API keys desde el portal (US-14) y la verificación por CAE; el alta, la activación, las consultas y la descarga de PDF siguen pendientes: ver [Estado de la API](#estado-de-la-api).
 
 > Importante: el CAE es simulado y los comprobantes no tienen validez fiscal. No se realizan llamadas reales a AFIP/ARCA.
 
@@ -167,7 +171,7 @@ Errores del flujo: `404 INVITACION_NO_ENCONTRADA`, `410 INVITACION_VENCIDA`, `40
 
 ## 3. Crear una API key
 
-> **Diseño objetivo — US-02 y US-14.** La gestión de API keys **todavía no está implementada**. `GET|POST /v1/api-keys`, `DELETE /v1/api-keys/{id}` y `POST /v1/api-keys/{id}/regenerar` responden `404` hasta que US-02 se complete.
+> **Disponible — US-02 y US-14.** La gestión de API keys funciona desde el portal: en `/api-keys`, un usuario `Administrador` crea una key con un nombre, ve el valor completo una sola vez, lo copia y puede revocar o regenerar keys desde el listado. El contrato de los endpoints (`GET|POST /v1/api-keys`, `DELETE /v1/api-keys/{id}` y `POST /v1/api-keys/{id}/regenerar`) está en [`docs/contratos-api.md`](contratos-api.md); la pantalla y la regla de valor único están detalladas en [`US-14`](historias-usuario/US-14-api-keys-portal.md). Las consultas, la descarga de PDF y los endpoints SOAP siguen pendientes.
 
 1. Iniciar sesión en el portal como administrador de la empresa.
 2. Abrir la sección API keys.
@@ -548,7 +552,7 @@ El catálogo cerrado de códigos está en [Estado de la API](#estado-de-la-api) 
 ## 12. Preguntas frecuentes
 
 **¿Qué puedo consumir hoy?**
-La emisión de facturas A, B y C (`POST /v1/comprobantes`, con API key e `Idempotency-Key`), la verificación pública por CAE (`GET /v1/comprobantes/verificar/{cae}`) y los endpoints de salud. El alta, la activación, las API keys y las consultas siguen especificados en `docs/contratos-api.md` y pendientes de implementación.
+La emisión de facturas A, B y C (`POST /v1/comprobantes`, con API key e `Idempotency-Key`), la verificación pública por CAE (`GET /v1/comprobantes/verificar/{cae}`), los endpoints de salud, el login y la sesión (`/v1/auth/**` y `/v1/admin/auth/**`) y la gestión de API keys (`/v1/api-keys`, US-02 y US-14). El alta, la activación, las consultas, la descarga de PDF y los endpoints SOAP siguen pendientes; el contrato completo está en `docs/contratos-api.md`.
 
 **¿Puedo registrarme solo con el CUIT?**
 No. El CUIT es público. La cuenta se activa con una invitación enviada al email del solicitante y aprobada por un administrador global.

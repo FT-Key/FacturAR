@@ -11,6 +11,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddRazorPages();
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ApiKeyValorState>();
 builder.Services.AddHttpClient<FacturarApiClient>(client =>
 {
     var baseUrl = builder.Configuration["Api:BaseUrl"] ?? "http://localhost:5171";

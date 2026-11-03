@@ -1,0 +1,24 @@
+<dialog id="api-key-valor" class="js-dialogo api-key-dialogo" role="dialog" aria-modal="true" aria-labelledby="api-key-valor-titulo">
+    <div class="api-key-dialogo-contenido">
+        <h2 id="api-key-valor-titulo" class="h5">Copiá tu API key ahora</h2>
+        <p>
+            Este es el único momento en que vas a ver el valor completo de
+            <strong>@Nombre</strong>. No se puede recuperar después.
+        </p>
+        <label class="form-label" for="valor-api-key">Valor de la API key</label>
+        <textarea id="valor-api-key" class="form-control font-monospace" rows="3" readonly aria-label="Valor de la API key">@Valor</textarea>
+        <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+            <button type="button" class="btn btn-primary js-copiar-api-key" aria-controls="valor-api-key" autofocus>Copiar</button>
+            <p id="estado-copiado" class="small mb-0" role="status" aria-live="polite"></p>
+        </div>
+        <a id="cerrar-valor" class="btn btn-outline-secondary" href="/api-keys">Ya la copié, cerrar</a>
+    </div>
+</dialog>
+
+@code {
+    [Parameter]
+    public string Nombre { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Valor { get; set; } = string.Empty;
+}
