@@ -186,6 +186,66 @@ internal sealed class ComprobanteRepositorioFake : IComprobanteRepository
     public Task<Comprobante?> GetByCaeAsync(string cae, CancellationToken cancellationToken = default)
         => Task.FromResult(Comprobantes.FirstOrDefault(c => c.Cae == cae));
 
+    public Task<Comprobante?> GetByIdAsync(
+        Guid contribuyenteId,
+        Guid id,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(Comprobantes.FirstOrDefault(
+            c => c.Id == id && c.ContribuyenteId == contribuyenteId));
+
+    public Task<(IReadOnlyList<Comprobante> Items, long Total)> ListarAsync(
+        Guid contribuyenteId,
+        FiltroListadoComprobantes filtro,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var consulta = Comprobantes.Where(c => c.ContribuyenteId == contribuyenteId);
+
+        if (filtro.Desde is DateTime desde)
+        {
+            consulta = consulta.Where(c => c.FechaEmision >= desde);
+        }
+
+        if (filtro.HastaExclusivo is DateTime hastaExclusivo)
+        {
+            consulta = consulta.Where(c => c.FechaEmision < hastaExclusivo);
+        }
+
+        if (filtro.Tipo is TipoComprobante tipo)
+        {
+            consulta = consulta.Where(c => c.TipoComprobante == tipo);
+        }
+
+        if (filtro.Estado is EstadoComprobante estado)
+        {
+            consulta = consulta.Where(c => c.Estado == estado);
+        }
+
+        if (filtro.PuntoVenta is int puntoVenta)
+        {
+            consulta = consulta.Where(c => c.PuntoVenta == puntoVenta);
+        }
+
+        if (filtro.ReceptorDocumentoNumero is string receptor)
+        {
+            consulta = consulta.Where(c => c.ReceptorDocumentoNumero == receptor);
+        }
+
+        var coincidencias = consulta
+            .OrderByDescending(c => c.FechaEmision)
+            .ThenByDescending(c => c.Numero)
+            .ThenBy(c => c.Id)
+            .ToList();
+
+        var items = coincidencias
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return Task.FromResult<(IReadOnlyList<Comprobante>, long)>((items, coincidencias.Count));
+    }
+
     public Task AddAsync(Comprobante comprobante, CancellationToken cancellationToken = default)
     {
         Comprobantes.Add(comprobante);

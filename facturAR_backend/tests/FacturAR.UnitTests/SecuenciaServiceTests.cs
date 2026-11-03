@@ -91,5 +91,18 @@ public sealed class SecuenciaServiceTests
             UltimaClave = (contribuyenteId, puntoVenta, tipo);
             return Task.FromResult(numero);
         }
+
+        public Task<long> ObtenerUltimoNumeroAsync(
+            Guid contribuyenteId,
+            int puntoVenta,
+            TipoComprobante tipo,
+            CancellationToken ct = default)
+            => Task.FromResult(numero);
+
+        public Task<long> ObtenerMaximoUltimoNumeroAsync(
+            Guid contribuyenteId,
+            TipoComprobante tipo,
+            CancellationToken ct = default)
+            => Task.FromResult(numero);
     }
 }
