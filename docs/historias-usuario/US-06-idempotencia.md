@@ -17,18 +17,18 @@ La clave se envía en el header `Idempotency-Key`. Es única por contribuyente. 
 
 ## Criterios de aceptación
 
-- [ ] La emisión acepta el header `Idempotency-Key`.
-- [ ] La clave es única por contribuyente.
-- [ ] Un request repetido con la misma clave y el mismo payload devuelve el comprobante original.
-- [ ] No se vuelve a numerar ni a generar un CAE en un reintento idempotente.
-- [ ] Un request con la misma clave y payload distinto devuelve `409`.
-- [ ] Dos requests simultáneos con la misma clave generan un solo comprobante.
-- [ ] La respuesta del reintento conserva el mismo `id`, `numero` y `cae`.
-- [ ] La clave se guarda asociada al comprobante y al contribuyente.
-- [ ] El índice único impide duplicados.
-- [ ] La clave no se usa para otras operaciones.
-- [ ] La respuesta documenta el comportamiento idempotente.
-- [ ] Hay tests de reintento, conflicto y concurrencia.
+- [x] La emisión acepta el header `Idempotency-Key`. — CP-06-01 y CP-06-13 (401 con eco del header).
+- [x] La clave es única por contribuyente. — CP-06-10 y `Emitir_MismaClaveEnOtroContribuyente_EmiteUnComprobanteNuevo` (sin Mongo).
+- [x] Un request repetido con la misma clave y el mismo payload devuelve el comprobante original. — CP-06-01.
+- [x] No se vuelve a numerar ni a generar un CAE en un reintento idempotente. — CP-06-01 y CP-06-03.
+- [x] Un request con la misma clave y payload distinto devuelve `409`. — CP-06-02 y CP-06-04.
+- [ ] Dos requests simultáneos con la misma clave generan un solo comprobante. — Test `[MongoFact]` CP-06-08 omitido por falta de MongoDB replica set.
+- [x] La respuesta del reintento conserva el mismo `id`, `numero` y `cae`. — CP-06-01.
+- [x] La clave se guarda asociada al comprobante y al contribuyente. — `Emitir_PersisteLaClaveYElHashDelPayload` (repositorio fake).
+- [ ] El índice único impide duplicados. — No verificado contra MongoDB real.
+- [ ] La clave no se usa para otras operaciones. — Sin test automático específico.
+- [x] La respuesta documenta el comportamiento idempotente. — `docs/manual-integracion.md` §6 y `docs/contratos-api.md` §5.
+- [ ] Hay tests de reintento, conflicto y concurrencia. — Reintento y conflicto ejecutados; el test de concurrencia está escrito pero se omite sin Mongo replica set.
 
 ## Escenarios Gherkin
 
@@ -66,21 +66,21 @@ Scenario: Clave repetida en otra empresa
 
 ## Tareas técnicas
 
-- [ ] Agregar `IdempotencyKey` al comprobante y su índice único por contribuyente.
-- [ ] Crear `IIdempotencyService` o integrar la lógica en `EmitirComprobanteService`.
-- [ ] Guardar el hash del payload para detectar conflictos.
-- [ ] Implementar la búsqueda previa y el manejo de carrera.
-- [ ] Devolver el comprobante existente sin renumerar.
-- [ ] Agregar tests de reintento, conflicto y concurrencia.
-- [ ] Documentar el header y los errores en el manual.
+- [ ] Agregar `IdempotencyKey` al comprobante y su índice único por contribuyente. — El campo y `IdempotencyPayloadHash` persisten en tests con fake; el índice `ux_comprobantes_idempotencia` no se verificó contra Mongo.
+- [x] Crear `IIdempotencyService` o integrar la lógica en `EmitirComprobanteService`. — `IdempotenciaServiceTests`.
+- [x] Guardar el hash del payload para detectar conflictos. — `PayloadHasherTests` y `Emitir_PersisteLaClaveYElHashDelPayload`.
+- [x] Implementar la búsqueda previa y el manejo de carrera. — Búsqueda previa y ramas de carrera cubiertas por tests unitarios con fakes; la carrera real con Mongo sigue pendiente.
+- [x] Devolver el comprobante existente sin renumerar. — CP-06-01, CP-06-03 y `Emitir_ReplayConMismaClaveYPayload_NoRenumeraNiDuplica`.
+- [ ] Agregar tests de reintento, conflicto y concurrencia. — Reintento y conflicto ejecutados; concurrencia escrita pero omitida sin Mongo replica set.
+- [x] Documentar el header y los errores en el manual. — `docs/manual-integracion.md` §6 actualizado.
 
 ## Definition of Done
 
-- [ ] Un reintento no duplica comprobantes ni números.
-- [ ] Un payload distinto con la misma clave devuelve `409`.
-- [ ] La concurrencia está cubierta por tests.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el manual.
+- [x] Un reintento no duplica comprobantes ni números. — CP-06-01/03 con repositorios fake.
+- [x] Un payload distinto con la misma clave devuelve `409`. — CP-06-02/04.
+- [ ] La concurrencia está cubierta por tests. — Existe CP-06-08/09, pero `[MongoFact]` se omite sin MongoDB replica set.
+- [x] `dotnet test FacturAR.slnx` pasa. — 490 aprobados, 124 omitidos, 0 fallos.
+- [x] La historia está enlazada desde el índice y el manual. — `README.md` y `docs/manual-integracion.md` §6.
 
 ## Contrato técnico
 
@@ -267,3 +267,27 @@ No se agrega ninguna colección nueva: la idempotencia vive en `comprobantes`.
 - No implementa expiración de claves de idempotencia.
 - No implementa idempotencia para notas, pagos ni otras operaciones.
 - No reemplaza la numeración atómica de US-07.
+
+## Evidencia
+
+| Comprobación | Comando | Resultado |
+| --- | --- | --- |
+| Build | `dotnet build FacturAR.slnx -c Release` | 0 errores, 0 warnings. |
+| Tests | `dotnet test FacturAR.slnx -c Release --no-build --logger "console;verbosity=minimal"` | UnitTests 401 aprobados/0 omitidos/0 fallos; IntegrationTests 89 aprobados/124 omitidos/0 fallos; total 490 aprobados, 124 omitidos, 0 fallos. |
+| Formato | `dotnet format FacturAR.slnx --verify-no-changes` | Exit 0. |
+| QA con Playwright | Servicios reales (API 5171, portal 5116, Docker 8080/8081, Mongo 27017) | **Omitido**: servicios no disponibles, Docker Desktop apagado y sin `MONGO_CONNECTION_STRING` en el shell. No se ejecutó ningún CP contra servicios reales. |
+
+**CP con tests automáticos ejecutados sin Mongo:** CP-06-01, CP-06-02, CP-06-03, CP-06-04, CP-06-05, CP-06-06, CP-06-07, CP-06-10, CP-06-13 y CP-06-14.
+
+**CP no verificados en ejecución:** CP-06-08, CP-06-09, CP-06-11 y CP-06-12. Tienen test escrito, pero está marcado `[MongoFact]` y se omite sin MongoDB en modo replica set.
+
+## Estado
+
+**Estado: Parcial.** La implementación existe (`PayloadHasher`, `IdempotenciaService`, replay/conflicto en `EmitirComprobanteService`, respuesta `201`/`200`, `409 IDEMPOTENCIA_CONFLICTO` y eco de `Idempotency-Key` en todas las respuestas) y está cubierta por tests automáticos sin Mongo. No se mueve a `historias-usuario-terminadas/`.
+
+Pendiente para completar:
+
+- Correr CP-06-08, CP-06-09, CP-06-11 y CP-06-12 contra MongoDB en replica set (concurrencia, rollback de secuencia, reintentos repetidos y no expiración).
+- Verificar el índice único `ux_comprobantes_idempotencia` contra MongoDB real.
+- Ejecutar el QA manual del camino feliz, replay y conflicto contra la API y el portal reales.
+- Confirmar en ejecución que la clave solo aplica a `POST /v1/comprobantes`.

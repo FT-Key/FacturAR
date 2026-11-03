@@ -178,7 +178,9 @@ Formato exacto: `fak_` + `prefix` (12 caracteres hexadecimales) + `_` + `secret`
 - Si la misma clave llega con **otro** payload, se responde `409 IDEMPOTENCIA_CONFLICTO`.
 - Si la misma clave llega con el **mismo** payload, se devuelve el comprobante original con `200` y **no** se renumera ni se vuelve a generar el CAE.
 - El reintento devuelve el mismo `id`, `numero` y `cae`.
+- Todas las respuestas de `POST /v1/comprobantes`, incluidas `401` y `403`, devuelven el header `Idempotency-Key` con la clave recibida.
 - No hay expiración de claves: es una nota de alcance explícita de US-06.
+- No hay límite de intentos ni ventana temporal de reintentos: un replay con la misma clave y el mismo payload siempre devuelve el comprobante original.
 - La clave no se usa para otras operaciones (notas, pagos, consultas).
 
 ## 6. Paginación (US-09, US-12)

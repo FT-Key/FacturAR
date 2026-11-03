@@ -108,7 +108,7 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 | US-03 | §4 Autenticar requests con API key | Base implementada |
 | US-04 | §2 Activar la cuenta: login de empresa y roles | Pendiente |
 | US-05 | §5 Emitir una factura | Parcial |
-| US-06 | §6 Idempotencia | Pendiente |
+| US-06 | §6 Idempotencia | Parcial |
 | US-07 | Numeración correlativa del comprobante (reglas de §5) | Pendiente |
 | US-09 | §7 Consultar comprobantes | Parcial |
 | US-10 | Descarga del PDF (`GET /v1/comprobantes/{id}/pdf`) | Pendiente |
@@ -241,7 +241,7 @@ La API actualiza `UltimoUso` en cada autenticación exitosa, con granularidad de
 | Header | Regla |
 | --- | --- |
 | `X-Api-Key` | Obligatorio. Si falta: `401 API_KEY_AUSENTE`. Si no existe, está revocada o la empresa está inactiva: `401 API_KEY_INVALIDA`. |
-| `Idempotency-Key` | Obligatorio, máximo 128 caracteres. Se persiste y es única por empresa. Hasta US-06 no hay reintento idempotente: reutilizar una clave ya usada hace fallar la emisión en lugar de devolver el comprobante original. Usar una clave distinta por operación. |
+| `Idempotency-Key` | Obligatorio, máximo 128 caracteres. Se persiste y es única por empresa. Usar una clave distinta por operación; si se repite con el mismo body, la API devuelve el comprobante original. |
 
 ```http
 POST /v1/comprobantes HTTP/1.1
@@ -345,12 +345,13 @@ El punto de venta debe existir y estar activo. Si no existe o pertenece a otra e
 | `SIN_PERMISOS` | `403` | El rol del principal no permite emitir comprobantes. |
 | `COMPROBANTE_NO_ENCONTRADO` | `404` | El punto de venta no existe o pertenece a otra empresa. |
 | `PUNTO_VENTA_INACTIVO` | `409` | El punto de venta existe y pertenece a la empresa, pero está inactivo. |
+| `IDEMPOTENCIA_CONFLICTO` | `409` | La misma `Idempotency-Key` llegó con un payload distinto. |
 | `MONGO_NO_DISPONIBLE` | `503` | No hay conexión con MongoDB o la operación agota el tiempo. |
 | `ERROR_INTERNO` | `500` | Falla inesperada; el detalle queda en el log y no en la respuesta. |
 
 ## 6. Idempotencia
 
-> **Parcial — US-05 y US-06.** El header ya es obligatorio en `POST /v1/comprobantes` y se persiste con el comprobante. La semántica de reintento —`200` con el mismo comprobante o `409 IDEMPOTENCIA_CONFLICTO`— llega con US-06. Hasta entonces, la clave debe ser única por empresa: reutilizarla hace fallar la emisión, no devuelve el comprobante original.
+> **Parcial — US-05 y US-06.** El comportamiento idempotente está implementado y cubierto por tests automáticos sin Mongo. La verificación contra MongoDB en replica set (concurrencia y rollback de secuencia) y el QA manual contra la API real siguen pendientes.
 
 Enviar un header `Idempotency-Key` único por operación:
 
@@ -358,11 +359,23 @@ Enviar un header `Idempotency-Key` único por operación:
 Idempotency-Key: pedido-2026-0001
 ```
 
-El header es obligatorio en `POST /v1/comprobantes` y admite hasta 128 caracteres. La clave es única por empresa: la misma clave en otra empresa es una operación distinta.
+El header es obligatorio en `POST /v1/comprobantes` y admite hasta 128 caracteres. La clave es única por empresa: la misma clave en otra empresa es una operación distinta, con su propio comprobante y su propio número.
 
-Hasta US-06, repetir la misma key no devuelve el comprobante original: la emisión falla por el índice único `(empresa, clave)`. US-06 agrega el reintento idempotente (`200` con el mismo comprobante, sin renumerar ni generar otro CAE) y el `409 IDEMPOTENCIA_CONFLICTO` cuando la misma clave llega con otro payload.
+Comportamiento por request:
 
-Usar una key distinta para cada operación real. No reutilizar la key de un pedido exitoso para otro pedido.
+| Situación | Respuesta |
+| --- | --- |
+| Primera emisión con una clave nueva | `201` con `ComprobanteResponse`. |
+| Reintento con la misma clave y el mismo payload | `200` con el mismo `id`, `numero` y `cae`. No se renumera ni se genera otro CAE. |
+| Misma clave con un payload distinto | `409 IDEMPOTENCIA_CONFLICTO`. El comprobante original no se modifica. |
+| Falta el header o supera 128 caracteres | `400 VALIDACION`. |
+
+- El payload se compara por su hash canónico: los importes se normalizan a 2 decimales, pero el orden de los ítems forma parte del payload. Cambiar el orden de los ítems con la misma clave produce `409 IDEMPOTENCIA_CONFLICTO`.
+- La clave **no expira** y **no hay límite de intentos ni ventana temporal**: los reintentos con la misma clave y el mismo payload siguen devolviendo `200` con el comprobante original.
+- Todas las respuestas, incluidas `401` y `403`, devuelven el header `Idempotency-Key` con la clave recibida.
+- El header solo tiene efecto en `POST /v1/comprobantes`; no se usa para notas, pagos ni consultas.
+
+> **Verificación pendiente.** La concurrencia real (dos requests simultáneos con la misma clave), el rollback de la secuencia y la no expiración requieren MongoDB en modo replica set; sus tests están escritos pero se omiten sin esa infraestructura. El QA manual de replay y conflicto contra la API real también está pendiente.
 
 ## 7. Consultar comprobantes
 
