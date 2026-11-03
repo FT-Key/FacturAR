@@ -9,4 +9,15 @@ public interface ISecuenciaRepository
         int puntoVenta,
         TipoComprobante tipo,
         CancellationToken ct = default);
+
+    Task<long> ObtenerUltimoNumeroAsync(
+        Guid contribuyenteId,
+        int puntoVenta,
+        TipoComprobante tipo,
+        CancellationToken ct = default);
+
+    Task<long> ObtenerMaximoUltimoNumeroAsync(
+        Guid contribuyenteId,
+        TipoComprobante tipo,
+        CancellationToken ct = default);
 }
