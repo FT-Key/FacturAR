@@ -486,6 +486,28 @@ public sealed class MongoComprobantesTests : IAsyncLifetime
     }
 
     [MongoFact]
+    public async Task CP0612_ClaveRegistradaTiempoAtras_NoExpiraYDevuelveElMismoComprobante()
+    {
+        await LimpiarAsync();
+        var request = FacturaA();
+
+        var primero = await EmitirAsync(request, "idem-cp0612");
+        Assert.Equal(HttpStatusCode.Created, primero.StatusCode);
+        var original = await LeerAsync<ComprobanteResponse>(primero);
+
+        await Comprobantes().UpdateOneAsync(
+            c => c.IdempotencyKey == "idem-cp0612",
+            Builders<Comprobante>.Update.Set(c => c.CreatedAt, DateTime.UtcNow.AddYears(-2)));
+
+        var repetido = await EmitirAsync(request, "idem-cp0612");
+        Assert.Equal(HttpStatusCode.OK, repetido.StatusCode);
+        var comprobante = await LeerAsync<ComprobanteResponse>(repetido);
+        Assert.Equal(original.Id, comprobante.Id);
+        Assert.Equal(original.Numero, comprobante.Numero);
+        Assert.Equal(original.Cae, comprobante.Cae);
+    }
+
+    [MongoFact]
     public async Task CP0520_FacturaAConReceptorResponsableInscripto_Devuelve201ConIvaDiscriminado()
     {
         await LimpiarAsync();
