@@ -1,0 +1,6 @@
+<span class="badge @(Activa ? "text-bg-success" : "text-bg-secondary")">@(Activa ? "Activa" : "Revocada")</span>
+
+@code {
+    [Parameter]
+    public bool Activa { get; set; }
+}

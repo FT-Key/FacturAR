@@ -1,0 +1,34 @@
+<dialog id="@Id" class="js-dialogo-confirmacion api-key-dialogo" role="dialog" aria-modal="true" aria-labelledby="@($"{Id}-titulo")">
+    <div class="api-key-dialogo-contenido">
+        <h2 id="@($"{Id}-titulo")" class="h5">@Titulo</h2>
+        <p>@Mensaje</p>
+        <div class="d-flex flex-wrap justify-content-end align-items-center gap-2">
+            <button type="button" class="btn btn-outline-secondary js-cerrar-dialogo">Cancelar</button>
+            <form method="post" data-enhance @formname="@($"accion-{Id}")">
+                <AntiforgeryToken />
+                <input type="hidden" name="Accion" value="@Accion" />
+                <button type="submit" class="btn btn-@Variante">@TextoConfirmar</button>
+            </form>
+        </div>
+    </div>
+</dialog>
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Titulo { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Mensaje { get; set; } = string.Empty;
+
+    [Parameter]
+    public string TextoConfirmar { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Accion { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Variante { get; set; } = "danger";
+}
