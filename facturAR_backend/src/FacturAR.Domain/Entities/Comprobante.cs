@@ -24,6 +24,7 @@ public sealed class Comprobante
     public string Moneda { get; set; } = "ARS";
     public EstadoComprobante Estado { get; set; } = EstadoComprobante.Emitido;
     public string IdempotencyKey { get; set; } = Guid.NewGuid().ToString("N");
+    public string IdempotencyPayloadHash { get; set; } = string.Empty;
     public string? Observaciones { get; set; }
     public List<ComprobanteItem> Items { get; set; } = [];
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

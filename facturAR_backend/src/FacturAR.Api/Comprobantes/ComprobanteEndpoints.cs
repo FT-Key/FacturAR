@@ -10,7 +10,7 @@ namespace FacturAR.Api.Comprobantes;
 
 public static class ComprobanteEndpoints
 {
-    private const string HeaderIdempotencia = "Idempotency-Key";
+    internal const string HeaderIdempotencia = "Idempotency-Key";
     private const string ClaimRol = "rol";
     private const int LongitudMaximaIdempotencia = 128;
     private const string MensajeMongoNoDisponible = "No hay conexión con la base de datos. Intentá de nuevo en unos minutos.";
@@ -22,6 +22,7 @@ public static class ComprobanteEndpoints
             .WithName("EmitirComprobante")
             .WithTags("Comprobantes")
             .RequireApiKey()
+            .Produces<ComprobanteResponse>(StatusCodes.Status200OK)
             .Produces<ComprobanteResponse>(StatusCodes.Status201Created)
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ErrorResponse>(StatusCodes.Status401Unauthorized)
@@ -56,6 +57,14 @@ public static class ComprobanteEndpoints
                 "El header Idempotency-Key admite hasta 128 caracteres.");
         }
 
+        if (idempotencyKey.Any(char.IsControl))
+        {
+            return Error(
+                StatusCodes.Status400BadRequest,
+                "VALIDACION",
+                "El header Idempotency-Key no admite caracteres de control.");
+        }
+
         if (tenant.ContribuyenteId is not Guid contribuyenteId)
         {
             return Error(StatusCodes.Status401Unauthorized, "API_KEY_INVALIDA", "La API key no es válida.");
@@ -65,14 +74,16 @@ public static class ComprobanteEndpoints
 
         try
         {
-            var respuesta = await service.EmitirAsync(
+            var resultado = await service.EmitirAsync(
                 contribuyenteId,
                 rol,
                 request,
                 idempotencyKey,
                 cancellationToken);
 
-            return Results.Created($"/v1/comprobantes/{respuesta.Id}", respuesta);
+            return resultado.EsRepeticion
+                ? Results.Ok(resultado.Comprobante)
+                : Results.Created($"/v1/comprobantes/{resultado.Comprobante.Id}", resultado.Comprobante);
         }
         catch (ComprobanteValidationException ex)
         {
@@ -101,6 +112,10 @@ public static class ComprobanteEndpoints
         catch (PuntoVentaInactivoException ex)
         {
             return Error(StatusCodes.Status409Conflict, "PUNTO_VENTA_INACTIVO", ex.Message);
+        }
+        catch (IdempotenciaConflictoException ex)
+        {
+            return Error(StatusCodes.Status409Conflict, "IDEMPOTENCIA_CONFLICTO", ex.Message);
         }
         catch (Exception ex) when (ex is MongoConnectionException or TimeoutException)
         {

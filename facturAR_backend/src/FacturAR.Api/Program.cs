@@ -134,6 +134,7 @@ builder.Services.AddScoped<ListarComprobantesService>();
 builder.Services.AddScoped<ConsultarComprobanteService>();
 builder.Services.AddScoped<ObtenerUltimoAutorizadoService>();
 builder.Services.AddScoped<IEmitirComprobanteService, EmitirComprobanteService>();
+builder.Services.AddScoped<IIdempotenciaService, IdempotenciaService>();
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IAdministradorRepository, AdministradorRepository>();
 builder.Services.AddScoped<IContribuyenteRepository, ContribuyenteRepository>();
@@ -244,6 +245,27 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 
     await context.Response.WriteAsJsonAsync(error);
 }));
+app.Use(async (context, next) =>
+{
+    var request = context.Request;
+
+    if (HttpMethods.IsPost(request.Method)
+        && string.Equals(request.Path.Value?.TrimEnd('/'), "/v1/comprobantes", StringComparison.OrdinalIgnoreCase))
+    {
+        var idempotencyKey = request.Headers[ComprobanteEndpoints.HeaderIdempotencia].ToString();
+
+        if (!string.IsNullOrWhiteSpace(idempotencyKey) && !idempotencyKey.Any(char.IsControl))
+        {
+            context.Response.OnStarting(() =>
+            {
+                context.Response.Headers[ComprobanteEndpoints.HeaderIdempotencia] = idempotencyKey;
+                return Task.CompletedTask;
+            });
+        }
+    }
+
+    await next();
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseWhen(

@@ -22,6 +22,7 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
     private readonly IPuntoVentaRepository _puntosVenta;
     private readonly ISecuenciaService _secuencias;
     private readonly IComprobanteRepository _comprobantes;
+    private readonly IIdempotenciaService _idempotencia;
     private readonly IEventoAuditoriaRepository _eventos;
     private readonly ITransaccionMongo _transaccion;
     private readonly IParametrosResolver _parametros;
@@ -31,6 +32,7 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
         IPuntoVentaRepository puntosVenta,
         ISecuenciaService secuencias,
         IComprobanteRepository comprobantes,
+        IIdempotenciaService idempotencia,
         IEventoAuditoriaRepository eventos,
         ITransaccionMongo transaccion,
         IParametrosResolver parametros)
@@ -39,12 +41,13 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
         _puntosVenta = puntosVenta;
         _secuencias = secuencias;
         _comprobantes = comprobantes;
+        _idempotencia = idempotencia;
         _eventos = eventos;
         _transaccion = transaccion;
         _parametros = parametros;
     }
 
-    public async Task<ComprobanteResponse> EmitirAsync(
+    public async Task<ResultadoEmision> EmitirAsync(
         Guid contribuyenteId,
         string? rol,
         EmitirComprobanteRequest request,
@@ -57,6 +60,19 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
         if (emisor is null || !emisor.Activo)
         {
             throw new CuentaInactivaException();
+        }
+
+        var payloadHash = PayloadHasher.Hash(request);
+        var resolucion = await _idempotencia.ResolverAsync(contribuyenteId, idempotencyKey, payloadHash, ct);
+
+        if (resolucion.Estado == EstadoIdempotencia.Replay && resolucion.Comprobante is not null)
+        {
+            return new ResultadoEmision(Mapear(resolucion.Comprobante), true);
+        }
+
+        if (resolucion.Estado == EstadoIdempotencia.Conflicto)
+        {
+            throw new IdempotenciaConflictoException();
         }
 
         var tipo = (TipoComprobante)request.TipoComprobante;
@@ -106,52 +122,100 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
         var caeVencimiento = CalcularCaeVencimiento(fechaEmision, diasVencimiento);
         var moneda = await _parametros.ObtenerMonedaAsync(contribuyenteId, ct);
 
-        var comprobante = await _transaccion.EjecutarAsync(
-            async token =>
-            {
-                var numero = await _secuencias.ObtenerSiguienteNumeroAsync(
-                    contribuyenteId,
-                    request.PuntoVenta,
-                    tipo,
-                    token);
+        Comprobante comprobante;
 
-                var ahora = DateTime.UtcNow;
-
-                var emitido = new Comprobante
+        try
+        {
+            comprobante = await _transaccion.EjecutarAsync(
+                async token =>
                 {
-                    Id = Guid.NewGuid(),
-                    ContribuyenteId = contribuyenteId,
-                    EmisorCuit = emisor.Cuit,
-                    EmisorRazonSocial = emisor.RazonSocial,
-                    PuntoVenta = request.PuntoVenta,
-                    TipoComprobante = tipo,
-                    Numero = numero,
-                    FechaEmision = fechaEmision,
-                    Cae = CaeGenerator.Generar(),
-                    CaeVencimiento = caeVencimiento,
-                    ReceptorDocumentoTipo = receptor.DocumentoTipo,
-                    ReceptorDocumentoNumero = receptor.DocumentoNumero,
-                    ReceptorRazonSocial = receptor.RazonSocial,
-                    ReceptorCondicionIva = receptor.CondicionIva,
-                    ImporteNeto = calculo.ImporteNeto,
-                    ImporteIva = calculo.ImporteIva,
-                    ImporteTotal = calculo.ImporteTotal,
-                    Moneda = moneda,
-                    Estado = EstadoComprobante.Emitido,
-                    IdempotencyKey = idempotencyKey,
-                    Observaciones = observaciones,
-                    Items = [.. calculo.Items],
-                    CreatedAt = ahora
-                };
+                    var numero = await _secuencias.ObtenerSiguienteNumeroAsync(
+                        contribuyenteId,
+                        request.PuntoVenta,
+                        tipo,
+                        token);
 
-                await _comprobantes.AddAsync(emitido, token);
-                await _eventos.AddAsync(CrearEvento(emitido), token);
+                    var ahora = DateTime.UtcNow;
 
-                return emitido;
-            },
-            ct);
+                    var emitido = new Comprobante
+                    {
+                        Id = Guid.NewGuid(),
+                        ContribuyenteId = contribuyenteId,
+                        EmisorCuit = emisor.Cuit,
+                        EmisorRazonSocial = emisor.RazonSocial,
+                        PuntoVenta = request.PuntoVenta,
+                        TipoComprobante = tipo,
+                        Numero = numero,
+                        FechaEmision = fechaEmision,
+                        Cae = CaeGenerator.Generar(),
+                        CaeVencimiento = caeVencimiento,
+                        ReceptorDocumentoTipo = receptor.DocumentoTipo,
+                        ReceptorDocumentoNumero = receptor.DocumentoNumero,
+                        ReceptorRazonSocial = receptor.RazonSocial,
+                        ReceptorCondicionIva = receptor.CondicionIva,
+                        ImporteNeto = calculo.ImporteNeto,
+                        ImporteIva = calculo.ImporteIva,
+                        ImporteTotal = calculo.ImporteTotal,
+                        Moneda = moneda,
+                        Estado = EstadoComprobante.Emitido,
+                        IdempotencyKey = idempotencyKey,
+                        IdempotencyPayloadHash = payloadHash,
+                        Observaciones = observaciones,
+                        Items = [.. calculo.Items],
+                        CreatedAt = ahora
+                    };
 
-        return Mapear(comprobante);
+                    await _comprobantes.AddAsync(emitido, token);
+                    await _eventos.AddAsync(CrearEvento(emitido), token);
+
+                    return emitido;
+                },
+                ct);
+        }
+        catch (IdempotenciaDuplicadaException)
+        {
+            var existente = await ReleerTrasCarreraAsync(contribuyenteId, idempotencyKey, ct);
+
+            if (existente is null)
+            {
+                throw new IdempotenciaConflictoException();
+            }
+
+            if (!string.Equals(existente.IdempotencyPayloadHash, payloadHash, StringComparison.Ordinal))
+            {
+                throw new IdempotenciaConflictoException();
+            }
+
+            return new ResultadoEmision(Mapear(existente), true);
+        }
+
+        return new ResultadoEmision(Mapear(comprobante), false);
+    }
+
+    private async Task<Comprobante?> ReleerTrasCarreraAsync(
+        Guid contribuyenteId,
+        string idempotencyKey,
+        CancellationToken ct)
+    {
+        const int intentos = 10;
+        var espera = TimeSpan.FromMilliseconds(25);
+
+        for (var intento = 0; intento < intentos; intento++)
+        {
+            var existente = await _comprobantes.GetByIdempotencyKeyAsync(contribuyenteId, idempotencyKey, ct);
+
+            if (existente is not null)
+            {
+                return existente;
+            }
+
+            if (intento < intentos - 1)
+            {
+                await Task.Delay(espera, ct);
+            }
+        }
+
+        return null;
     }
 
     private static void ValidarPermisos(string? rol)
