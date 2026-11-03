@@ -950,6 +950,311 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Notas de crédito y débito",
+      "description": "US-08. Ejecutar en orden: primero se emite la factura A original.",
+      "item": [
+        {
+          "name": "Emitir factura A original",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('facturaOriginalId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Api-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoComprobante\": 1,\n  \"puntoVenta\": 1,\n  \"receptor\": {\n    \"documentoTipo\": \"CUIT\",\n    \"documentoNumero\": \"30712345671\",\n    \"razonSocial\": \"Cliente S.A.\",\n    \"condicionIva\": 1\n  },\n  \"items\": [\n    {\n      \"descripcion\": \"Servicio de prueba\",\n      \"cantidad\": 2,\n      \"precioUnitario\": 5000,\n      \"alicuotaIva\": 21\n    }\n  ],\n  \"importeTotal\": 12100\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "comprobantes"]
+            },
+            "description": "Emite la factura A de 12100 sobre la que se emiten las notas y guarda su id en `facturaOriginalId`."
+          },
+          "response": []
+        },
+        {
+          "name": "Nota de crédito A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Es una nota de crédito A con CAE propio', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.tipoComprobante).to.eql(3);",
+                  "  pm.expect(body.importeTotal).to.eql(1210);",
+                  "  pm.expect(body.cae).to.match(/^[1-9][0-9]{13}$/);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Api-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoComprobante\": 3,\n  \"puntoVenta\": 1,\n  \"comprobanteOriginalId\": \"{{facturaOriginalId}}\",\n  \"receptor\": {\n    \"documentoTipo\": \"CUIT\",\n    \"documentoNumero\": \"30712345671\",\n    \"razonSocial\": \"Cliente S.A.\",\n    \"condicionIva\": 1\n  },\n  \"items\": [\n    {\n      \"descripcion\": \"Ajuste de la factura\",\n      \"cantidad\": 1,\n      \"precioUnitario\": 1000,\n      \"alicuotaIva\": 21\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "comprobantes"]
+            },
+            "description": "US-08. Nota de crédito por 1000 + IVA 21% sobre la factura A. Tiene número, CAE y vencimiento propios; el saldo ajustable de la factura queda en 10890."
+          },
+          "response": []
+        },
+        {
+          "name": "Nota de débito A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Es una nota de débito A', () => pm.expect(pm.response.json().tipoComprobante).to.eql(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Api-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoComprobante\": 2,\n  \"puntoVenta\": 1,\n  \"comprobanteOriginalId\": \"{{facturaOriginalId}}\",\n  \"receptor\": {\n    \"documentoTipo\": \"CUIT\",\n    \"documentoNumero\": \"30712345671\",\n    \"razonSocial\": \"Cliente S.A.\",\n    \"condicionIva\": 1\n  },\n  \"items\": [\n    {\n      \"descripcion\": \"Ajuste de la factura\",\n      \"cantidad\": 1,\n      \"precioUnitario\": 500,\n      \"alicuotaIva\": 0\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "comprobantes"]
+            },
+            "description": "US-08. Una nota de débito aumenta el saldo ajustable y no está limitada por él."
+          },
+          "response": []
+        },
+        {
+          "name": "Nota de crédito superior al saldo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400 IMPORTE_EXCEDIDO', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().codigo).to.eql('IMPORTE_EXCEDIDO');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Api-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoComprobante\": 3,\n  \"puntoVenta\": 1,\n  \"comprobanteOriginalId\": \"{{facturaOriginalId}}\",\n  \"receptor\": {\n    \"documentoTipo\": \"CUIT\",\n    \"documentoNumero\": \"30712345671\",\n    \"razonSocial\": \"Cliente S.A.\",\n    \"condicionIva\": 1\n  },\n  \"items\": [\n    {\n      \"descripcion\": \"Ajuste de la factura\",\n      \"cantidad\": 1,\n      \"precioUnitario\": 1000000,\n      \"alicuotaIva\": 0\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "comprobantes"]
+            },
+            "description": "El crédito no puede superar el saldo ajustable de la factura. No consume número ni CAE."
+          },
+          "response": []
+        },
+        {
+          "name": "Nota de otro tipo base",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400 TIPO_NOTA_INCOMPATIBLE', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().codigo).to.eql('TIPO_NOTA_INCOMPATIBLE');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Api-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoComprobante\": 13,\n  \"puntoVenta\": 1,\n  \"comprobanteOriginalId\": \"{{facturaOriginalId}}\",\n  \"receptor\": {\n    \"documentoTipo\": \"99\",\n    \"documentoNumero\": \"\",\n    \"razonSocial\": \"\",\n    \"condicionIva\": 5\n  },\n  \"items\": [\n    {\n      \"descripcion\": \"Ajuste\",\n      \"cantidad\": 1,\n      \"precioUnitario\": 100,\n      \"alicuotaIva\": 0\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "comprobantes"]
+            },
+            "description": "Una nota C no puede referenciar una factura A."
+          },
+          "response": []
+        },
+        {
+          "name": "Nota sin comprobante original",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400 VALIDACION', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().codigo).to.eql('VALIDACION');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Api-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoComprobante\": 3,\n  \"puntoVenta\": 1,\n  \"receptor\": {\n    \"documentoTipo\": \"CUIT\",\n    \"documentoNumero\": \"30712345671\",\n    \"razonSocial\": \"Cliente S.A.\",\n    \"condicionIva\": 1\n  },\n  \"items\": [\n    {\n      \"descripcion\": \"Ajuste de la factura\",\n      \"cantidad\": 1,\n      \"precioUnitario\": 100,\n      \"alicuotaIva\": 21\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "comprobantes"]
+            },
+            "description": "Las notas exigen `comprobanteOriginalId`."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [
@@ -990,6 +1295,11 @@
     },
     {
       "key": "apiKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "facturaOriginalId",
       "value": "",
       "type": "string"
     }

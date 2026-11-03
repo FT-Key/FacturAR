@@ -270,7 +270,7 @@ Content-Type: application/json
 }
 ```
 
-- `tipoComprobante`: `1` (A), `6` (B) u `11` (C). Las notas de crédito y débito llegan con US-08.
+- `tipoComprobante`: facturas `1` (A), `6` (B) u `11` (C), y notas de débito `2`, `7`, `12` o de crédito `3`, `8`, `13` (ver «Notas de crédito y débito»).
 - `puntoVenta`: obligatorio y positivo. Debe existir y estar activo para la empresa autenticada.
 - `fechaEmision`: opcional, en UTC. Si no viene, se usa el momento de la emisión.
 - `receptor`: `documentoTipo`, `documentoNumero`, `razonSocial` y `condicionIva` (`1` responsable inscripto, `4` exento, `5` consumidor final, `6` monotributo). La factura A exige CUIT válido y responsable inscripto; la B admite consumidor final, monotributo o exento; la C exige consumidor final y acepta `documentoTipo` `99` o `CUIT` con CUIT válido.
@@ -334,16 +334,49 @@ El punto de venta debe existir y estar activo. Si no existe o pertenece a otra e
 | Código | HTTP | Cuándo ocurre |
 | --- | --- | --- |
 | `VALIDACION` | `400` | Falta `Idempotency-Key`, supera 128 caracteres, o el body no cumple las reglas de tipo, receptor, ítems, observaciones o `importeTotal`. |
-| `EMISION_INVALIDA` | `400` | El emisor consumidor final intenta emitir una factura A. |
+| `EMISION_INVALIDA` | `400` | El emisor consumidor final intenta emitir una factura o nota A. |
 | `CUIT_INVALIDO` | `400` | El CUIT o documento del receptor no supera la validación. |
 | `API_KEY_AUSENTE` | `401` | Falta el header `X-Api-Key`. |
 | `API_KEY_INVALIDA` | `401` | La key no existe, está revocada, el hash no coincide o la empresa está inactiva. |
 | `CUENTA_INACTIVA` | `403` | El contribuyente autenticado está inactivo. Es un guard del servicio; por API key, la autenticación de US-03 ya responde `401 API_KEY_INVALIDA`. |
 | `SIN_PERMISOS` | `403` | El rol del principal no permite emitir comprobantes. |
-| `COMPROBANTE_NO_ENCONTRADO` | `404` | El punto de venta no existe o pertenece a otra empresa. |
+| `TIPO_NOTA_INCOMPATIBLE` | `400` | La nota no es de la misma letra que la factura original, o referencia otra nota. |
+| `IMPORTE_EXCEDIDO` | `400` | La nota de crédito supera el saldo ajustable de la factura original. |
+| `COMPROBANTE_NO_ENCONTRADO` | `404` | El punto de venta, o el comprobante original de una nota, no existe o pertenece a otra empresa. |
+| `COMPROBANTE_ANULADO` | `409` | El comprobante original de una nota está anulado o rechazado. |
 | `PUNTO_VENTA_INACTIVO` | `409` | El punto de venta existe y pertenece a la empresa, pero está inactivo. |
 | `MONGO_NO_DISPONIBLE` | `503` | No hay conexión con MongoDB o la operación agota el tiempo. |
 | `ERROR_INTERNO` | `500` | Falla inesperada; el detalle queda en el log y no en la respuesta. |
+
+### Notas de crédito y débito
+
+> **Implementado — US-08.** Las notas se emiten con el mismo `POST /v1/comprobantes`, con un tipo de nota y el campo `comprobanteOriginalId`.
+
+```json
+{
+  "tipoComprobante": 3,
+  "puntoVenta": 1,
+  "comprobanteOriginalId": "6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22",
+  "receptor": {
+    "documentoTipo": "CUIT",
+    "documentoNumero": "30712345671",
+    "razonSocial": "Cliente S.A.",
+    "condicionIva": 1
+  },
+  "items": [
+    { "descripcion": "Corrección de la factura 0001-00000042", "cantidad": 1, "precioUnitario": 1000, "alicuotaIva": 21 }
+  ]
+}
+```
+
+- `comprobanteOriginalId` es obligatorio en una nota y está prohibido en una factura (`400 VALIDACION`).
+- El original tiene que ser una **factura** de la misma empresa, de la **misma letra** y en estado `Emitido`: una nota A solo ajusta una factura A, una B una factura B y una C una factura C. Una nota no puede ajustar otra nota.
+- La nota tiene **número, CAE y vencimiento propios**, con su propia secuencia por punto de venta y tipo (la primera nota de cada tipo arranca en `1`). La factura original conserva su número y su CAE.
+- Los importes se calculan igual que en las facturas de la misma letra: la nota A discrimina IVA y las B y C no.
+- Cada factura lleva un **saldo ajustable** que arranca en su `importeTotal`. Una nota de crédito lo descuenta y **no puede superarlo** (`400 IMPORTE_EXCEDIDO`, sin consumir número ni CAE). Una nota de débito lo aumenta y no tiene límite.
+- La nota y el ajuste del saldo se guardan en la misma transacción. Dos notas de crédito simultáneas sobre la misma factura no pueden dejar el saldo negativo: si la segunda ya no entra en el saldo, responde `IMPORTE_EXCEDIDO`.
+- La respuesta `201` es el mismo `ComprobanteResponse` de las facturas, con los datos y el CAE de la nota. El saldo y la referencia al original son internos y no se devuelven.
+- Cada CAE se verifica por separado en `GET /v1/comprobantes/verificar/{cae}`: la factura por el suyo y la nota por el propio.
 
 ## 6. Idempotencia
 

@@ -149,6 +149,24 @@ public sealed class MongoNotasCreditoDebitoTests : IAsyncLifetime
     }
 
     [MongoFact]
+    public async Task NotasDeDebitoByC_TienenCaePropioYAumentanElSaldo()
+    {
+        var facturaB = await Leer<ComprobanteResponse>(await EmitirAsync(FacturaB()));
+        var facturaC = await Leer<ComprobanteResponse>(await EmitirAsync(FacturaC()));
+
+        var debitoB = await Leer<ComprobanteResponse>(await EmitirAsync(NotaB(TipoComprobante.NotaDebitoB, facturaB.Id, 100m)));
+        var debitoC = await Leer<ComprobanteResponse>(await EmitirAsync(NotaC(TipoComprobante.NotaDebitoC, facturaC.Id, 100m)));
+
+        Assert.Equal("Nota de Débito B", debitoB.TipoComprobanteDescripcion);
+        Assert.Equal("Nota de Débito C", debitoC.TipoComprobanteDescripcion);
+        Assert.Equal(0m, debitoB.ImporteIva);
+        Assert.Matches("^[1-9][0-9]{13}$", debitoB.Cae);
+        Assert.Matches("^[1-9][0-9]{13}$", debitoC.Cae);
+        Assert.Equal(12200m, (await Obtener(facturaB.Id)).ImporteOriginalAjustado);
+        Assert.Equal(10100m, (await Obtener(facturaC.Id)).ImporteOriginalAjustado);
+    }
+
+    [MongoFact]
     public async Task CP0804_NotaASobreFacturaC_Devuelve400TipoNotaIncompatibleSinConsumirNumero()
     {
         var facturaC = await Leer<ComprobanteResponse>(await EmitirAsync(FacturaC()));

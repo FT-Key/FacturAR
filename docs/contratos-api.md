@@ -264,7 +264,7 @@ Reglas de validación:
 
 ### 7.5 Notas de crédito y débito (US-08)
 
-- `Comprobante` suma el campo `Guid? ComprobanteOriginalId` y `decimal? ImporteOriginalAjustado` (saldo pendiente del comprobante original). Ninguno de los dos existe hoy: US-08 los agrega.
+- `Comprobante` suma el campo `Guid? ComprobanteOriginalId` y `decimal? ImporteOriginalAjustado` (saldo pendiente del comprobante original). Los agregó US-08.
 - Una nota **debe** referenciar un comprobante original del mismo contribuyente, del mismo tipo base (A/B/C) y en estado `Emitido`. No puede referenciar uno `Anulado` o `Rechazado`.
 - Referenciar un comprobante de otra empresa responde `404 COMPROBANTE_NO_ENCONTRADO`, sin revelar su existencia.
 - El tipo de nota debe corresponder al de la factura original; si no, `400 TIPO_NOTA_INCOMPATIBLE`.
