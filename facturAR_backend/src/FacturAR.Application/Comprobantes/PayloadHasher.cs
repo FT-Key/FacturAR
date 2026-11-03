@@ -41,7 +41,7 @@ public static class PayloadHasher
             [.. items.Select(CrearItemCanonico)],
             request.ImporteTotal is decimal importeTotal ? NormalizarDecimal(importeTotal) : null,
             request.Observaciones is null ? null : request.Observaciones.Trim(),
-            null);
+            request.ComprobanteOriginalId);
     }
 
     private static ItemCanonico? CrearItemCanonico(ItemComprobanteRequest? item)

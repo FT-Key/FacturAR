@@ -5,7 +5,8 @@
 **Estimación:** 2 días  
 **Requisito:** RF-07  
 **Depende de:** US-05  
-**Habilita:** US-09, US-10, US-12, US-13
+**Habilita:** US-09, US-10, US-12, US-13  
+**Estado:** Completada
 
 ## Historia
 
@@ -17,19 +18,19 @@ Una nota debe referenciar un comprobante autorizado del mismo contribuyente. Con
 
 ## Criterios de aceptación
 
-- [ ] Se aceptan notas de débito A (`2`), crédito A (`3`), débito B (`7`), crédito B (`8`), débito C (`12`) y crédito C (`13`).
-- [ ] La nota referencia un comprobante autorizado del mismo contribuyente.
-- [ ] No se puede referenciar un comprobante de otra empresa.
-- [ ] No se puede referenciar un comprobante anulado o rechazado.
-- [ ] El tipo de nota corresponde al tipo de la factura original.
-- [ ] La nota tiene su propio número correlativo por punto de venta y tipo.
-- [ ] La nota tiene su propio CAE y vencimiento.
-- [ ] El importe de la nota no puede superar el saldo ajustable de la factura original.
-- [ ] Una nota de crédito disminuye el saldo; una de débito lo aumenta.
-- [ ] La respuesta `201` incluye el comprobante asociado y el CAE.
-- [ ] El comprobante original conserva su número y CAE.
-- [ ] Se registra auditoría de la emisión.
-- [ ] Hay tests de tipos, referencia inválida, saldo y aislamiento.
+- [x] Se aceptan notas de débito A (`2`), crédito A (`3`), débito B (`7`), crédito B (`8`), débito C (`12`) y crédito C (`13`).
+- [x] La nota referencia un comprobante autorizado del mismo contribuyente.
+- [x] No se puede referenciar un comprobante de otra empresa.
+- [x] No se puede referenciar un comprobante anulado o rechazado.
+- [x] El tipo de nota corresponde al tipo de la factura original.
+- [x] La nota tiene su propio número correlativo por punto de venta y tipo.
+- [x] La nota tiene su propio CAE y vencimiento.
+- [x] El importe de la nota no puede superar el saldo ajustable de la factura original.
+- [x] Una nota de crédito disminuye el saldo; una de débito lo aumenta.
+- [x] La respuesta `201` incluye el comprobante asociado y el CAE.
+- [x] El comprobante original conserva su número y CAE.
+- [x] Se registra auditoría de la emisión.
+- [x] Hay tests de tipos, referencia inválida, saldo y aislamiento.
 
 ## Escenarios Gherkin
 
@@ -66,22 +67,44 @@ Scenario: Importe superior al saldo
 
 ## Tareas técnicas
 
-- [ ] Extender el modelo de comprobante con la referencia al comprobante original.
-- [ ] Implementar el cálculo de saldo ajustable.
-- [ ] Validar tipo, tenant y estado del comprobante original.
-- [ ] Integrar numeración y CAE de US-05 y US-07.
-- [ ] Crear el endpoint de notas o reutilizar `POST /v1/comprobantes` con tipo de nota.
-- [ ] Registrar auditoría.
-- [ ] Agregar tests de notas A, B, C y validaciones.
-- [ ] Documentar tipos, referencia y errores.
+- [x] Extender el modelo de comprobante con la referencia al comprobante original.
+- [x] Implementar el cálculo de saldo ajustable.
+- [x] Validar tipo, tenant y estado del comprobante original.
+- [x] Integrar numeración y CAE de US-05 y US-07.
+- [x] Crear el endpoint de notas o reutilizar `POST /v1/comprobantes` con tipo de nota.
+- [x] Registrar auditoría.
+- [x] Agregar tests de notas A, B, C y validaciones.
+- [x] Documentar tipos, referencia y errores.
 
 ## Definition of Done
 
-- [ ] Se emiten notas de crédito y débito A, B y C.
-- [ ] Las notas quedan asociadas a la factura original.
-- [ ] No se ajusta una factura de otra empresa.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el manual.
+- [x] Se emiten notas de crédito y débito A, B y C.
+- [x] Las notas quedan asociadas a la factura original.
+- [x] No se ajusta una factura de otra empresa.
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el manual.
+
+## Evidencia
+
+Verificado el 2026-11-02 sobre la rama `feature/us-08-notas-credito-debito`, con MongoDB 8.2 local en replica set.
+
+| Qué | Cómo se verificó |
+| --- | --- |
+| Reglas de notas | `NotasCreditoDebitoTests` (29 tests unitarios): tipo base de cada nota, referencia obligatoria/prohibida, nota sobre nota, tipo incompatible, original anulado/rechazado/borrador, saldo exacto y excedido, débito sin límite, reintento ante conflicto de saldo, factura sin saldo guardado y emisor consumidor final con nota A. |
+| Endpoint contra Mongo real | `MongoNotasCreditoDebitoTests` (13 tests `MongoFact`): CP-08-01 a CP-08-19, débito B y C, y dos pruebas de concurrencia (dos créditos de 8000 sobre 12100 → uno `201` y otro `400 IMPORTE_EXCEDIDO`, saldo final 4100; cuatro créditos de 1000 → los cuatro `201`, saldo 8100 y números 1 a 4). Las de concurrencia se repitieron 8 veces sin fallos. |
+| Aislamiento | La empresa B recibe `404 COMPROBANTE_NO_ENCONTRADO` sobre una factura de A, y el saldo de A no cambia. |
+| No consumo de número | Tipo incompatible, factura ajena, original anulado e importe excedido no crean la nota ni la secuencia del tipo de nota. |
+| Suite completa | `dotnet test FacturAR.slnx -c Release`: 412 unitarios y 216 de integración en verde. `dotnet format --verify-no-changes` sin cambios. |
+
+Decisiones tomadas durante la implementación:
+
+- **Respuesta 201:** se interpreta «incluye el comprobante asociado y el CAE» como la nota emitida con su propio CAE. Siguiendo el contrato, `ComprobanteResponse` no expone `ComprobanteOriginalId` ni `ImporteOriginalAjustado`.
+- **Ajuste del saldo:** `AjustarSaldoAsync(contribuyenteId, originalId, saldoEsperado, saldoNuevo)` hace un compare-and-set sobre el saldo leído (`$set` condicionado al valor anterior) en lugar de `$inc`. Así también funciona con facturas emitidas antes de US-08, que no tienen el campo (se toma `ImporteTotal` como saldo). Si el saldo cambió entre la lectura y la escritura, se relee y se recalcula hasta 5 veces: un crédito que ya no entra devuelve `IMPORTE_EXCEDIDO` y un débito siempre se aplica.
+- **Orden dentro de la transacción:** primero se ajusta el saldo y después se pide el número. Si el ajuste falla, la transacción aborta sin consumir número ni CAE.
+- **Original en `Borrador`:** también devuelve `409 COMPROBANTE_ANULADO`, con el mensaje «El comprobante original no está autorizado y no admite notas.».
+- **Receptor de la nota:** la regla «el receptor debe coincidir con el del original» figura como *a confirmar* y no se implementó. El receptor se valida con las reglas de la factura de la misma letra.
+- **Emisor consumidor final:** tampoco puede emitir notas A (`400 EMISION_INVALIDA`), igual que con la factura A.
+- `GetByIdAsync(contribuyenteId, id)` tiene la misma firma e implementación que en la rama de US-09, para que el merge de ambas sea directo.
 
 ## Contrato técnico
 

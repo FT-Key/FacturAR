@@ -27,5 +27,7 @@ public sealed class Comprobante
     public string IdempotencyPayloadHash { get; set; } = string.Empty;
     public string? Observaciones { get; set; }
     public List<ComprobanteItem> Items { get; set; } = [];
+    public Guid? ComprobanteOriginalId { get; set; }
+    public decimal? ImporteOriginalAjustado { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

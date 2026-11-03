@@ -118,4 +118,23 @@ public sealed class ComprobanteRepository : IComprobanteRepository
             throw new IdempotenciaDuplicadaException(ex);
         }
     }
+
+    public async Task<bool> AjustarSaldoAsync(
+        Guid contribuyenteId,
+        Guid originalId,
+        decimal? saldoEsperado,
+        decimal saldoNuevo,
+        CancellationToken cancellationToken = default)
+    {
+        var resultado = await _sesion.UpdateOneAsync(
+            _context.Comprobantes,
+            Filtro.Eq(c => c.Id, originalId)
+                & Filtro.Eq(c => c.ContribuyenteId, contribuyenteId)
+                & Filtro.Eq(c => c.ComprobanteOriginalId, null)
+                & Filtro.Eq(c => c.ImporteOriginalAjustado, saldoEsperado),
+            Builders<Comprobante>.Update.Set(c => c.ImporteOriginalAjustado, saldoNuevo),
+            cancellationToken);
+
+        return resultado.ModifiedCount == 1;
+    }
 }

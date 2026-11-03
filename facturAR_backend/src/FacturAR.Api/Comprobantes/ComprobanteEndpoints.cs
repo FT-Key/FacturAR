@@ -89,6 +89,18 @@ public static class ComprobanteEndpoints
         {
             return Error(StatusCodes.Status400BadRequest, "VALIDACION", ex.Message);
         }
+        catch (TipoNotaIncompatibleException ex)
+        {
+            return Error(StatusCodes.Status400BadRequest, "TIPO_NOTA_INCOMPATIBLE", ex.Message);
+        }
+        catch (ImporteExcedidoException ex)
+        {
+            return Error(StatusCodes.Status400BadRequest, "IMPORTE_EXCEDIDO", ex.Message);
+        }
+        catch (ComprobanteAnuladoException ex)
+        {
+            return Error(StatusCodes.Status409Conflict, "COMPROBANTE_ANULADO", ex.Message);
+        }
         catch (EmisionInvalidaException ex)
         {
             return Error(StatusCodes.Status400BadRequest, "EMISION_INVALIDA", ex.Message);

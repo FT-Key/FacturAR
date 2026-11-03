@@ -653,5 +653,13 @@ public sealed class EmitirComprobanteServiceTests
             Inserciones++;
             throw new IdempotenciaDuplicadaException();
         }
+
+        public Task<bool> AjustarSaldoAsync(
+            Guid contribuyenteId,
+            Guid originalId,
+            decimal? saldoEsperado,
+            decimal saldoNuevo,
+            CancellationToken ct = default)
+            => Task.FromResult(false);
     }
 }

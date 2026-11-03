@@ -272,6 +272,33 @@ internal sealed class ComprobanteRepositorioFake : IComprobanteRepository
         Comprobantes.Add(comprobante);
         return Task.CompletedTask;
     }
+
+    public int ConflictosSimulados { get; set; }
+
+    public int AjustesRechazados { get; private set; }
+
+    public Task<bool> AjustarSaldoAsync(
+        Guid contribuyenteId,
+        Guid originalId,
+        decimal? saldoEsperado,
+        decimal saldoNuevo,
+        CancellationToken cancellationToken = default)
+    {
+        var original = Comprobantes.FirstOrDefault(c => c.Id == originalId
+            && c.ContribuyenteId == contribuyenteId
+            && c.ComprobanteOriginalId is null
+            && c.ImporteOriginalAjustado == saldoEsperado);
+
+        if (original is null || ConflictosSimulados > 0)
+        {
+            ConflictosSimulados = Math.Max(0, ConflictosSimulados - 1);
+            AjustesRechazados++;
+            return Task.FromResult(false);
+        }
+
+        original.ImporteOriginalAjustado = saldoNuevo;
+        return Task.FromResult(true);
+    }
 }
 
 internal sealed class ComprobanteEventosFake : IEventoAuditoriaRepository

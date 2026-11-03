@@ -37,7 +37,7 @@ La columna **Orden** es la posición dentro del sprint. La columna **Contrato** 
 | 9 | [US-18](US-18-parametros-seed.md) | Parámetros y datos semilla | Operación | 3 | Media | 1 | RF-18 | Parcial | Sí |
 | 10 | [US-05](US-05-emision-facturas.md) | Emisión de facturas A, B y C | Emisión | 4 | Alta | 3 | RF-04 | Parcial | Sí |
 | 11 | [US-06](US-06-idempotencia.md) | Idempotencia de emisión | Emisión | 4 | Alta | 1 | RF-05 | Parcial | Sí |
-| 12 | [US-08](US-08-notas-credito-debito.md) | Notas de crédito y débito | Emisión | 4 | Alta | 2 | RF-07 | Pendiente | Sí |
+| 12 | [US-08](../historias-usuario-terminadas/US-08-notas-credito-debito.md) | Notas de crédito y débito | Emisión | 4 | Alta | 2 | RF-07 | Completada | Sí |
 | 13 | [US-09](US-09-consultas-comprobantes.md) | Consultas y último autorizado | Consultas | 5 | Alta | 1 | RF-08 | Parcial | Sí |
 | 14 | [US-10](US-10-pdf-qr.md) | PDF con código QR | Documentos | 5 | Alta | 2 | RF-09 | Pendiente | Sí |
 | 15 | [US-12](US-12-dashboard-listado.md) | Dashboard y listado | Portal | 5 | Media | 2 | RF-13 | Pendiente | Sí |
@@ -66,6 +66,8 @@ Al día de hoy **US-11, US-04, US-03, US-05 y US-14 tienen comportamiento implem
 **US-27** queda **Completada**: la consola global lista, filtra, edita, aprueba, rechaza y reenvía invitaciones (`/v1/admin/solicitudes` y `/admin/solicitudes` en el portal). La aprobación crea contribuyente, punto de venta e invitación en una transacción de MongoDB y dispara los emails de US-29 después del commit.
 
 **US-28** queda **Completada**: el link del email abre `/activar`, valida el token (`GET /v1/invitaciones/{token}`) y crea el usuario administrador de la empresa en una transacción que marca la invitación como usada (`POST /v1/invitaciones/{token}/aceptar`). Con US-01, US-27 y US-28 el onboarding funciona de punta a punta.
+
+**US-08** queda **Completada**: `POST /v1/comprobantes` emite notas de crédito y débito A, B y C sobre una factura de la misma letra (`comprobanteOriginalId`). Cada nota tiene número y CAE propios, y el saldo ajustable de la factura se actualiza en la misma transacción con control de concurrencia.
 
 **US-02** queda **Parcial**: los cuatro endpoints de `/v1/api-keys` con la política `EmpresaAdministrador`, el generador/hasher y los servicios de creación, listado, revocación y regeneración están implementados y cubiertos por tests unitarios; falta la corrida real con Mongo (`MongoApiKeysTests` CP-01 a CP-15 se omiten sin connection string) y las verificaciones de punta a punta con la API real.
 

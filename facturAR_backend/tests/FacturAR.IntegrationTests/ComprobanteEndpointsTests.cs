@@ -746,6 +746,31 @@ public sealed class ComprobanteRepositorioEnMemoria : IComprobanteRepository
 
         return Task.CompletedTask;
     }
+
+    public Task<bool> AjustarSaldoAsync(
+        Guid contribuyenteId,
+        Guid originalId,
+        decimal? saldoEsperado,
+        decimal saldoNuevo,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_gate)
+        {
+            var original = _comprobantes.FirstOrDefault(c =>
+                c.Id == originalId
+                && c.ContribuyenteId == contribuyenteId
+                && c.ComprobanteOriginalId is null
+                && c.ImporteOriginalAjustado == saldoEsperado);
+
+            if (original is null)
+            {
+                return Task.FromResult(false);
+            }
+
+            original.ImporteOriginalAjustado = saldoNuevo;
+            return Task.FromResult(true);
+        }
+    }
 }
 
 public sealed class ComprobanteSecuenciaEnMemoria : ISecuenciaService
