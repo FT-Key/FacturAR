@@ -7,7 +7,8 @@ public sealed record EmitirComprobanteRequest(
     ReceptorComprobanteRequest? Receptor,
     List<ItemComprobanteRequest>? Items,
     decimal? ImporteTotal,
-    string? Observaciones);
+    string? Observaciones,
+    Guid? ComprobanteOriginalId = null);
 
 public sealed record ReceptorComprobanteRequest(
     string? DocumentoTipo,

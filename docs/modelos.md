@@ -195,6 +195,8 @@ Documento fiscal emitido.
 | `IdempotencyKey` | `string` | Sí | Única por contribuyente. |
 | `Observaciones` | `string?` | No | Texto libre. |
 | `Items` | `List<ComprobanteItem>` | Sí | Detalle. |
+| `ComprobanteOriginalId` | `Guid?` | No | Solo en notas: la factura que ajusta (US-08). `null` en facturas. |
+| `ImporteOriginalAjustado` | `decimal?` | No | Solo en facturas: saldo ajustable. Arranca en `ImporteTotal`, baja con notas de crédito y sube con notas de débito (US-08). `null` en notas. |
 | `CreatedAt` | `DateTime` | Sí | UTC. |
 
 ### ComprobanteItem
@@ -362,6 +364,7 @@ erDiagram
 | `parametros` | `ContribuyenteId + Clave` | Único |
 | `comprobantes` | `Cae` | Único |
 | `comprobantes` | `ContribuyenteId + PuntoVenta + TipoComprobante + Numero` | Único |
+| `comprobantes` | `ContribuyenteId + ComprobanteOriginalId` | Compuesto |
 | `comprobantes` | `ContribuyenteId + IdempotencyKey` | Único |
 | `comprobantes` | `ContribuyenteId + FechaEmision` | Compuesto |
 | `comprobantes` | `ContribuyenteId + FechaEmision + Numero + Id` | Compuesto |

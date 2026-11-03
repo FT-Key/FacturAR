@@ -26,5 +26,7 @@ public sealed class Comprobante
     public string IdempotencyKey { get; set; } = Guid.NewGuid().ToString("N");
     public string? Observaciones { get; set; }
     public List<ComprobanteItem> Items { get; set; } = [];
+    public Guid? ComprobanteOriginalId { get; set; }
+    public decimal? ImporteOriginalAjustado { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

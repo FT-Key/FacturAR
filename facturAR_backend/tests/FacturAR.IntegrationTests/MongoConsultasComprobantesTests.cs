@@ -350,12 +350,12 @@ public sealed class MongoConsultasComprobantesTests : IAsyncLifetime
 
         var claves = indice["key"].AsBsonDocument;
         Assert.Equal(
-            ["ContribuyenteId", "FechaEmision", "Numero", "Id"],
+            ["ContribuyenteId", "FechaEmision", "Numero", "_id"],
             claves.Names.ToArray());
         Assert.Equal(1, claves["ContribuyenteId"].AsInt32);
         Assert.Equal(-1, claves["FechaEmision"].AsInt32);
         Assert.Equal(-1, claves["Numero"].AsInt32);
-        Assert.Equal(1, claves["Id"].AsInt32);
+        Assert.Equal(1, claves["_id"].AsInt32);
     }
 
     private WebApplicationFactory<Program> CrearFactory()

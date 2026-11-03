@@ -17,10 +17,10 @@ public sealed class ComprobanteValidatorTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(2)]
-    [InlineData(7)]
-    [InlineData(3)]
-    [InlineData(12)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(14)]
+    [InlineData(99)]
     public void ValidarTipoHabilitado_TipoNoHabilitado_LanzaComprobanteValidationException(int tipo)
     {
         var ex = Assert.Throws<ComprobanteValidationException>(

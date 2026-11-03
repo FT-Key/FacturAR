@@ -1,6 +1,7 @@
 using FacturAR.Domain.Entities;
 using FacturAR.Domain.Enums;
 using FacturAR.Domain.Exceptions;
+using FacturAR.Domain.Validation;
 
 namespace FacturAR.Application.Comprobantes;
 
@@ -26,6 +27,7 @@ public static class CalculadoraImportes
 
     private static CalculoComprobante CalcularInterno(IReadOnlyList<ComprobanteItem> items, TipoComprobante tipo)
     {
+        var discriminaIva = NotaComprobanteValidator.TipoBase(tipo) == TipoComprobante.FacturaA;
         var itemsCalculados = new List<ComprobanteItem>(items.Count);
         var importeNeto = 0m;
         var importeIva = 0m;
@@ -35,7 +37,7 @@ public static class CalculadoraImportes
             var subtotal = Redondear2(item.Cantidad * item.PrecioUnitario);
             importeNeto += subtotal;
 
-            if (tipo == TipoComprobante.FacturaA)
+            if (discriminaIva)
             {
                 importeIva += Redondear2(subtotal * item.AlicuotaIva / 100m);
             }
@@ -51,7 +53,7 @@ public static class CalculadoraImportes
         }
 
         var neto = Redondear2(importeNeto);
-        var iva = tipo == TipoComprobante.FacturaA ? Redondear2(importeIva) : 0m;
+        var iva = discriminaIva ? Redondear2(importeIva) : 0m;
 
         return new CalculoComprobante(itemsCalculados, neto, iva, Redondear2(neto + iva));
     }

@@ -78,5 +78,13 @@ public sealed class VerificarComprobanteServiceTests
 
         public Task AddAsync(Comprobante nuevo, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
+
+        public Task<bool> AjustarSaldoAsync(
+            Guid contribuyenteId,
+            Guid originalId,
+            decimal? saldoEsperado,
+            decimal saldoNuevo,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(false);
     }
 }

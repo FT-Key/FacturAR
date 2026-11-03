@@ -14,4 +14,11 @@ public interface IComprobanteRepository
         int pageSize,
         CancellationToken cancellationToken = default);
     Task AddAsync(Comprobante comprobante, CancellationToken cancellationToken = default);
+
+    Task<bool> AjustarSaldoAsync(
+        Guid contribuyenteId,
+        Guid originalId,
+        decimal? saldoEsperado,
+        decimal saldoNuevo,
+        CancellationToken cancellationToken = default);
 }

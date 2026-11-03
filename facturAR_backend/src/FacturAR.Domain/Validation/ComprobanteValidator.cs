@@ -23,7 +23,7 @@ public static class ComprobanteValidator
 
     public static void ValidarTipoHabilitado(TipoComprobante tipo)
     {
-        if (tipo is not (TipoComprobante.FacturaA or TipoComprobante.FacturaB or TipoComprobante.FacturaC))
+        if (!Enum.IsDefined(tipo))
         {
             throw new ComprobanteValidationException("El tipo de comprobante no está habilitado en este endpoint.");
         }
@@ -39,9 +39,12 @@ public static class ComprobanteValidator
 
     public static void ValidarEmisor(Contribuyente emisor, TipoComprobante tipo)
     {
-        if (emisor.CondicionIva == CondicionIva.ConsumidorFinal && tipo == TipoComprobante.FacturaA)
+        if (emisor.CondicionIva == CondicionIva.ConsumidorFinal
+            && NotaComprobanteValidator.TipoBase(tipo) == TipoComprobante.FacturaA)
         {
-            throw new EmisionInvalidaException("Un emisor consumidor final no puede emitir una factura A.");
+            throw new EmisionInvalidaException(tipo == TipoComprobante.FacturaA
+                ? "Un emisor consumidor final no puede emitir una factura A."
+                : "Un emisor consumidor final no puede emitir notas A.");
         }
     }
 
@@ -56,7 +59,7 @@ public static class ComprobanteValidator
         var documentoNumeroNormalizado = (documentoNumero ?? string.Empty).Trim();
         var razonSocialNormalizada = (razonSocial ?? string.Empty).Trim();
 
-        return tipo switch
+        return NotaComprobanteValidator.TipoBase(tipo) switch
         {
             TipoComprobante.FacturaA => ValidarReceptorFacturaA(
                 documentoTipoNormalizado,

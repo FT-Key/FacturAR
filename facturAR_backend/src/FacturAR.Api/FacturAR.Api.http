@@ -168,3 +168,28 @@ Content-Type: application/json
 }
 
 ###
+
+# Notas de crédito y débito (US-08): pegar el id de una factura emitida.
+@facturaOriginalId = 00000000-0000-0000-0000-000000000000
+
+POST {{FacturAR_Api_HostAddress}}/v1/comprobantes
+X-Api-Key: {{apiKey}}
+Idempotency-Key: nota-credito-0001
+Content-Type: application/json
+
+{
+  "tipoComprobante": 3,
+  "puntoVenta": 1,
+  "comprobanteOriginalId": "{{facturaOriginalId}}",
+  "receptor": {
+    "documentoTipo": "CUIT",
+    "documentoNumero": "30712345671",
+    "razonSocial": "Cliente S.A.",
+    "condicionIva": 1
+  },
+  "items": [
+    { "descripcion": "Corrección de la factura", "cantidad": 1, "precioUnitario": 1000, "alicuotaIva": 21 }
+  ]
+}
+
+###
