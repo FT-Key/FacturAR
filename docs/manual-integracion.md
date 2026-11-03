@@ -408,7 +408,7 @@ Comportamiento por request:
 - Todas las respuestas, incluidas `401` y `403`, devuelven el header `Idempotency-Key` con la clave recibida.
 - El header solo tiene efecto en `POST /v1/comprobantes`; no se usa para notas, pagos ni consultas.
 
-> **Verificación pendiente.** La concurrencia real (dos requests simultáneos con la misma clave), el rollback de la secuencia y la no expiración requieren MongoDB en modo replica set; sus tests están escritos pero se omiten sin esa infraestructura. El QA manual de replay y conflicto contra la API real también está pendiente.
+> **Verificado en CI con MongoDB replica set.** La concurrencia real (dos requests simultáneos con la misma clave), el rollback de la secuencia, los reintentos y la no expiración se ejecutan en CI con MongoDB en modo replica set: 737 tests aprobados, 0 fallos (run `41571989829` del PR #27). El QA manual de replay y conflicto contra la API real sigue pendiente.
 
 ## 7. Consultar comprobantes
 
