@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using FacturAR.Application.Abstractions;
 using FacturAR.Application.ApiKeys;
+using FacturAR.Application.Comprobantes;
 using FacturAR.Contracts.Comprobantes;
 using FacturAR.Contracts.Comunes;
 using FacturAR.Domain.Entities;
@@ -406,6 +407,104 @@ public sealed class MongoComprobantesTests : IAsyncLifetime
         Assert.Equal(2, comprobantes.Select(c => c.Cae).Distinct().Count());
         Assert.Equal(2, await Comprobantes().CountDocumentsAsync(FilterDefinition<Comprobante>.Empty));
         Assert.Equal(2, (await SecuenciaAsync(TipoComprobante.FacturaA)).UltimoNumero);
+    }
+
+    [MongoFact]
+    public async Task CP0608_DosRequestsSimultaneosConMismaClaveYBody_GeneranUnSoloComprobante()
+    {
+        await LimpiarAsync();
+
+        var respuestas = await Task.WhenAll(
+            EmitirAsync(FacturaA(), "idem-cp0608"),
+            EmitirAsync(FacturaA(), "idem-cp0608"));
+
+        var estados = respuestas.Select(r => r.StatusCode).OrderBy(s => (int)s).ToArray();
+        Assert.Equal([HttpStatusCode.OK, HttpStatusCode.Created], estados);
+
+        var comprobantes = new List<ComprobanteResponse>();
+        foreach (var respuesta in respuestas)
+        {
+            comprobantes.Add(await LeerAsync<ComprobanteResponse>(respuesta));
+        }
+
+        Assert.Single(comprobantes.Select(c => c.Id).Distinct());
+        Assert.Single(comprobantes.Select(c => c.Numero).Distinct());
+        Assert.Single(comprobantes.Select(c => c.Cae).Distinct());
+        Assert.Equal(1, await Comprobantes().CountDocumentsAsync(FilterDefinition<Comprobante>.Empty));
+        Assert.Equal(1, (await SecuenciaAsync(TipoComprobante.FacturaA)).UltimoNumero);
+    }
+
+    [MongoFact]
+    public async Task CP0609_DosRequestsSimultaneosConMismaClaveYBodyDistinto_Devuelven201Y409()
+    {
+        await LimpiarAsync();
+
+        var distinto = FacturaA() with
+        {
+            ImporteTotal = 24200m,
+            Items = [new ItemComprobanteRequest("Servicio", 2m, 10000m, 21m)]
+        };
+
+        var respuestas = await Task.WhenAll(
+            EmitirAsync(FacturaA(), "idem-cp0609"),
+            EmitirAsync(distinto, "idem-cp0609"));
+
+        var estados = respuestas.Select(r => r.StatusCode).OrderBy(s => (int)s).ToArray();
+        Assert.Equal([HttpStatusCode.Created, HttpStatusCode.Conflict], estados);
+        Assert.Equal(1, await Comprobantes().CountDocumentsAsync(FilterDefinition<Comprobante>.Empty));
+        Assert.Equal(1, (await SecuenciaAsync(TipoComprobante.FacturaA)).UltimoNumero);
+    }
+
+    [MongoFact]
+    public async Task CP0611_ReintentosRepetidos_DevuelvenSiempreElMismoComprobanteYPersistenElHash()
+    {
+        await LimpiarAsync();
+        var request = FacturaA();
+
+        var primero = await EmitirAsync(request, "idem-cp0611");
+        Assert.Equal(HttpStatusCode.Created, primero.StatusCode);
+        var original = await LeerAsync<ComprobanteResponse>(primero);
+
+        for (var intento = 0; intento < 5; intento++)
+        {
+            var repetido = await EmitirAsync(request, "idem-cp0611");
+            Assert.Equal(HttpStatusCode.OK, repetido.StatusCode);
+            var comprobante = await LeerAsync<ComprobanteResponse>(repetido);
+            Assert.Equal(original.Id, comprobante.Id);
+            Assert.Equal(original.Numero, comprobante.Numero);
+            Assert.Equal(original.Cae, comprobante.Cae);
+        }
+
+        Assert.Equal(1, await Comprobantes().CountDocumentsAsync(FilterDefinition<Comprobante>.Empty));
+        Assert.Equal(1, (await SecuenciaAsync(TipoComprobante.FacturaA)).UltimoNumero);
+
+        var guardado = await Comprobantes()
+            .Find(c => c.IdempotencyKey == "idem-cp0611")
+            .SingleAsync();
+        Assert.Equal(PayloadHasher.Hash(request), guardado.IdempotencyPayloadHash);
+        Assert.Matches("^[0-9a-f]{64}$", guardado.IdempotencyPayloadHash);
+    }
+
+    [MongoFact]
+    public async Task CP0612_ClaveRegistradaTiempoAtras_NoExpiraYDevuelveElMismoComprobante()
+    {
+        await LimpiarAsync();
+        var request = FacturaA();
+
+        var primero = await EmitirAsync(request, "idem-cp0612");
+        Assert.Equal(HttpStatusCode.Created, primero.StatusCode);
+        var original = await LeerAsync<ComprobanteResponse>(primero);
+
+        await Comprobantes().UpdateOneAsync(
+            c => c.IdempotencyKey == "idem-cp0612",
+            Builders<Comprobante>.Update.Set(c => c.CreatedAt, DateTime.UtcNow.AddYears(-2)));
+
+        var repetido = await EmitirAsync(request, "idem-cp0612");
+        Assert.Equal(HttpStatusCode.OK, repetido.StatusCode);
+        var comprobante = await LeerAsync<ComprobanteResponse>(repetido);
+        Assert.Equal(original.Id, comprobante.Id);
+        Assert.Equal(original.Numero, comprobante.Numero);
+        Assert.Equal(original.Cae, comprobante.Cae);
     }
 
     [MongoFact]

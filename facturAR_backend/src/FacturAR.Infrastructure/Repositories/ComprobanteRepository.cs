@@ -11,6 +11,7 @@ public sealed class ComprobanteRepository : IComprobanteRepository
 {
     private static readonly FilterDefinitionBuilder<Comprobante> Filtro = Builders<Comprobante>.Filter;
     private static readonly SortDefinitionBuilder<Comprobante> Orden = Builders<Comprobante>.Sort;
+    private const string IndiceIdempotencia = "ux_comprobantes_idempotencia";
 
     private readonly MongoDbContext _context;
     private readonly MongoSesionActual _sesion;
@@ -93,8 +94,30 @@ public sealed class ComprobanteRepository : IComprobanteRepository
         return (items, total);
     }
 
-    public Task AddAsync(Comprobante comprobante, CancellationToken cancellationToken = default)
-        => _sesion.InsertOneAsync(_context.Comprobantes, comprobante, cancellationToken);
+    public async Task<Comprobante?> GetByIdempotencyKeyAsync(
+        Guid contribuyenteId,
+        string clave,
+        CancellationToken cancellationToken = default)
+    {
+        var filtro = Filtro.Eq(c => c.ContribuyenteId, contribuyenteId)
+            & Filtro.Eq(c => c.IdempotencyKey, clave);
+
+        return await _sesion
+            .Find(_context.Comprobantes, filtro)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task AddAsync(Comprobante comprobante, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await _sesion.InsertOneAsync(_context.Comprobantes, comprobante, cancellationToken);
+        }
+        catch (Exception ex) when (MongoErrores.EsClaveDuplicadaEnIndice(ex, IndiceIdempotencia))
+        {
+            throw new IdempotenciaDuplicadaException(ex);
+        }
+    }
 
     public async Task<bool> AjustarSaldoAsync(
         Guid contribuyenteId,

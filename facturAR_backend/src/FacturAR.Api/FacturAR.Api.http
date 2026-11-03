@@ -72,6 +72,64 @@ Accept: application/json
 
 ###
 
+# Replay idempotente (US-06): repetir la MISMA Idempotency-Key con el mismo body.
+# Esperado: 200 con el mismo id, numero y cae que la emisión original; no se crea otro comprobante.
+POST {{FacturAR_Api_HostAddress}}/v1/comprobantes
+X-Api-Key: {{apiKey}}
+Idempotency-Key: {{idempotencyKey}}
+Content-Type: application/json
+
+{
+  "tipoComprobante": 11,
+  "puntoVenta": 1,
+  "receptor": {
+    "documentoTipo": "99",
+    "documentoNumero": "0",
+    "razonSocial": "Consumidor Final",
+    "condicionIva": 5
+  },
+  "items": [
+    {
+      "descripcion": "Curso de programación",
+      "cantidad": 1,
+      "precioUnitario": 10000,
+      "alicuotaIva": 0
+    }
+  ],
+  "observaciones": "Venta de prueba"
+}
+
+###
+
+# Conflicto de idempotencia (US-06): misma Idempotency-Key con un payload distinto.
+# Esperado: 409 IDEMPOTENCIA_CONFLICTO; el comprobante original no se modifica.
+POST {{FacturAR_Api_HostAddress}}/v1/comprobantes
+X-Api-Key: {{apiKey}}
+Idempotency-Key: {{idempotencyKey}}
+Content-Type: application/json
+
+{
+  "tipoComprobante": 11,
+  "puntoVenta": 1,
+  "receptor": {
+    "documentoTipo": "99",
+    "documentoNumero": "0",
+    "razonSocial": "Consumidor Final",
+    "condicionIva": 5
+  },
+  "items": [
+    {
+      "descripcion": "Curso de programación",
+      "cantidad": 1,
+      "precioUnitario": 20000,
+      "alicuotaIva": 0
+    }
+  ],
+  "observaciones": "Venta de prueba"
+}
+
+###
+
 POST {{FacturAR_Api_HostAddress}}/v1/solicitudes-alta
 Content-Type: application/json
 
