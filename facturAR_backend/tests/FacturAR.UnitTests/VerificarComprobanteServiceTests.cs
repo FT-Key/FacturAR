@@ -68,6 +68,14 @@ public sealed class VerificarComprobanteServiceTests
             CancellationToken cancellationToken = default)
             => Task.FromResult(comprobante);
 
+        public Task<(IReadOnlyList<Comprobante> Items, long Total)> ListarAsync(
+            Guid contribuyenteId,
+            FiltroListadoComprobantes filtro,
+            int page,
+            int pageSize,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult<(IReadOnlyList<Comprobante>, long)>(([], 0));
+
         public Task AddAsync(Comprobante nuevo, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 

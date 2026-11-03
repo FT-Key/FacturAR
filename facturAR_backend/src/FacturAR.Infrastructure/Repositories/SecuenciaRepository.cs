@@ -9,6 +9,7 @@ namespace FacturAR.Infrastructure.Repositories;
 public sealed class SecuenciaRepository(MongoDbContext context, MongoSesionActual sesion) : ISecuenciaRepository
 {
     private static readonly FilterDefinitionBuilder<Secuencia> Filtro = Builders<Secuencia>.Filter;
+    private static readonly SortDefinitionBuilder<Secuencia> Orden = Builders<Secuencia>.Sort;
     private static readonly UpdateDefinitionBuilder<Secuencia> Update = Builders<Secuencia>.Update;
 
     public async Task<long> ObtenerSiguienteNumeroAsync(
@@ -41,5 +42,39 @@ public sealed class SecuenciaRepository(MongoDbContext context, MongoSesionActua
         return documento is null
             ? throw new InvalidOperationException("No se pudo asignar el número de secuencia.")
             : documento.UltimoNumero;
+    }
+
+    public async Task<long> ObtenerUltimoNumeroAsync(
+        Guid contribuyenteId,
+        int puntoVenta,
+        TipoComprobante tipo,
+        CancellationToken ct = default)
+    {
+        var filtro = Filtro.Eq(s => s.ContribuyenteId, contribuyenteId)
+            & Filtro.Eq(s => s.PuntoVenta, puntoVenta)
+            & Filtro.Eq(s => s.TipoComprobante, tipo);
+
+        var secuencia = await context.Secuencias
+            .Find(filtro)
+            .FirstOrDefaultAsync(ct);
+
+        return secuencia?.UltimoNumero ?? 0;
+    }
+
+    public async Task<long> ObtenerMaximoUltimoNumeroAsync(
+        Guid contribuyenteId,
+        TipoComprobante tipo,
+        CancellationToken ct = default)
+    {
+        var filtro = Filtro.Eq(s => s.ContribuyenteId, contribuyenteId)
+            & Filtro.Eq(s => s.TipoComprobante, tipo);
+
+        var secuencia = await context.Secuencias
+            .Find(filtro)
+            .Sort(Orden.Descending(s => s.UltimoNumero))
+            .Limit(1)
+            .FirstOrDefaultAsync(ct);
+
+        return secuencia?.UltimoNumero ?? 0;
     }
 }

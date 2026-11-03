@@ -2,7 +2,7 @@
 
 ## Estado de la API
 
-> **Diseño objetivo del MVP.** Este manual describe el contrato que la API de FacturAR expone. El estado de cada ruta está en las tablas siguientes: las que todavía no tienen su historia completada responden `404` hasta que se implementen. Lo que ya responde hoy figura en "Endpoints disponibles hoy".
+> **Estado del manual.** Este documento describe el contrato del MVP y marca el estado real de cada ruta. Lo que ya tiene historia implementada responde hoy y figura en "Endpoints disponibles hoy"; lo que sigue especificado sin implementación responde `404`.
 
 Qué describe este documento: cómo un tercero pide acceso, activa su cuenta, crea una API key, emite comprobantes, los consulta, usa idempotencia y verifica un comprobante por su CAE.
 
@@ -24,6 +24,9 @@ Base URL local: `http://localhost:5171`. En Docker: `http://localhost:8080`.
 | `DELETE` | `/v1/api-keys/{id}` | Revoca una key. Requiere cookie de empresa (rol `Administrador`). |
 | `POST` | `/v1/api-keys/{id}/regenerar` | Regenera el secreto de una key y devuelve el valor nuevo una única vez. Requiere cookie de empresa (rol `Administrador`). |
 | `POST` | `/v1/comprobantes` | Emisión de facturas A, B y C con CAE simulado. Requiere API key e `Idempotency-Key`. |
+| `GET` | `/v1/comprobantes` | Lista los comprobantes de la empresa autenticada, con filtros y paginación. |
+| `GET` | `/v1/comprobantes/{id}` | Detalle de un comprobante propio, con sus ítems. |
+| `GET` | `/v1/comprobantes/ultimo-autorizado` | Último número autorizado por tipo y punto de venta. |
 
 Todo lo demás que aparece en este manual está **especificado pero no implementado**: esas rutas responden `404` hasta que su historia se complete.
 
@@ -47,12 +50,12 @@ Todo lo demás que aparece en este manual está **especificado pero no implement
 | `DELETE` | `/v1/api-keys/{id}` | cookie de empresa | implementado (US-02) |
 | `POST` | `/v1/api-keys/{id}/regenerar` | cookie de empresa | implementado (US-02) |
 | `POST` | `/v1/comprobantes` | API key | implementado (US-05) |
-| `GET` | `/v1/comprobantes` | API key | especificado, pendiente de implementar (US-09) |
-| `GET` | `/v1/comprobantes/{id}` | API key | especificado, pendiente de implementar (US-09) |
-| `GET` | `/v1/comprobantes/ultimo-autorizado` | API key | especificado, pendiente de implementar (US-09) |
+| `GET` | `/v1/comprobantes` | API key o cookie de empresa | implementado (US-09) |
+| `GET` | `/v1/comprobantes/{id}` | API key o cookie de empresa | implementado (US-09) |
+| `GET` | `/v1/comprobantes/ultimo-autorizado` | API key o cookie de empresa | implementado (US-09) |
 | `GET` | `/v1/comprobantes/{id}/pdf` | API key | especificado, pendiente de implementar (US-10) |
 
-La API key viaja en el header `X-Api-Key`. La sesión del portal usa cookies con esquemas separados: `cookies.contribuyente` para empresas y `cookies.admin` para la consola global. Ver `docs/contratos-api.md` §4.
+La API key viaja en el header `X-Api-Key`. La sesión del portal usa cookies con esquemas separados: `cookies.contribuyente` para empresas y `cookies.admin` para la consola global. La cookie de empresa habilita las consultas de comprobantes (US-09) con rol `Administrador`, `Emisor` o `Consulta`; `POST /v1/comprobantes`, `/v1/soap/**` y `/v1/admin/**` quedan fuera de ese alcance. Ver `docs/contratos-api.md` §4.
 
 ### Headers
 
@@ -107,7 +110,7 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 | US-05 | §5 Emitir una factura | Parcial |
 | US-06 | §6 Idempotencia | Pendiente |
 | US-07 | Numeración correlativa del comprobante (reglas de §5) | Pendiente |
-| US-09 | §7 Consultar comprobantes | Pendiente |
+| US-09 | §7 Consultar comprobantes | Parcial |
 | US-10 | Descarga del PDF (`GET /v1/comprobantes/{id}/pdf`) | Pendiente |
 | US-11 | §8 Verificar un comprobante por CAE | Base implementada |
 | US-27 | §1 Revisión y aprobación del administrador global | Pendiente |
@@ -118,7 +121,7 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 
 ## Qué es FacturAR
 
-FacturAR es un simulador de facturación electrónica argentina. El diseño del MVP permite solicitar el alta de una empresa, activar una cuenta, crear API keys, emitir comprobantes con CAE simulado y verificar un comprobante por su CAE. De ese recorrido, hoy están disponibles la emisión por API key (US-05), la gestión de API keys desde el portal (US-14) y la verificación por CAE; el alta, la activación, las consultas y la descarga de PDF siguen pendientes: ver [Estado de la API](#estado-de-la-api).
+FacturAR es un simulador de facturación electrónica argentina. El diseño del MVP permite solicitar el alta de una empresa, activar una cuenta, crear API keys, emitir comprobantes con CAE simulado, consultarlos y verificar un comprobante por su CAE. De ese recorrido, hoy están implementadas la emisión por API key (US-05), las consultas de comprobantes (US-09), la gestión de API keys desde el portal (US-14) y la verificación por CAE; el alta, la activación, la descarga de PDF y los endpoints SOAP siguen pendientes: ver [Estado de la API](#estado-de-la-api).
 
 > Importante: el CAE es simulado y los comprobantes no tienen validez fiscal. No se realizan llamadas reales a AFIP/ARCA.
 
@@ -198,7 +201,7 @@ La key pertenece a una única empresa. No se comparte entre empresas ni se enví
 
 ## 4. Autenticar requests
 
-> **Base implementada — US-03.** El esquema `ApiKey`, la política `ApiKeyNegocio` y el registro de `UltimoUso` están implementados y probados. `POST /v1/comprobantes` ya consume el esquema (US-05); el resto de los endpoints de negocio llega con US-09 y US-16.
+> **Base implementada — US-03.** El esquema `ApiKey`, la política `ApiKeyNegocio` y el registro de `UltimoUso` están implementados y probados. `POST /v1/comprobantes` y las consultas de comprobantes (US-09) ya consumen el esquema; SOAP llega con US-16.
 
 Enviar la API key en el header `X-Api-Key`. El nombre del header es configurable con `ApiKeys__HeaderName` (default `X-Api-Key`):
 
@@ -217,7 +220,7 @@ Reglas:
 - Key mal formada, inexistente, revocada o de un contribuyente inactivo: `401 API_KEY_INVALIDA`. El mensaje es el mismo en todos los casos: la respuesta no revela si el prefijo existe.
 - Si MongoDB no responde durante la autenticación: `503 MONGO_NO_DISPONIBLE`.
 - La key resuelve la empresa. El tenant sale **solo** del claim `contribuyenteId` derivado de la key; nunca se envía `contribuyenteId` en el body ni en el query string y, si se envía, se ignora.
-- La cookie del portal no autoriza la API de negocio, y la API key no autoriza los endpoints de cookie.
+- La API key no autoriza los endpoints de cookie. La cookie de empresa habilita las consultas de comprobantes (US-09) con rol `Administrador`, `Emisor` o `Consulta`; no habilita `POST /v1/comprobantes`, `/v1/soap/**` ni `/v1/admin/**`.
 - La verificación pública por CAE (`GET /v1/comprobantes/verificar/{cae}`) permanece anónima y no requiere API key.
 
 Ejemplo de error de autenticación:
@@ -396,21 +399,125 @@ Usar una key distinta para cada operación real. No reutilizar la key de un pedi
 
 ## 7. Consultar comprobantes
 
-> **Diseño objetivo — US-09.** Las consultas **todavía no están implementadas**. `GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` y `GET /v1/comprobantes/ultimo-autorizado` responden `404` hasta que US-09 se complete.
+> **Implementado — US-09 (Parcial).** Los tres endpoints están implementados y aceptan API key o cookie de empresa. Están cubiertos por tests unitarios y de integración sin Mongo; faltan la corrida con MongoDB real (aislamiento, filtros, paginación, orden, índice y último autorizado contra `secuencias`) y el QA manual.
+
+Los tres endpoints aceptan **API key** (`X-Api-Key`) para integraciones o la **cookie de empresa** (`cookies.contribuyente`) del portal, con rol `Administrador`, `Emisor` o `Consulta`. El `ContribuyenteId` sale siempre de la credencial: nunca se envía en el body ni en el query string. Un comprobante de otra empresa responde `404`, sin revelar que existe.
+
+### 7.1 Listado
 
 ```http
-GET /v1/comprobantes?desde=2026-10-01&hasta=2026-10-31&page=1&pageSize=20
+GET /v1/comprobantes?page=1&pageSize=20&desde=2026-10-01&hasta=2026-10-31&tipo=11&estado=1&puntoVenta=1
 X-Api-Key: fak_9f3a1c7b2e40_<secreto>
 ```
 
-La respuesta incluye los comprobantes de la empresa autenticada, con paginación. Nunca se pueden consultar comprobantes de otra empresa.
+| Parámetro | Obligatorio | Regla |
+| --- | --- | --- |
+| `page` | No | Entero `>= 1`. Default `1`. |
+| `pageSize` | No | Entero entre `1` y `100`. Default `20`. Un valor fuera de rango responde `400 VALIDACION`; no se recorta en silencio. |
+| `desde` | No | Fecha `YYYY-MM-DD` o ISO 8601. Se interpreta en UTC e incluye desde las `00:00:00Z`. |
+| `hasta` | No | Fecha `YYYY-MM-DD` o ISO 8601. Se interpreta en UTC e incluye el día completo: `hasta=2026-10-31` alcanza lo emitido el 31/10 a cualquier hora. |
+| `tipo` | No | Código de `TipoComprobante`: `1`, `2`, `3`, `6`, `7`, `8`, `11`, `12`, `13`. Otro valor responde `400 VALIDACION`. |
+| `estado` | No | Código de `EstadoComprobante`: `0`, `1`, `2`, `3`. Otro valor responde `400 VALIDACION`. |
+| `puntoVenta` | No | Entero `>= 1`. |
+| `receptor` | No | Documento del receptor. Se quitan guiones y espacios y se compara exacto. |
 
-Último número autorizado:
+Los filtros se combinan con AND. Si `desde` es posterior a `hasta`, responde `400 VALIDACION`. El orden es `FechaEmision` descendente, `Numero` descendente e `Id` ascendente como desempate estable.
+
+Respuesta `200`:
+
+```json
+{
+  "items": [
+    {
+      "id": "6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22",
+      "tipoComprobante": 11,
+      "tipoComprobanteDescripcion": "Factura C",
+      "puntoVenta": 1,
+      "numero": 42,
+      "fechaEmision": "2026-10-30T15:00:00Z",
+      "cae": "12345678901234",
+      "receptorRazonSocial": "Consumidor Final",
+      "receptorDocumentoNumero": "0",
+      "importeTotal": 10000.00,
+      "moneda": "ARS",
+      "estado": "Emitido"
+    }
+  ],
+  "page": 1,
+  "pageSize": 20,
+  "total": 1,
+  "totalPages": 1
+}
+```
+
+`total` es la cantidad de comprobantes que cumplen el filtro y `totalPages` es `ceil(total / pageSize)`. Una `page` mayor que `totalPages` devuelve `items: []` con los metadatos correctos; no es un error.
+
+### 7.2 Detalle
+
+```http
+GET /v1/comprobantes/6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22
+X-Api-Key: fak_9f3a1c7b2e40_<secreto>
+```
+
+Respuesta `200`:
+
+```json
+{
+  "id": "6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22",
+  "tipoComprobante": 11,
+  "tipoComprobanteDescripcion": "Factura C",
+  "puntoVenta": 1,
+  "numero": 42,
+  "fechaEmision": "2026-10-30T15:00:00Z",
+  "cae": "12345678901234",
+  "caeVencimiento": "2026-11-09T15:00:00Z",
+  "emisorCuit": "20123456786",
+  "emisorRazonSocial": "Empresa Demo S.A.",
+  "receptor": {
+    "documentoTipo": "99",
+    "documentoNumero": "0",
+    "razonSocial": "Consumidor Final",
+    "condicionIva": 5
+  },
+  "importeNeto": 10000.00,
+  "importeIva": 0,
+  "importeTotal": 10000.00,
+  "moneda": "ARS",
+  "estado": "Emitido",
+  "observaciones": "Venta de prueba",
+  "items": [
+    {
+      "descripcion": "Curso de programación",
+      "cantidad": 1,
+      "precioUnitario": 10000.00,
+      "alicuotaIva": 0,
+      "subtotal": 10000.00
+    }
+  ]
+}
+```
+
+- Un id inexistente o de otra empresa responde `404 COMPROBANTE_NO_ENCONTRADO`.
+- Un id que no es `Guid` responde `400 VALIDACION` y no consulta MongoDB.
+- La respuesta no expone `ContribuyenteId`, `IdempotencyKey` ni hashes.
+
+### 7.3 Último autorizado
 
 ```http
 GET /v1/comprobantes/ultimo-autorizado?tipo=11&puntoVenta=1
 X-Api-Key: fak_9f3a1c7b2e40_<secreto>
 ```
+
+Respuesta `200`:
+
+```json
+{ "tipoComprobante": 11, "puntoVenta": 1, "numero": 42 }
+```
+
+- El parámetro `tipo` es **obligatorio** y se llama `tipo`, no `tipoComprobante`. Si falta o no es válido, responde `400 VALIDACION`.
+- `puntoVenta` es opcional. Si se omite, la respuesta agrega el máximo por tipo y devuelve `"puntoVenta": null`.
+- `numero` sale de la colección `secuencias` de `(empresa, punto de venta, tipo)`, no de recorrer `comprobantes`.
+- Si no hay secuencia para esa combinación, responde `200` con `numero: 0`; no es un `404`.
 
 ## 8. Verificar un comprobante
 
@@ -585,7 +692,7 @@ El catálogo cerrado de códigos está en [Estado de la API](#estado-de-la-api) 
 ## 12. Preguntas frecuentes
 
 **¿Qué puedo consumir hoy?**
-La emisión de facturas A, B y C (`POST /v1/comprobantes`, con API key e `Idempotency-Key`), la verificación pública por CAE (`GET /v1/comprobantes/verificar/{cae}`), los endpoints de salud, el login y la sesión (`/v1/auth/**` y `/v1/admin/auth/**`) y la gestión de API keys (`/v1/api-keys`, US-02 y US-14). El alta, la activación, las consultas, la descarga de PDF y los endpoints SOAP siguen pendientes; el contrato completo está en `docs/contratos-api.md`.
+La emisión de facturas A, B y C (`POST /v1/comprobantes`, con API key e `Idempotency-Key`), las consultas de comprobantes (`GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` y `GET /v1/comprobantes/ultimo-autorizado`, con API key o cookie de empresa), la verificación pública por CAE (`GET /v1/comprobantes/verificar/{cae}`), los endpoints de salud, el login y la sesión (`/v1/auth/**` y `/v1/admin/auth/**`) y la gestión de API keys (`/v1/api-keys`, US-02 y US-14). El alta, la activación, la descarga de PDF y los endpoints SOAP siguen pendientes; el contrato completo está en `docs/contratos-api.md`.
 
 **¿Puedo registrarme solo con el CUIT?**
 No. El CUIT es público. La cuenta se activa con una invitación enviada al email del solicitante y aprobada por un administrador global.

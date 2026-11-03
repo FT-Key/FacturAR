@@ -370,6 +370,293 @@
             "description": "US-05. La factura B incluye el IVA en el precio unitario y no lo discrimina: `importeIva` 0. Con `documentoTipo` 99 el documento admite DNI de 7 u 8 dígitos o un CUIT válido."
           },
           "response": []
+        },
+        {
+          "name": "Listar comprobantes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Devuelve paginación y resúmenes sin campos internos', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.page).to.eql(1);",
+                  "  pm.expect(body.pageSize).to.eql(20);",
+                  "  pm.expect(body.items).to.be.an('array');",
+                  "  body.items.forEach(item => pm.expect(item).to.not.have.property('contribuyenteId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Api-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes?page=1&pageSize=20&desde=2026-10-01&hasta=2026-10-31",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "comprobantes"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "desde",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            },
+            "description": "US-09. Lista los comprobantes de la empresa de la API key. `pageSize` admite hasta 100; `desde` y `hasta` se interpretan en UTC y `hasta` incluye el día completo. El orden es fecha y número descendentes, con `Id` como desempate."
+          },
+          "response": [
+            {
+              "name": "200 — listado paginado",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Api-Key",
+                    "value": "{{apiKey}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/comprobantes?page=1&pageSize=20&desde=2026-10-01&hasta=2026-10-31",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "comprobantes"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    },
+                    {
+                      "key": "desde",
+                      "value": "2026-10-01"
+                    },
+                    {
+                      "key": "hasta",
+                      "value": "2026-10-31"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"items\": [\n    {\n      \"id\": \"6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22\",\n      \"tipoComprobante\": 11,\n      \"tipoComprobanteDescripcion\": \"Factura C\",\n      \"puntoVenta\": 1,\n      \"numero\": 42,\n      \"fechaEmision\": \"2026-10-30T15:00:00Z\",\n      \"cae\": \"12345678901234\",\n      \"receptorRazonSocial\": \"Consumidor Final\",\n      \"receptorDocumentoNumero\": \"0\",\n      \"importeTotal\": 10000.00,\n      \"moneda\": \"ARS\",\n      \"estado\": \"Emitido\"\n    }\n  ],\n  \"page\": 1,\n  \"pageSize\": 20,\n  \"total\": 1,\n  \"totalPages\": 1\n}"
+            }
+          ]
+        },
+        {
+          "name": "Detalle de comprobante",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Devuelve los ítems y no expone campos internos', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.items).to.be.an('array');",
+                  "  pm.expect(body).to.not.have.property('contribuyenteId');",
+                  "  pm.expect(body).to.not.have.property('idempotencyKey');",
+                  "  pm.expect(body).to.not.have.property('hash');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Api-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes/6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "comprobantes",
+                "6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22"
+              ]
+            },
+            "description": "US-09. Devuelve el detalle con ítems de un comprobante propio. Reemplazar el id del ejemplo por uno devuelto por el listado o la emisión. Un id de otra empresa responde `404 COMPROBANTE_NO_ENCONTRADO`; un id que no es Guid responde `400 VALIDACION`."
+          },
+          "response": [
+            {
+              "name": "200 — detalle con ítems",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Api-Key",
+                    "value": "{{apiKey}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/comprobantes/6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "comprobantes",
+                    "6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22\",\n  \"tipoComprobante\": 11,\n  \"tipoComprobanteDescripcion\": \"Factura C\",\n  \"puntoVenta\": 1,\n  \"numero\": 42,\n  \"fechaEmision\": \"2026-10-30T15:00:00Z\",\n  \"cae\": \"12345678901234\",\n  \"caeVencimiento\": \"2026-11-09T15:00:00Z\",\n  \"emisorCuit\": \"20123456786\",\n  \"emisorRazonSocial\": \"Empresa Demo S.A.\",\n  \"receptor\": {\n    \"documentoTipo\": \"99\",\n    \"documentoNumero\": \"0\",\n    \"razonSocial\": \"Consumidor Final\",\n    \"condicionIva\": 5\n  },\n  \"importeNeto\": 10000.00,\n  \"importeIva\": 0,\n  \"importeTotal\": 10000.00,\n  \"moneda\": \"ARS\",\n  \"estado\": \"Emitido\",\n  \"observaciones\": \"Venta de prueba\",\n  \"items\": [\n    {\n      \"descripcion\": \"Curso de programación\",\n      \"cantidad\": 1,\n      \"precioUnitario\": 10000.00,\n      \"alicuotaIva\": 0,\n      \"subtotal\": 10000.00\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Último autorizado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Devuelve el último número de la secuencia', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.tipoComprobante).to.eql(11);",
+                  "  pm.expect(body.puntoVenta).to.eql(1);",
+                  "  pm.expect(body.numero).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Api-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes/ultimo-autorizado?tipo=11&puntoVenta=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "comprobantes",
+                "ultimo-autorizado"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "11"
+                },
+                {
+                  "key": "puntoVenta",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "US-09. `tipo` es obligatorio y va en singular. Sin `puntoVenta`, la respuesta agrega por tipo y devuelve `puntoVenta` nulo. Si no hay secuencia, `numero` es 0."
+          },
+          "response": [
+            {
+              "name": "200 — último autorizado",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Api-Key",
+                    "value": "{{apiKey}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/comprobantes/ultimo-autorizado?tipo=11&puntoVenta=1",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "comprobantes",
+                    "ultimo-autorizado"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo",
+                      "value": "11"
+                    },
+                    {
+                      "key": "puntoVenta",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"tipoComprobante\": 11,\n  \"puntoVenta\": 1,\n  \"numero\": 42\n}"
+            }
+          ]
         }
       ]
     },

@@ -51,6 +51,27 @@ Content-Type: application/json
 
 ###
 
+# Consultas (US-09): aceptan API key o cookie de empresa. Pegar una API key válida de la empresa.
+@comprobanteId = 6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22
+
+GET {{FacturAR_Api_HostAddress}}/v1/comprobantes?page=1&pageSize=20&desde=2026-10-01&hasta=2026-10-31&tipo=11
+X-Api-Key: {{apiKey}}
+Accept: application/json
+
+###
+
+GET {{FacturAR_Api_HostAddress}}/v1/comprobantes/{{comprobanteId}}
+X-Api-Key: {{apiKey}}
+Accept: application/json
+
+###
+
+GET {{FacturAR_Api_HostAddress}}/v1/comprobantes/ultimo-autorizado?tipo=11&puntoVenta=1
+X-Api-Key: {{apiKey}}
+Accept: application/json
+
+###
+
 POST {{FacturAR_Api_HostAddress}}/v1/solicitudes-alta
 Content-Type: application/json
 
