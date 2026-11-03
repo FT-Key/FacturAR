@@ -1,154 +1,208 @@
 @page "/api-keys"
 @using System.ComponentModel.DataAnnotations
 @using System.Globalization
+@using System.Net
 @using FacturAR.Contracts.ApiKeys
-@using Microsoft.AspNetCore.Authorization
-@attribute [Authorize(Policy = "EmpresaAdministrador")]
 @inject FacturarApiClient ApiClient
 @inject NavigationManager Navigation
 @inject IConfiguration Configuration
+@inject ApiKeyValorState ValorState
 
 <PageTitle>API keys - FacturAR</PageTitle>
 
 <div class="py-4">
     <h1 class="h3 mb-1">API keys</h1>
-    <p class="text-muted mb-0">
+    <p class="text-muted mb-1">
         Generá credenciales para integrar tus sistemas con la API. El valor completo se muestra una sola vez.
     </p>
+    <a href="https://github.com/FT-Key/FacturAR/blob/development/docs/manual-integracion.md#3-crear-una-api-key"
+       target="_blank"
+       rel="noreferrer">Manual de integración</a>
 </div>
 
-@if (_exito is not null)
+@if (_accesoDenegado)
 {
-    <div class="alert alert-success" role="status">@_exito</div>
-}
-
-@if (_error is not null)
-{
-    <div class="alert alert-danger" role="alert">@_error</div>
-}
-
-@if (_valorVisible is not null)
-{
-    <div class="alert alert-warning" role="alert">
-        <h2 class="h5">Copiá tu API key ahora</h2>
-        <p class="mb-2">
-            Este es el único momento en que vas a ver el valor completo de
-            <strong>@_nombreVisible</strong>. No se puede recuperar después.
-        </p>
-        <div class="d-flex flex-wrap align-items-center gap-2">
-            <code id="valor-api-key" class="text-break">@_valorVisible</code>
-            <button type="button"
-                    class="btn btn-outline-dark btn-sm"
-                    onclick="navigator.clipboard.writeText(document.getElementById('valor-api-key').textContent)">
-                Copiar
-            </button>
+    <section class="card border-danger" role="alert">
+        <div class="card-body">
+            <h2 class="h5">Acceso denegado</h2>
+            <p class="mb-2">Esta sección solo está disponible para usuarios con rol Administrador.</p>
+            <p class="small text-muted mb-0">403 SIN_PERMISOS</p>
         </div>
+    </section>
+}
+else
+{
+    <div class="js-contenedor-api-keys" id="contenido-api-keys" aria-busy="false">
+        @if (_exito is not null)
+        {
+            <div class="alert alert-success" role="status">@_exito</div>
+        }
+
+        @if (_error is not null && _listado is not null)
+        {
+            <div class="alert alert-danger" role="alert">
+                @_error
+                @if (_codigoError is not null)
+                {
+                    <span class="small">(@_codigoError)</span>
+                }
+            </div>
+        }
+
+        <section class="card mb-4" aria-labelledby="titulo-crear">
+            <div class="card-body">
+                <h2 id="titulo-crear" class="h5">Nueva API key</h2>
+                @if (Nuevo is not null)
+                {
+                    <EditForm Model="@Nuevo" FormName="crear" OnValidSubmit="@CrearAsync" Enhance>
+                        <DataAnnotationsValidator />
+                        <div class="row g-2 align-items-end">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label" for="nombre">Nombre</label>
+                                <InputText id="nombre"
+                                           class="form-control"
+                                           maxlength="64"
+                                           autocomplete="off"
+                                           placeholder="Ecommerce"
+                                           @bind-Value="Nuevo.Nombre" />
+                                <ValidationMessage For="() => Nuevo.Nombre" class="text-danger small" />
+                                @if (_errorNombre is not null)
+                                {
+                                    <p class="text-danger small" role="alert">@_errorNombre</p>
+                                }
+                            </div>
+                            <div class="col-12 col-md-auto">
+                                <button type="submit" id="crear-api-key" class="btn btn-primary">Crear API key</button>
+                            </div>
+                        </div>
+                    </EditForm>
+                }
+            </div>
+        </section>
+
+        <section class="card" aria-labelledby="titulo-listado">
+            <div class="card-body">
+                <h2 id="titulo-listado" class="h5" tabindex="-1">Tus API keys</h2>
+
+                @if (_error is not null && _listado is null)
+                {
+                    <div class="alert alert-danger" role="alert">
+                        @_error
+                        @if (_codigoError is not null)
+                        {
+                            <span class="small">(@_codigoError)</span>
+                        }
+                        <div class="mt-2">
+                            <a class="btn btn-outline-secondary btn-sm" href="/api-keys">Reintentar</a>
+                        </div>
+                    </div>
+                }
+                else if (_listado is null)
+                {
+                    <p class="text-muted mb-0" role="status" aria-busy="true">Cargando API keys…</p>
+                }
+                else if (_listado.Items.Count == 0)
+                {
+                    <div class="alert alert-light border mb-0" role="status">
+                        <p class="mb-2">
+                            Todavía no tenés API keys. Creá la primera para empezar a integrarte.
+                        </p>
+                        <button type="button" class="btn btn-primary btn-sm js-enfocar" aria-controls="nombre">
+                            Crear API key
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Nombre</th>
+                                    <th scope="col">Prefijo</th>
+                                    <th scope="col">Estado</th>
+                                    <th scope="col">Creada</th>
+                                    <th scope="col">Último uso</th>
+                                    <th scope="col"><span class="visually-hidden">Acciones</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var apiKey in _listado.Items)
+                                {
+                                    <tr>
+                                        <td>@apiKey.Nombre</td>
+                                        <td class="font-monospace">@apiKey.Prefix</td>
+                                        <td>
+                                            <ApiKeyEstadoBadge Activa="@apiKey.Activa" />
+                                            @if (apiKey.RevocadaAt is DateTime revocada)
+                                            {
+                                                <div class="small text-muted">Revocada @Fecha(revocada)</div>
+                                            }
+                                            @if (apiKey.RegeneradaAt is DateTime regenerada)
+                                            {
+                                                <div class="small text-muted">Regenerada @Fecha(regenerada)</div>
+                                            }
+                                        </td>
+                                        <td>@Fecha(apiKey.CreatedAt)</td>
+                                        <td>@(apiKey.UltimoUso is DateTime ultimo ? Fecha(ultimo) : "Nunca")</td>
+                                        <td class="text-end">
+                                            <div class="d-flex flex-wrap justify-content-end gap-2">
+                                                @if (apiKey.Activa)
+                                                {
+                                                    <button type="button"
+                                                            id="revocar-@apiKey.Id"
+                                                            class="js-abrir-dialogo btn btn-outline-danger btn-sm"
+                                                            aria-label="Revocar API key @apiKey.Nombre"
+                                                            aria-controls="confirmar-revocar-@apiKey.Id">
+                                                        Revocar API key
+                                                    </button>
+                                                    <button type="button"
+                                                            id="regenerar-@apiKey.Id"
+                                                            class="js-abrir-dialogo btn btn-outline-primary btn-sm"
+                                                            aria-label="Regenerar API key @apiKey.Nombre"
+                                                            aria-controls="confirmar-regenerar-@apiKey.Id">
+                                                        Regenerar API key
+                                                    </button>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </section>
+
+        @if (_listado is not null)
+        {
+            @foreach (var apiKey in _listado.Items)
+            {
+                var mensajeRevocar = $"La API key \"{apiKey.Nombre}\" ({apiKey.Prefix}) dejará de autenticar de inmediato y no se puede volver a activar. ¿Continuar?";
+                var mensajeRegenerar = $"Se generará un valor nuevo para \"{apiKey.Nombre}\" ({apiKey.Prefix}); el valor anterior dejará de autenticar. ¿Continuar?";
+
+                <ConfirmDialog Id="@($"confirmar-revocar-{apiKey.Id}")"
+                               Titulo="Revocar API key"
+                               Mensaje="@mensajeRevocar"
+                               TextoConfirmar="Sí, revocar la API key"
+                               Accion="@($"revocar:{apiKey.Id}")"
+                               Variante="danger" />
+                <ConfirmDialog Id="@($"confirmar-regenerar-{apiKey.Id}")"
+                               Titulo="Regenerar API key"
+                               Mensaje="@mensajeRegenerar"
+                               TextoConfirmar="Sí, regenerar la API key"
+                               Accion="@($"regenerar:{apiKey.Id}")"
+                               Variante="primary" />
+            }
+        }
+
+        @if (ValorState.HayValor)
+        {
+            <ApiKeyValorModal Nombre="@(ValorState.Nombre ?? string.Empty)" Valor="@(ValorState.Valor ?? string.Empty)" />
+        }
     </div>
 }
-
-<section class="card mb-4" aria-labelledby="titulo-crear">
-    <div class="card-body">
-        <h2 id="titulo-crear" class="h5">Nueva API key</h2>
-        <EditForm Model="Nuevo!" FormName="crear" OnValidSubmit="CrearAsync" Enhance>
-            <DataAnnotationsValidator />
-            <div class="row g-2 align-items-end">
-                <div class="col-12 col-md-6">
-                    <label class="form-label" for="nombre">Nombre</label>
-                    <InputText id="nombre"
-                               class="form-control"
-                               maxlength="64"
-                               autocomplete="off"
-                               placeholder="Ecommerce"
-                               @bind-Value="Nuevo!.Nombre" />
-                    <ValidationMessage For="() => Nuevo!.Nombre" class="text-danger small" />
-                </div>
-                <div class="col-12 col-md-auto">
-                    <button type="submit" class="btn btn-primary">Crear API key</button>
-                </div>
-            </div>
-        </EditForm>
-    </div>
-</section>
-
-<section class="card" aria-labelledby="titulo-listado">
-    <div class="card-body">
-        <h2 id="titulo-listado" class="h5">Tus API keys</h2>
-
-        @if (_listado is null)
-        {
-            <p class="text-muted mb-0">Cargando…</p>
-        }
-        else if (_listado.Items.Count == 0)
-        {
-            <div class="alert alert-light border mb-0" role="status">
-                Todavía no tenés API keys. Creá la primera para empezar a integrarte.
-            </div>
-        }
-        else
-        {
-            <form method="post" @formname="gestion" @onsubmit="GestionarAsync" data-enhance>
-                <AntiforgeryToken />
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th scope="col">Nombre</th>
-                                <th scope="col">Prefijo</th>
-                                <th scope="col">Estado</th>
-                                <th scope="col">Creada</th>
-                                <th scope="col">Último uso</th>
-                                <th scope="col"><span class="visually-hidden">Acciones</span></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var apiKey in _listado.Items)
-                            {
-                                <tr>
-                                    <td>@apiKey.Nombre</td>
-                                    <td class="font-monospace">@apiKey.Prefix</td>
-                                    <td>
-                                        <span class="badge @ClaseEstado(apiKey.Activa)">@Estado(apiKey.Activa)</span>
-                                        @if (apiKey.RevocadaAt is DateTime revocada)
-                                        {
-                                            <div class="small text-muted">Revocada @Fecha(revocada)</div>
-                                        }
-                                        @if (apiKey.RegeneradaAt is DateTime regenerada)
-                                        {
-                                            <div class="small text-muted">Regenerada @Fecha(regenerada)</div>
-                                        }
-                                    </td>
-                                    <td>@Fecha(apiKey.CreatedAt)</td>
-                                    <td>@(apiKey.UltimoUso is DateTime ultimo ? Fecha(ultimo) : "Nunca")</td>
-                                    <td class="text-end">
-                                        <div class="d-flex flex-wrap justify-content-end gap-2">
-                                            @if (apiKey.Activa)
-                                            {
-                                                <button type="submit"
-                                                        name="Accion"
-                                                        value="revocar:@apiKey.Id"
-                                                        class="btn btn-outline-danger btn-sm"
-                                                        onclick="return confirm('¿Revocar esta API key? Dejará de autenticar de inmediato.')">
-                                                    Revocar
-                                                </button>
-                                            }
-                                            <button type="submit"
-                                                    name="Accion"
-                                                    value="regenerar:@apiKey.Id"
-                                                    class="btn btn-outline-primary btn-sm"
-                                                    onclick="return confirm('Se generará un valor nuevo y el anterior dejará de autenticar. ¿Continuar?')">
-                                                Regenerar
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </form>
-        }
-    </div>
-</section>
 
 @code {
     [CascadingParameter]
@@ -160,14 +214,14 @@
     [SupplyParameterFromForm(FormName = "crear")]
     private CrearModelo? Nuevo { get; set; }
 
-    [SupplyParameterFromForm(FormName = "gestion")]
-    private string? Accion { get; set; }
-
     private ApiKeyListResponse? _listado;
-    private string? _valorVisible;
-    private string? _nombreVisible;
     private string? _exito;
     private string? _error;
+    private string? _codigoError;
+    private string? _errorNombre;
+    private bool _accesoDenegado;
+
+    private CancellationToken Token => HttpContext?.RequestAborted ?? CancellationToken.None;
 
     private string? Cookie => HttpContext?.Request.Cookies.TryGetValue(NombreCookieEmpresa, out var valor) == true
         && !string.IsNullOrEmpty(valor)
@@ -179,34 +233,79 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Nuevo ??= new CrearModelo();
+
         var usuario = AuthenticationState is null ? null : (await AuthenticationState).User;
-        if (usuario is null || !usuario.HasClaim("rol", "Administrador"))
+        if (usuario?.Identity?.IsAuthenticated != true)
         {
             Navigation.NavigateTo("/login");
             return;
         }
 
-        Nuevo ??= new CrearModelo();
+        if (HttpContext is { } contexto && HttpMethods.IsPost(contexto.Request.Method))
+        {
+            await CargarAsync();
+
+            var formulario = await contexto.Request.ReadFormAsync();
+            var accion = formulario["Accion"].ToString();
+            if (accion.Length > 0)
+            {
+                await ProcesarAccionAsync(accion);
+            }
+
+            return;
+        }
+
         await CargarAsync();
     }
 
-    private async Task CargarAsync()
+    private async Task ProcesarAccionAsync(string accion)
     {
-        var resultado = await ApiClient.ListarApiKeysAsync(Cookie);
-        if (resultado.SinSesion)
+        var partes = accion.Split(':', 2);
+        if (partes.Length != 2
+            || !Guid.TryParse(partes[1], out var id)
+            || (partes[0] != "revocar" && partes[0] != "regenerar"))
+        {
+            _error = "La acción solicitada no es válida.";
+            return;
+        }
+
+        if (partes[0] == "revocar")
+        {
+            var revocada = await ApiClient.RevocarApiKeyAsync(Cookie, id, Token);
+            if (revocada.SinSesion)
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+
+            if (!revocada.Exitoso)
+            {
+                RegistrarError(revocada);
+                return;
+            }
+
+            _exito = "API key revocada.";
+            await CargarAsync();
+            return;
+        }
+
+        var regenerada = await ApiClient.RegenerarApiKeyAsync(Cookie, id, Token);
+        if (regenerada.SinSesion)
         {
             Navigation.NavigateTo("/login");
             return;
         }
 
-        if (resultado.Exitoso)
+        if (!regenerada.Exitoso || regenerada.Valor is null)
         {
-            _listado = resultado.Valor;
+            RegistrarError(regenerada);
+            return;
         }
-        else
-        {
-            _error = resultado.Mensaje;
-        }
+
+        _exito = "API key regenerada. El valor anterior dejó de ser válido.";
+        ValorState.Mostrar(regenerada.Valor.Nombre, regenerada.Valor.Valor);
+        await CargarAsync();
     }
 
     private async Task CrearAsync()
@@ -216,7 +315,9 @@
             return;
         }
 
-        var resultado = await ApiClient.CrearApiKeyAsync(Cookie, new CrearApiKeyRequest(Nuevo.Nombre));
+        var nombre = Nuevo.Nombre.Trim();
+        _errorNombre = null;
+        var resultado = await ApiClient.CrearApiKeyAsync(Cookie, new CrearApiKeyRequest(nombre), Token);
         if (resultado.SinSesion)
         {
             Navigation.NavigateTo("/login");
@@ -225,89 +326,65 @@
 
         if (!resultado.Exitoso || resultado.Valor is null)
         {
-            _error = resultado.Mensaje;
+            if (resultado.Codigo == "VALIDACION")
+            {
+                _errorNombre = resultado.Mensaje;
+                return;
+            }
+
+            RegistrarError(resultado);
             return;
         }
 
-        _error = null;
+        _errorNombre = null;
         _exito = "API key creada.";
-        MostrarValor(resultado.Valor.Nombre, resultado.Valor.Valor);
+        ValorState.Mostrar(resultado.Valor.Nombre, resultado.Valor.Valor);
         Nuevo.Nombre = string.Empty;
         await CargarAsync();
     }
 
-    private async Task GestionarAsync()
+    private async Task CargarAsync()
     {
-        if (string.IsNullOrWhiteSpace(Accion))
+        var resultado = await ApiClient.ListarApiKeysAsync(Cookie, Token);
+        if (resultado.SinSesion)
         {
+            Navigation.NavigateTo("/login");
             return;
         }
 
-        var partes = Accion.Split(':', 2);
-        if (partes.Length != 2 || !Guid.TryParse(partes[1], out var id))
+        if (resultado.Status == HttpStatusCode.Forbidden)
         {
-            _error = "La acción solicitada no es válida.";
+            _accesoDenegado = true;
+            _error = null;
             return;
         }
 
-        switch (partes[0])
+        if (!resultado.Exitoso)
         {
-            case "revocar":
-                var revocada = await ApiClient.RevocarApiKeyAsync(Cookie, id);
-                if (revocada.SinSesion)
-                {
-                    Navigation.NavigateTo("/login");
-                    return;
-                }
+            RegistrarError(resultado);
+            return;
+        }
 
-                if (!revocada.Exitoso)
-                {
-                    _error = revocada.Mensaje;
-                    return;
-                }
+        _listado = resultado.Valor;
+        _error = null;
+        _codigoError = null;
+    }
 
-                _error = null;
-                _exito = "API key revocada.";
-                await CargarAsync();
-                break;
+    private void RegistrarError<T>(ResultadoApi<T> resultado)
+    {
+        _error = resultado.Codigo switch
+        {
+            "API_KEY_INVALIDA" => "La key no existe o no pertenece a tu empresa.",
+            "SIN_PERMISOS" => "Acceso denegado.",
+            _ => resultado.Mensaje ?? "No pudimos completar la operación."
+        };
+        _codigoError = resultado.Codigo;
 
-            case "regenerar":
-                var regenerada = await ApiClient.RegenerarApiKeyAsync(Cookie, id);
-                if (regenerada.SinSesion)
-                {
-                    Navigation.NavigateTo("/login");
-                    return;
-                }
-
-                if (!regenerada.Exitoso || regenerada.Valor is null)
-                {
-                    _error = regenerada.Mensaje;
-                    return;
-                }
-
-                _error = null;
-                _exito = "API key regenerada. El valor anterior dejó de ser válido.";
-                MostrarValor(regenerada.Valor.Nombre, regenerada.Valor.Valor);
-                await CargarAsync();
-                break;
-
-            default:
-                _error = "La acción solicitada no es válida.";
-                break;
+        if (resultado.Codigo == "SIN_PERMISOS")
+        {
+            _accesoDenegado = true;
         }
     }
-
-    private void MostrarValor(string nombre, string valor)
-    {
-        _nombreVisible = nombre;
-        _valorVisible = valor;
-    }
-
-    private static string Estado(bool activa)
-        => activa ? "Activa" : "Revocada";
-
-    private static string ClaseEstado(bool activa)
-        => activa ? "text-bg-success" : "text-bg-secondary";
 
     private static string Fecha(DateTime fecha)
         => fecha.ToUniversalTime().ToString("dd/MM/yyyy HH:mm 'UTC'", CultureInfo.InvariantCulture);
