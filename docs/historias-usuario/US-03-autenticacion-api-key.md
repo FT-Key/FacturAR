@@ -19,20 +19,20 @@ La verificación pública por CAE sigue siendo anónima.
 
 ## Criterios de aceptación
 
-- [ ] Los endpoints de negocio exigen el header `X-Api-Key`. — Pendiente: no existen endpoints de negocio (US-05/US-09); solo se validó con un host stub.
+- [x] Los endpoints de negocio exigen autenticación: `X-Api-Key` o, en las consultas de comprobantes, cookie de empresa (desvío US-09).
 - [x] Una key ausente devuelve `401 API_KEY_AUSENTE`.
 - [x] Una key mal formada, inexistente, revocada o de una empresa inactiva devuelve `401 API_KEY_INVALIDA`.
 - [x] La comparación del hash se hace en tiempo constante.
 - [x] Una key válida resuelve el `ContribuyenteId` y lo adjunta al request.
 - [x] El contexto de tenant se expone mediante una abstracción de Application.
-- [ ] El cliente no puede acceder a datos de otro contribuyente. — Pendiente end-to-end: sin endpoints de comprobantes no hay aislamiento real verificable; solo hay prueba de pipeline con stub.
+- [ ] El cliente no puede acceder a datos de otro contribuyente. — Parcial: cubierto con stub en consultas (US-09) y con `MongoFact` escrito; falta la corrida real con MongoDB.
 - [x] Se actualiza `UltimoUso` en cada autenticación exitosa.
 - [x] La actualización de `UltimoUso` no bloquea la respuesta si falla.
 - [x] La key completa no se registra en logs, errores ni trazas.
-- [ ] Los endpoints de emisión y consulta quedan protegidos. — Pendiente: US-05 y US-09 no están implementadas.
+- [x] Los endpoints de emisión y consulta quedan protegidos.
 - [x] La verificación pública permanece anónima.
 - [x] Los errores no revelan si el prefijo existe.
-- [ ] Hay tests de 401, 403, aislamiento y actualización de último uso. — Parcial: hay tests de 401 y de último uso; el aislamiento solo está cubierto a nivel de pipeline/stub y `403` no aplica al esquema de API key (no tiene roles).
+- [x] Hay tests de 401, 403, aislamiento y actualización de último uso. — Los de aislamiento real con Mongo están escritos y se ejecutan con `MONGO_CONNECTION_STRING`.
 
 ## Escenarios Gherkin
 
@@ -131,7 +131,7 @@ builder.Services.AddAuthentication(options =>
 .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", _ => { });
 ```
 
-El esquema `ApiKey` convive con los dos esquemas de cookie de US-04. **Cada grupo de endpoints declara explícitamente** su autenticación, de modo que una API key nunca habilita un endpoint de sesión y una cookie nunca habilita un endpoint de negocio.
+El esquema `ApiKey` convive con los dos esquemas de cookie de US-04. **Cada grupo de endpoints declara explícitamente** su autenticación, de modo que una API key nunca habilita un endpoint de sesión. La cookie de empresa, por el desvío acordado con US-09, habilita únicamente las consultas de comprobantes; no habilita la emisión ni SOAP.
 
 #### Header y formato
 
@@ -189,7 +189,8 @@ US-03 no agrega endpoints propios: **define el esquema de autenticación y lo ap
 
 | Grupo de endpoints | Autenticación | Errores |
 | --- | --- | --- |
-| `/v1/comprobantes/**` (excluyendo `/v1/comprobantes/verificar/{cae}`) | `X-Api-Key` | `401 API_KEY_AUSENTE`, `401 API_KEY_INVALIDA` |
+| `GET /v1/comprobantes`, `GET /v1/comprobantes/{id}`, `GET /v1/comprobantes/ultimo-autorizado` (US-09) | `X-Api-Key` o cookie `cookies.contribuyente` con rol `Administrador`, `Emisor` o `Consulta` | `401 API_KEY_AUSENTE`, `401 API_KEY_INVALIDA`, `401 CREDENCIALES_INVALIDAS`, `403 SIN_PERMISOS` |
+| `POST /v1/comprobantes` | `X-Api-Key` | `401 API_KEY_AUSENTE`, `401 API_KEY_INVALIDA` |
 | `/v1/comprobantes/verificar/{cae}` | **Anónimo** | `400 CAE_INVALIDO`, `404 COMPROBANTE_NO_ENCONTRADO` |
 | `/v1/soap/**` (US-15, US-16) | `X-Api-Key` | `401 API_KEY_AUSENTE`, `401 API_KEY_INVALIDA` |
 | `/v1/api-keys/**` (US-02) | Cookie `cookies.contribuyente` + `EmpresaAdministrador` | `401 CREDENCIALES_INVALIDAS`, `403 SIN_PERMISOS`, `404 API_KEY_INVALIDA` |
@@ -202,8 +203,10 @@ Reglas de aplicación:
 
 - Los endpoints de negocio se declaran con `.RequireAuthorization(p => p.AddAuthenticationSchemes("ApiKey").RequireAuthenticatedUser())` o, si se fija `DefaultAuthenticateScheme = "ApiKey"`, con `.RequireAuthorization()` a secas.
 - Los endpoints anónimos se declaran con `.AllowAnonymous()` **explícitamente**, aunque el esquema por defecto sea `ApiKey`.
-- Los endpoints de cookie se declaran con la política de US-04, que usa `AddAuthenticationSchemes("cookies.contribuyente")` o `("cookies.admin")`. La política reemplaza el esquema por defecto, de modo que la cookie y la API key nunca se mezclan en un mismo endpoint.
-- Un endpoint de negocio **no** acepta ninguna forma de credencial alternativa: la API key es la única.
+- Los endpoints de cookie se declaran con la política de US-04, que usa `AddAuthenticationSchemes("cookies.contribuyente")` o `("cookies.admin")`. La política reemplaza el esquema por defecto. La excepción son las consultas de comprobantes, que declaran `AddAuthenticationSchemes("ApiKey", "cookies.contribuyente")` en una política propia.
+- Un endpoint de negocio acepta API key como credencial **salvo** las consultas de comprobantes, que aceptan API key o cookie de empresa por el desvío de US-09.
+
+> **Desvío acordado con US-09.** `GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` y `GET /v1/comprobantes/ultimo-autorizado` aceptan la cookie `cookies.contribuyente` con rol `Administrador`, `Emisor` o `Consulta`, para que el portal consulte sin duplicar reglas. La cookie **no** habilita `POST /v1/comprobantes`, `/v1/soap/**`, `/v1/admin/**` ni los endpoints anónimos, que siguen exigiendo API key o siguen públicos según corresponda.
 
 ### Casos de uso y servicios
 
@@ -233,7 +236,7 @@ Reglas de aplicación:
 
 - La API key **no** tiene roles ni scopes en el MVP: habilita todo el grupo de endpoints de negocio de la API, y el aislamiento se hace por tenant.
 - La API key **no** habilita `/v1/api-keys`, ni `/v1/auth/**`, ni `/v1/admin/**`: esos exigen cookie de sesión.
-- La cookie de sesión **no** habilita `/v1/comprobantes/**`: esos exigen API key. Es deliberado, para que el portal no sea un camino alterno al control de tenant (contrato §4.2).
+- La cookie de sesión habilita las consultas de comprobantes (`GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` y `GET /v1/comprobantes/ultimo-autorizado`) por el desvío de US-09, con rol `Administrador`, `Emisor` o `Consulta`. No habilita `POST /v1/comprobantes`, `/v1/soap/**` ni `/v1/admin/**`; esos siguen exigiendo API key o cookie de consola.
 - La verificación pública por CAE queda fuera de toda autenticación.
 
 ### Validaciones
@@ -290,7 +293,7 @@ No hay secretos en la configuración.
 | CP-13 | La escritura de `UltimoUso` falla (por ejemplo, la base no responde). | Autenticar con una key válida. | La petición responde `200` con normalidad. El fallo de la actualización no bloquea ni rompe la respuesta; queda registrado como advertencia en el log. |
 | CP-14 | Cualquier key. | Revisar los logs, las trazas, la respuesta de error y el evento de auditoría de la petición. | Ni la key completa ni el `Hash` aparecen en ningún logs, traza, respuesta o evento. |
 | CP-15 | Un comprobante existente. | `GET /v1/comprobantes/verificar/{cae}` sin header `X-Api-Key`. | `200` con los datos públicos. La verificación permanece anónima. |
-| CP-16 | Una sesión de empresa válida. | Llamar a un endpoint de negocio de la API con la cookie de sesión y sin `X-Api-Key`. | `401 API_KEY_AUSENTE`. La cookie del portal no autoriza la API de negocio. |
+| CP-16 | Una sesión de empresa válida con rol `Administrador`, `Emisor` o `Consulta`. | Llamar a un endpoint de consulta (`GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` o `GET /v1/comprobantes/ultimo-autorizado`) con la cookie de sesión y sin `X-Api-Key`. | `200` con datos de la empresa de la sesión (desvío acordado con US-09). La cookie no habilita `POST /v1/comprobantes`, `/v1/soap/**` ni `/v1/admin/**`, que siguen exigiendo API key o cookie de consola. |
 
 ## Dependencias técnicas
 
@@ -334,11 +337,10 @@ QA runtime con instancia nueva en `localhost:5199`:
 
 Pendiente por US-05/US-09 y Mongo real:
 
-- Aplicar `RequireApiKey()` y la política `ApiKeyNegocio` a emisión y consultas cuando esos endpoints existan.
-- CP-01 end-to-end contra un endpoint de negocio real.
+- CP-01 end-to-end contra un endpoint de negocio real con MongoDB.
 - CP-09 y CP-10 con datos reales: aislamiento contra comprobantes de otra empresa.
 - Correr `MongoApiKeyAuthenticationTests` con `MONGO_CONNECTION_STRING`.
-- Confirmar en QA que la cookie de sesión no habilita endpoints de negocio reales (hoy solo está cubierto con el stub).
+- Confirmar en QA que la cookie de sesión no habilita `POST /v1/comprobantes`, `/v1/soap/**` ni `/v1/admin/**` (los GET de consulta sí la aceptan por el desvío de US-09).
 
 ## Notas de alcance
 
