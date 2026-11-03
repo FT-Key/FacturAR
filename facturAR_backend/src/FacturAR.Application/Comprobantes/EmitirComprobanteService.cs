@@ -17,6 +17,9 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
     private const string ActorEmpresa = "Empresa";
     private const string RolAdministrador = "Administrador";
     private const string RolEmisor = "Emisor";
+    private const int ReintentosAjusteSaldo = 5;
+    private const string MensajeSaldoCambiante =
+        "El saldo del comprobante original cambió durante la emisión. Intentá de nuevo.";
 
     private readonly IContribuyenteRepository _contribuyentes;
     private readonly IPuntoVentaRepository _puntosVenta;
@@ -61,7 +64,9 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
 
         var tipo = (TipoComprobante)request.TipoComprobante;
         ComprobanteValidator.ValidarTipoHabilitado(tipo);
+        NotaComprobanteValidator.ValidarReferencia(tipo, request.ComprobanteOriginalId);
         ComprobanteValidator.ValidarPuntoVenta(request.PuntoVenta);
+        var esNota = NotaComprobanteValidator.EsNota(tipo);
 
         var puntoVenta = await _puntosVenta.ObtenerPorNumeroAsync(contribuyenteId, request.PuntoVenta, ct);
         if (puntoVenta is null)
@@ -102,6 +107,16 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
         var calculo = CalculadoraImportes.Calcular(items, tipo);
         ComprobanteValidator.ValidarImporteTotal(request.ImporteTotal, calculo.ImporteTotal);
 
+        if (esNota)
+        {
+            var original = await ObtenerOriginalAsync(contribuyenteId, request.ComprobanteOriginalId!.Value, ct);
+            NotaComprobanteValidator.ValidarOriginal(tipo, original);
+            NotaComprobanteValidator.CalcularNuevoSaldo(
+                tipo,
+                NotaComprobanteValidator.SaldoActual(original),
+                calculo.ImporteTotal);
+        }
+
         var fechaEmision = ResolverFechaEmision(request.FechaEmision);
         var caeVencimiento = CalcularCaeVencimiento(fechaEmision, diasVencimiento);
         var moneda = await _parametros.ObtenerMonedaAsync(contribuyenteId, ct);
@@ -109,6 +124,16 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
         var comprobante = await _transaccion.EjecutarAsync(
             async token =>
             {
+                if (esNota)
+                {
+                    await AjustarSaldoOriginalAsync(
+                        contribuyenteId,
+                        request.ComprobanteOriginalId!.Value,
+                        tipo,
+                        calculo.ImporteTotal,
+                        token);
+                }
+
                 var numero = await _secuencias.ObtenerSiguienteNumeroAsync(
                     contribuyenteId,
                     request.PuntoVenta,
@@ -141,6 +166,8 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
                     IdempotencyKey = idempotencyKey,
                     Observaciones = observaciones,
                     Items = [.. calculo.Items],
+                    ComprobanteOriginalId = esNota ? request.ComprobanteOriginalId : null,
+                    ImporteOriginalAjustado = esNota ? null : calculo.ImporteTotal,
                     CreatedAt = ahora
                 };
 
@@ -152,6 +179,41 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
             ct);
 
         return Mapear(comprobante);
+    }
+
+    private async Task<Comprobante> ObtenerOriginalAsync(Guid contribuyenteId, Guid originalId, CancellationToken ct)
+        => await _comprobantes.GetByIdAsync(contribuyenteId, originalId, ct)
+            ?? throw new ComprobanteNoEncontradoException(NotaComprobanteValidator.MensajeOriginalNoEncontrado);
+
+    private async Task AjustarSaldoOriginalAsync(
+        Guid contribuyenteId,
+        Guid originalId,
+        TipoComprobante tipoNota,
+        decimal importeNota,
+        CancellationToken ct)
+    {
+        for (var intento = 0; intento < ReintentosAjusteSaldo; intento++)
+        {
+            var original = await ObtenerOriginalAsync(contribuyenteId, originalId, ct);
+            NotaComprobanteValidator.ValidarOriginal(tipoNota, original);
+
+            var saldoNuevo = NotaComprobanteValidator.CalcularNuevoSaldo(
+                tipoNota,
+                NotaComprobanteValidator.SaldoActual(original),
+                importeNota);
+
+            if (await _comprobantes.AjustarSaldoAsync(
+                    contribuyenteId,
+                    originalId,
+                    original.ImporteOriginalAjustado,
+                    saldoNuevo,
+                    ct))
+            {
+                return;
+            }
+        }
+
+        throw new ComprobanteValidationException(MensajeSaldoCambiante);
     }
 
     private static void ValidarPermisos(string? rol)
@@ -214,7 +276,8 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
                 ["cae"] = comprobante.Cae,
                 ["tipoComprobante"] = ((int)comprobante.TipoComprobante).ToString(CultureInfo.InvariantCulture),
                 ["puntoVenta"] = comprobante.PuntoVenta.ToString(CultureInfo.InvariantCulture),
-                ["importeTotal"] = comprobante.ImporteTotal.ToString(CultureInfo.InvariantCulture)
+                ["importeTotal"] = comprobante.ImporteTotal.ToString(CultureInfo.InvariantCulture),
+                ["comprobanteOriginalId"] = comprobante.ComprobanteOriginalId?.ToString() ?? string.Empty
             }),
             CreatedAt = comprobante.CreatedAt
         };
