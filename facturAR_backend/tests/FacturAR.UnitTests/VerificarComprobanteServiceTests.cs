@@ -62,7 +62,21 @@ public sealed class VerificarComprobanteServiceTests
         public Task<Comprobante?> GetByCaeAsync(string cae, CancellationToken cancellationToken = default)
             => Task.FromResult(comprobante);
 
+        public Task<Comprobante?> GetByIdAsync(
+            Guid contribuyenteId,
+            Guid id,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(comprobante);
+
         public Task AddAsync(Comprobante nuevo, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
+
+        public Task<bool> AjustarSaldoAsync(
+            Guid contribuyenteId,
+            Guid originalId,
+            decimal? saldoEsperado,
+            decimal saldoNuevo,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(false);
     }
 }

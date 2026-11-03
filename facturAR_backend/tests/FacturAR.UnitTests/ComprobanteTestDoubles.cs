@@ -186,10 +186,44 @@ internal sealed class ComprobanteRepositorioFake : IComprobanteRepository
     public Task<Comprobante?> GetByCaeAsync(string cae, CancellationToken cancellationToken = default)
         => Task.FromResult(Comprobantes.FirstOrDefault(c => c.Cae == cae));
 
+    public Task<Comprobante?> GetByIdAsync(
+        Guid contribuyenteId,
+        Guid id,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(Comprobantes.FirstOrDefault(
+            c => c.Id == id && c.ContribuyenteId == contribuyenteId));
+
     public Task AddAsync(Comprobante comprobante, CancellationToken cancellationToken = default)
     {
         Comprobantes.Add(comprobante);
         return Task.CompletedTask;
+    }
+
+    public int ConflictosSimulados { get; set; }
+
+    public int AjustesRechazados { get; private set; }
+
+    public Task<bool> AjustarSaldoAsync(
+        Guid contribuyenteId,
+        Guid originalId,
+        decimal? saldoEsperado,
+        decimal saldoNuevo,
+        CancellationToken cancellationToken = default)
+    {
+        var original = Comprobantes.FirstOrDefault(c => c.Id == originalId
+            && c.ContribuyenteId == contribuyenteId
+            && c.ComprobanteOriginalId is null
+            && c.ImporteOriginalAjustado == saldoEsperado);
+
+        if (original is null || ConflictosSimulados > 0)
+        {
+            ConflictosSimulados = Math.Max(0, ConflictosSimulados - 1);
+            AjustesRechazados++;
+            return Task.FromResult(false);
+        }
+
+        original.ImporteOriginalAjustado = saldoNuevo;
+        return Task.FromResult(true);
     }
 }
 

@@ -73,6 +73,11 @@ public static class MongoIndexInitializer
             new CreateIndexModel<Comprobante>(
                 Builders<Comprobante>.IndexKeys
                     .Ascending(c => c.ContribuyenteId)
+                    .Ascending(c => c.ComprobanteOriginalId),
+                new CreateIndexOptions { Name = "ix_comprobantes_original" }),
+            new CreateIndexModel<Comprobante>(
+                Builders<Comprobante>.IndexKeys
+                    .Ascending(c => c.ContribuyenteId)
                     .Descending(c => c.FechaEmision),
                 new CreateIndexOptions { Name = "ix_comprobantes_contribuyente_fecha" }),
             new CreateIndexModel<Comprobante>(
