@@ -364,6 +364,7 @@ erDiagram
 | `comprobantes` | `ContribuyenteId + PuntoVenta + TipoComprobante + Numero` | Único |
 | `comprobantes` | `ContribuyenteId + IdempotencyKey` | Único |
 | `comprobantes` | `ContribuyenteId + FechaEmision` | Compuesto |
+| `comprobantes` | `ContribuyenteId + FechaEmision + Numero + Id` | Compuesto |
 | `comprobantes` | `ReceptorDocumentoNumero` | Simple |
 | `outbox` | `Estado + CreatedAt` | Compuesto |
 | `emails` | `Estado + CreatedAt` | Compuesto |

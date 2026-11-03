@@ -130,6 +130,9 @@ builder.Services.AddSingleton<MongoDbContext>();
 
 builder.Services.AddScoped<IComprobanteRepository, ComprobanteRepository>();
 builder.Services.AddScoped<VerificarComprobanteService>();
+builder.Services.AddScoped<ListarComprobantesService>();
+builder.Services.AddScoped<ConsultarComprobanteService>();
+builder.Services.AddScoped<ObtenerUltimoAutorizadoService>();
 builder.Services.AddScoped<IEmitirComprobanteService, EmitirComprobanteService>();
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IAdministradorRepository, AdministradorRepository>();
@@ -180,6 +183,7 @@ builder.Services.AddHostedService<SeedHostedService>();
 
 builder.Services.AddFacturarCookies(authOptions, builder.Environment.IsDevelopment());
 builder.Services.AddFacturarApiKeyAuthentication();
+builder.Services.AddComprobanteConsultaAuthorization();
 
 var solicitudAltaPolicy = new SolicitudAltaRateLimitPolicy(solicitudAltaRateLimitOptions);
 
@@ -359,6 +363,7 @@ app.MapSolicitudesAdminEndpoints();
 app.MapInvitacionEndpoints();
 app.MapApiKeyEndpoints();
 app.MapComprobanteEndpoints();
+app.MapComprobanteConsultaEndpoints();
 
 app.Run();
 
