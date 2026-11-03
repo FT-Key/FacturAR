@@ -403,6 +403,13 @@ public sealed class ConsultaComprobantesRepositorioFake : IComprobanteRepository
         return Task.FromResult<(IReadOnlyList<Comprobante>, long)>((items, coincidencias.Count));
     }
 
+    public Task<Comprobante?> GetByIdempotencyKeyAsync(
+        Guid contribuyenteId,
+        string clave,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(Comprobantes.FirstOrDefault(
+            c => c.ContribuyenteId == contribuyenteId && c.IdempotencyKey == clave));
+
     public Task AddAsync(Comprobante comprobante, CancellationToken cancellationToken = default)
     {
         Comprobantes.Add(comprobante);

@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text;
 using FacturAR.Application.Abstractions;
 using FacturAR.Application.ApiKeys;
+using FacturAR.Application.Comprobantes;
 using FacturAR.Contracts.Auth;
 using FacturAR.Contracts.Comunes;
 using FacturAR.Contracts.Comprobantes;
@@ -163,6 +164,204 @@ public sealed class ComprobanteEndpointsTests
         Assert.Empty(factory.Eventos.Eventos);
     }
 
+    [Fact]
+    public async Task CP0601_ReintentoConMismaClaveYBody_Devuelve200ConElMismoComprobante()
+    {
+        using var factory = new ComprobanteApiKeyFactory();
+        using var client = factory.CreateClient();
+
+        var primero = await EnviarAsync(
+            client,
+            FacturaA(),
+            "pedido-001",
+            ComprobanteApiKeyFactory.ApiKeyValida);
+        Assert.Equal(HttpStatusCode.Created, primero.StatusCode);
+        Assert.Equal("pedido-001", primero.Headers.GetValues("Idempotency-Key").Single());
+        var original = await primero.Content.ReadFromJsonAsync<ComprobanteResponse>();
+        Assert.NotNull(original);
+
+        var segundo = await EnviarAsync(
+            client,
+            FacturaA(),
+            "pedido-001",
+            ComprobanteApiKeyFactory.ApiKeyValida);
+        Assert.Equal(HttpStatusCode.OK, segundo.StatusCode);
+        Assert.Equal("pedido-001", segundo.Headers.GetValues("Idempotency-Key").Single());
+        var repetido = await segundo.Content.ReadFromJsonAsync<ComprobanteResponse>();
+        Assert.NotNull(repetido);
+
+        Assert.Equal(original!.Id, repetido!.Id);
+        Assert.Equal(original.Numero, repetido.Numero);
+        Assert.Equal(original.Cae, repetido.Cae);
+        Assert.Single(factory.Comprobantes.Comprobantes);
+        Assert.Equal(1, factory.Secuencias.Llamadas);
+        Assert.Equal(1, factory.Transaccion.Ejecuciones);
+        Assert.Single(factory.Eventos.Eventos);
+    }
+
+    [Fact]
+    public async Task CP0602_MismaClaveConImporteDistinto_Devuelve409IdempotenciaConflicto()
+    {
+        using var factory = new ComprobanteApiKeyFactory();
+        using var client = factory.CreateClient();
+
+        var primero = await EnviarAsync(
+            client,
+            FacturaA(),
+            "pedido-001",
+            ComprobanteApiKeyFactory.ApiKeyValida);
+        Assert.Equal(HttpStatusCode.Created, primero.StatusCode);
+
+        var distinto = FacturaA() with
+        {
+            ImporteTotal = 24200m,
+            Items = [new ItemComprobanteRequest("Servicio", 2m, 10000m, 21m)]
+        };
+        var response = await EnviarAsync(
+            client,
+            distinto,
+            "pedido-001",
+            ComprobanteApiKeyFactory.ApiKeyValida);
+
+        var error = await AssertErrorAsync(
+            response,
+            HttpStatusCode.Conflict,
+            "IDEMPOTENCIA_CONFLICTO");
+        Assert.Contains("payload diferente", error.Mensaje, StringComparison.Ordinal);
+        Assert.Single(factory.Comprobantes.Comprobantes);
+        Assert.Equal(1, factory.Secuencias.Llamadas);
+    }
+
+    [Fact]
+    public async Task CP0603_MismaClaveConCantidadDosYDosComaCero_Devuelve200Replay()
+    {
+        using var factory = new ComprobanteApiKeyFactory();
+        using var client = factory.CreateClient();
+
+        var primero = await EnviarAsync(
+            client,
+            FacturaA(),
+            "pedido-001",
+            ComprobanteApiKeyFactory.ApiKeyValida);
+        Assert.Equal(HttpStatusCode.Created, primero.StatusCode);
+        var original = await primero.Content.ReadFromJsonAsync<ComprobanteResponse>();
+        Assert.NotNull(original);
+
+        var equivalente = FacturaA() with
+        {
+            Items = [new ItemComprobanteRequest("Servicio", 2.00m, 5000.00m, 21.00m)]
+        };
+        var segundo = await EnviarAsync(
+            client,
+            equivalente,
+            "pedido-001",
+            ComprobanteApiKeyFactory.ApiKeyValida);
+
+        Assert.Equal(HttpStatusCode.OK, segundo.StatusCode);
+        var repetido = await segundo.Content.ReadFromJsonAsync<ComprobanteResponse>();
+        Assert.Equal(original!.Id, repetido!.Id);
+        Assert.Equal(1, factory.Secuencias.Llamadas);
+    }
+
+    [Fact]
+    public async Task CP0604_MismaClaveConItemsEnDistintoOrden_Devuelve409()
+    {
+        using var factory = new ComprobanteApiKeyFactory();
+        using var client = factory.CreateClient();
+
+        var request = FacturaA() with
+        {
+            ImporteTotal = null,
+            Items =
+            [
+                new ItemComprobanteRequest("Servicio A", 1m, 1000m, 21m),
+                new ItemComprobanteRequest("Servicio B", 1m, 2000m, 21m)
+            ]
+        };
+        var primero = await EnviarAsync(
+            client,
+            request,
+            "pedido-001",
+            ComprobanteApiKeyFactory.ApiKeyValida);
+        Assert.Equal(HttpStatusCode.Created, primero.StatusCode);
+
+        var invertido = request with
+        {
+            Items =
+            [
+                new ItemComprobanteRequest("Servicio B", 1m, 2000m, 21m),
+                new ItemComprobanteRequest("Servicio A", 1m, 1000m, 21m)
+            ]
+        };
+        var response = await EnviarAsync(
+            client,
+            invertido,
+            "pedido-001",
+            ComprobanteApiKeyFactory.ApiKeyValida);
+
+        await AssertErrorAsync(response, HttpStatusCode.Conflict, "IDEMPOTENCIA_CONFLICTO");
+        Assert.Equal(1, factory.Secuencias.Llamadas);
+    }
+
+    [Fact]
+    public async Task CP0607_IdempotencyKeyDe128Caracteres_Devuelve201()
+    {
+        using var factory = new ComprobanteApiKeyFactory();
+        using var client = factory.CreateClient();
+
+        var response = await EnviarAsync(
+            client,
+            FacturaA(),
+            new string('a', 128),
+            ComprobanteApiKeyFactory.ApiKeyValida);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Single(factory.Comprobantes.Comprobantes);
+    }
+
+    [Fact]
+    public async Task CP0610_MismaClaveEnOtroContribuyente_Devuelve201ConOtroComprobante()
+    {
+        using var factory = new ComprobanteApiKeyFactory();
+        using var client = factory.CreateClient();
+
+        var primero = await EnviarAsync(
+            client,
+            FacturaA(),
+            "pedido-001",
+            ComprobanteApiKeyFactory.ApiKeyValida);
+        Assert.Equal(HttpStatusCode.Created, primero.StatusCode);
+        var original = await primero.Content.ReadFromJsonAsync<ComprobanteResponse>();
+        Assert.NotNull(original);
+
+        var segundo = await EnviarAsync(
+            client,
+            FacturaA(),
+            "pedido-001",
+            ComprobanteApiKeyFactory.ApiKeyValidaB);
+        Assert.Equal(HttpStatusCode.Created, segundo.StatusCode);
+        var otro = await segundo.Content.ReadFromJsonAsync<ComprobanteResponse>();
+        Assert.NotNull(otro);
+
+        Assert.NotEqual(original!.Id, otro!.Id);
+        Assert.Equal(2, factory.Comprobantes.Comprobantes.Count);
+        Assert.Contains(
+            factory.Comprobantes.Comprobantes,
+            c => c.ContribuyenteId == ComprobanteApiKeyFactory.ContribuyenteIdB);
+    }
+
+    [Fact]
+    public async Task CP0613_Emitir_SinApiKeyConIdempotencyKey_DevuelveEcoDelHeaderEnEl401()
+    {
+        using var factory = new ComprobanteApiKeyFactory();
+        using var client = factory.CreateClient();
+
+        var response = await EnviarAsync(client, FacturaA(), "pedido-001", apiKey: null);
+
+        await AssertErrorAsync(response, HttpStatusCode.Unauthorized, "API_KEY_AUSENTE");
+        Assert.Equal("pedido-001", response.Headers.GetValues("Idempotency-Key").Single());
+    }
+
     private static EmitirComprobanteRequest FacturaA()
         => new(
             (int)TipoComprobante.FacturaA,
@@ -217,15 +416,19 @@ public sealed class ComprobanteEndpointsTests
 public sealed class ComprobanteApiKeyFactory : WebApplicationFactory<Program>
 {
     public const string ApiKeyValida = "fak_0123456789ab_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    public const string ApiKeyValidaB = "fak_0123456789ac_EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE";
     public const string ApiKeyDesconocida = "fak_ffffffffffff_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
     public const string EmailUsuario = "admin@demo.com";
     public const string PasswordUsuario = "Secreta123!";
     public const string CuitEmisor = "20123456786";
+    public const string CuitEmisorB = "20111111112";
     public const string CuitReceptor = "30712345671";
 
     public static readonly Guid ContribuyenteId = Guid.NewGuid();
+    public static readonly Guid ContribuyenteIdB = Guid.NewGuid();
     public static readonly Guid UsuarioId = Guid.NewGuid();
     public static readonly Guid ApiKeyId = Guid.NewGuid();
+    public static readonly Guid ApiKeyIdB = Guid.NewGuid();
 
     private readonly PasswordHasher _hasher = new(1000);
 
@@ -239,9 +442,24 @@ public sealed class ComprobanteApiKeyFactory : WebApplicationFactory<Program>
             CondicionIva = CondicionIva.ResponsableInscripto,
             Activo = true
         });
+        Contribuyentes.Contribuyentes.Add(new Contribuyente
+        {
+            Id = ContribuyenteIdB,
+            RazonSocial = "Otra SRL",
+            Cuit = CuitEmisorB,
+            CondicionIva = CondicionIva.ResponsableInscripto,
+            Activo = true
+        });
         PuntosVenta.PuntosVenta.Add(new PuntoVenta
         {
             ContribuyenteId = ContribuyenteId,
+            Numero = 1,
+            Descripcion = "Principal",
+            Activo = true
+        });
+        PuntosVenta.PuntosVenta.Add(new PuntoVenta
+        {
+            ContribuyenteId = ContribuyenteIdB,
             Numero = 1,
             Descripcion = "Principal",
             Activo = true
@@ -267,6 +485,12 @@ public sealed class ComprobanteApiKeyFactory : WebApplicationFactory<Program>
 
     public ComprobanteEventoFake Eventos { get; } = new();
 
+    public ComprobanteRepositorioEnMemoria Comprobantes { get; } = new();
+
+    public ComprobanteSecuenciaEnMemoria Secuencias { get; } = new();
+
+    public ComprobanteTransaccionEnMemoria Transaccion { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
@@ -283,7 +507,8 @@ public sealed class ComprobanteApiKeyFactory : WebApplicationFactory<Program>
             services.AddSingleton<IApiKeyAuthenticator>(new ComprobanteApiKeyAuthenticatorFake(
                 new Dictionary<string, ResultadoApiKey>(StringComparer.Ordinal)
                 {
-                    [ApiKeyValida] = new ResultadoApiKey(ApiKeyId, ContribuyenteId)
+                    [ApiKeyValida] = new ResultadoApiKey(ApiKeyId, ContribuyenteId),
+                    [ApiKeyValidaB] = new ResultadoApiKey(ApiKeyIdB, ContribuyenteIdB)
                 }));
 
             services.RemoveAll<IContribuyenteRepository>();
@@ -300,6 +525,15 @@ public sealed class ComprobanteApiKeyFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<IEventoAuditoriaRepository>();
             services.AddSingleton<IEventoAuditoriaRepository>(Eventos);
+
+            services.RemoveAll<IComprobanteRepository>();
+            services.AddSingleton<IComprobanteRepository>(Comprobantes);
+
+            services.RemoveAll<ISecuenciaService>();
+            services.AddSingleton<ISecuenciaService>(Secuencias);
+
+            services.RemoveAll<ITransaccionMongo>();
+            services.AddSingleton<ITransaccionMongo>(Transaccion);
         });
     }
 }
@@ -421,4 +655,133 @@ public sealed class ComprobanteEventoFake : IEventoAuditoriaRepository
         CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<EventoAuditoria>>(
             Eventos.Where(e => e.Entidad == entidad && e.EntidadId == entidadId).ToList());
+}
+
+public sealed class ComprobanteRepositorioEnMemoria : IComprobanteRepository
+{
+    private readonly object _gate = new();
+    private readonly List<Comprobante> _comprobantes = [];
+
+    public IReadOnlyList<Comprobante> Comprobantes
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _comprobantes.ToList();
+            }
+        }
+    }
+
+    public Task<Comprobante?> GetByCaeAsync(string cae, CancellationToken cancellationToken = default)
+    {
+        lock (_gate)
+        {
+            return Task.FromResult(_comprobantes.FirstOrDefault(c => c.Cae == cae));
+        }
+    }
+
+    public Task<Comprobante?> GetByIdAsync(
+        Guid contribuyenteId,
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_gate)
+        {
+            return Task.FromResult(_comprobantes.FirstOrDefault(
+                c => c.ContribuyenteId == contribuyenteId && c.Id == id));
+        }
+    }
+
+    public Task<(IReadOnlyList<Comprobante> Items, long Total)> ListarAsync(
+        Guid contribuyenteId,
+        FiltroListadoComprobantes filtro,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_gate)
+        {
+            var coincidencias = _comprobantes
+                .Where(c => c.ContribuyenteId == contribuyenteId)
+                .OrderByDescending(c => c.FechaEmision)
+                .ThenByDescending(c => c.Numero)
+                .ThenBy(c => c.Id)
+                .ToList();
+
+            var items = coincidencias
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return Task.FromResult<(IReadOnlyList<Comprobante>, long)>((items, coincidencias.Count));
+        }
+    }
+
+    public Task<Comprobante?> GetByIdempotencyKeyAsync(
+        Guid contribuyenteId,
+        string clave,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_gate)
+        {
+            return Task.FromResult(_comprobantes.FirstOrDefault(
+                c => c.ContribuyenteId == contribuyenteId && c.IdempotencyKey == clave));
+        }
+    }
+
+    public Task AddAsync(Comprobante comprobante, CancellationToken cancellationToken = default)
+    {
+        lock (_gate)
+        {
+            if (_comprobantes.Any(c =>
+                c.ContribuyenteId == comprobante.ContribuyenteId
+                && c.IdempotencyKey == comprobante.IdempotencyKey))
+            {
+                throw new IdempotenciaDuplicadaException();
+            }
+
+            _comprobantes.Add(comprobante);
+        }
+
+        return Task.CompletedTask;
+    }
+}
+
+public sealed class ComprobanteSecuenciaEnMemoria : ISecuenciaService
+{
+    private readonly object _gate = new();
+    private readonly Dictionary<(Guid, int, TipoComprobante), long> _numeros = [];
+
+    public int Llamadas { get; private set; }
+
+    public Task<long> ObtenerSiguienteNumeroAsync(
+        Guid contribuyenteId,
+        int puntoVenta,
+        TipoComprobante tipo,
+        CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            var clave = (contribuyenteId, puntoVenta, tipo);
+            var siguiente = _numeros.TryGetValue(clave, out var ultimo) ? ultimo + 1 : 1;
+            _numeros[clave] = siguiente;
+            Llamadas++;
+
+            return Task.FromResult(siguiente);
+        }
+    }
+}
+
+public sealed class ComprobanteTransaccionEnMemoria : ITransaccionMongo
+{
+    public int Ejecuciones { get; private set; }
+
+    public Task<T> EjecutarAsync<T>(
+        Func<CancellationToken, Task<T>> operacion,
+        CancellationToken ct = default)
+    {
+        Ejecuciones++;
+        return operacion(ct);
+    }
 }
