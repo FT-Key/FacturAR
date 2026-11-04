@@ -1,6 +1,8 @@
 using FacturAR.Api.Auth;
 using FacturAR.Application.Abstractions;
 using FacturAR.Application.ApiKeys;
+using FacturAR.Application.Comprobantes;
+using FacturAR.Contracts.Sistema;
 using FacturAR.Contracts.Soap;
 using FacturAR.Domain.Exceptions;
 using FacturAR.Domain.Validation;
@@ -17,12 +19,17 @@ public sealed class ContractFecae : IContractFecae
     private const string MensajeCuitInvalido = "El CUIT informado no es válido.";
     private const string MensajeAislamiento = "El CUIT informado no corresponde a la empresa autenticada.";
     private const string MensajeIdempotencia = "La clave de idempotencia admite hasta 128 caracteres.";
+    private const string MensajeComprobanteNoEncontrado = "No existe un comprobante con los datos indicados.";
+    private const string MensajeConsultaInvalida = "La solicitud de consulta no es válida.";
     private const string MensajeErrorInterno = "Ocurrió un error inesperado.";
 
     private readonly IApiKeyAuthenticator _apiKeys;
     private readonly ApiKeyUsageRegistrar _usageRegistrar;
     private readonly IContribuyenteRepository _contribuyentes;
     private readonly IEmitirComprobanteService _emision;
+    private readonly ConsultarComprobanteService _consultas;
+    private readonly ObtenerUltimoAutorizadoService _ultimoAutorizado;
+    private readonly BuildInformation _buildInformation;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ApiKeysOptions _apiKeysOptions;
 
@@ -31,6 +38,9 @@ public sealed class ContractFecae : IContractFecae
         ApiKeyUsageRegistrar usageRegistrar,
         IContribuyenteRepository contribuyentes,
         IEmitirComprobanteService emision,
+        ConsultarComprobanteService consultas,
+        ObtenerUltimoAutorizadoService ultimoAutorizado,
+        BuildInformation buildInformation,
         IHttpContextAccessor httpContextAccessor,
         ApiKeysOptions apiKeysOptions)
     {
@@ -38,6 +48,9 @@ public sealed class ContractFecae : IContractFecae
         _usageRegistrar = usageRegistrar;
         _contribuyentes = contribuyentes;
         _emision = emision;
+        _consultas = consultas;
+        _ultimoAutorizado = ultimoAutorizado;
+        _buildInformation = buildInformation;
         _httpContextAccessor = httpContextAccessor;
         _apiKeysOptions = apiKeysOptions;
     }
@@ -97,6 +110,78 @@ public sealed class ContractFecae : IContractFecae
         {
             return FecaeMapeador.GenerarRechazada(CodigoDeError(ex), ex.Message);
         }
+    }
+
+    public async Task<FECompUltimoAutorizadoResponse> FECompUltimoAutorizado(
+        FECompUltimoAutorizadoRequest request)
+    {
+        var ct = ObtenerContexto().RequestAborted;
+
+        try
+        {
+            var autenticado = await AutenticarAsync(request?.Auth?.Token, ct);
+
+            if (request is null)
+            {
+                return ConsultasMapeador.AUltimoAutorizadoRechazado("VALIDACION", MensajeConsultaInvalida);
+            }
+
+            var ultimo = await _ultimoAutorizado.ObtenerAsync(
+                autenticado.ContribuyenteId,
+                request.TipoComprobante,
+                request.PtoVta,
+                ct);
+
+            var comprobante = await _consultas.ConsultarUltimoEmitidoAsync(
+                autenticado.ContribuyenteId,
+                request.TipoComprobante,
+                request.PtoVta,
+                ct);
+
+            return ConsultasMapeador.AUltimoAutorizadoAprobado(ultimo, comprobante);
+        }
+        catch (Exception ex) when (EsErrorDeNegocio(ex))
+        {
+            return ConsultasMapeador.AUltimoAutorizadoRechazado(CodigoDeError(ex), ex.Message);
+        }
+    }
+
+    public async Task<FECompConsultarResponse> FECompConsultar(FECompConsultarRequest request)
+    {
+        var ct = ObtenerContexto().RequestAborted;
+
+        try
+        {
+            var autenticado = await AutenticarAsync(request?.Auth?.Token, ct);
+
+            if (request is null)
+            {
+                return ConsultasMapeador.AConsultaRechazada("VALIDACION", MensajeConsultaInvalida);
+            }
+
+            var comprobante = await _consultas.ConsultarPorNumeroAsync(
+                autenticado.ContribuyenteId,
+                request.TipoComprobante,
+                request.PtoVta,
+                request.Numero,
+                ct);
+
+            return comprobante is null
+                ? ConsultasMapeador.AConsultaRechazada("COMPROBANTE_NO_ENCONTRADO", MensajeComprobanteNoEncontrado)
+                : ConsultasMapeador.AConsultaAprobada(comprobante);
+        }
+        catch (Exception ex) when (EsErrorDeNegocio(ex))
+        {
+            return ConsultasMapeador.AConsultaRechazada(CodigoDeError(ex), ex.Message);
+        }
+    }
+
+    public async Task<FEDummyResponse> FEDummy(FEDummyRequest? request = null)
+    {
+        var ct = ObtenerContexto().RequestAborted;
+        await AutenticarAsync(request?.Auth?.Token, ct);
+
+        return ConsultasMapeador.ADummy(_buildInformation);
     }
 
     private async Task<ResultadoApiKey> AutenticarAsync(string? tokenSobre, CancellationToken ct)

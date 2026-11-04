@@ -138,7 +138,7 @@ public sealed class ComprobanteEndpointsTests
         var response = await client.SendAsync(mensaje);
 
         var error = await AssertErrorAsync(response, HttpStatusCode.BadRequest, "VALIDACION");
-        Assert.Equal("Los ítems del comprobante no son válidos.", error.Mensaje);
+        Assert.Equal("Los Ã­tems del comprobante no son vÃ¡lidos.", error.Mensaje);
         Assert.Empty(factory.Eventos.Eventos);
     }
 
@@ -160,7 +160,7 @@ public sealed class ComprobanteEndpointsTests
         var response = await client.SendAsync(mensaje);
 
         var error = await AssertErrorAsync(response, HttpStatusCode.BadRequest, "VALIDACION");
-        Assert.Equal("El cuerpo de la solicitud no es válido.", error.Mensaje);
+        Assert.Equal("El cuerpo de la solicitud no es vÃ¡lido.", error.Mensaje);
         Assert.Empty(factory.Eventos.Eventos);
     }
 
@@ -690,6 +690,41 @@ public sealed class ComprobanteRepositorioEnMemoria : IComprobanteRepository
         {
             return Task.FromResult(_comprobantes.FirstOrDefault(
                 c => c.ContribuyenteId == contribuyenteId && c.Id == id));
+        }
+    }
+
+    public Task<Comprobante?> GetByNumeracionAsync(
+        Guid contribuyenteId,
+        int puntoVenta,
+        TipoComprobante tipo,
+        long numero,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_gate)
+        {
+            return Task.FromResult(_comprobantes.FirstOrDefault(
+                c => c.ContribuyenteId == contribuyenteId
+                    && c.PuntoVenta == puntoVenta
+                    && c.TipoComprobante == tipo
+                    && c.Numero == numero));
+        }
+    }
+
+    public Task<Comprobante?> GetUltimoEmitidoAsync(
+        Guid contribuyenteId,
+        int puntoVenta,
+        TipoComprobante tipo,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_gate)
+        {
+            return Task.FromResult(_comprobantes
+                .Where(c => c.ContribuyenteId == contribuyenteId
+                    && c.PuntoVenta == puntoVenta
+                    && c.TipoComprobante == tipo
+                    && c.Estado == EstadoComprobante.Emitido)
+                .OrderByDescending(c => c.Numero)
+                .FirstOrDefault());
         }
     }
 

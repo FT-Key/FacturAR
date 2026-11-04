@@ -20,7 +20,7 @@ Sirve para dos cosas:
 | Documentación | OpenAPI en `/openapi/v1.json` en Development. |
 | Puerto local | API `5171`, portal `5116`. En Docker: API `8080`, portal `8081`. |
 
-> **Excepción SOAP.** La fachada de emisión por SOAP (US-15) usa SOAP 1.1 sobre XML en `/soap`; se documenta en §7.6. El resto de la API de negocio sigue siendo JSON.
+> **Excepción SOAP.** La fachada de emisión y consultas por SOAP (US-15, US-16) usa SOAP 1.1 sobre XML en `/soap`; se documenta en §7.6. El resto de la API de negocio sigue siendo JSON.
 
 ## 2. Errores
 
@@ -161,7 +161,7 @@ Formato exacto: `fak_` + `prefix` (12 caracteres hexadecimales) + `_` + `secret`
 - La comparación del hash usa tiempo constante (`CryptographicOperations.FixedTimeEquals`).
 - Un `GET /v1/api-keys` **nunca** devuelve `Hash` ni el valor de la key. Devuelve `prefix` con el formato `fak_<prefix>`.
 - `ApiKey.UltimoUso` se actualiza en cada autenticación exitosa, con una granularidad mínima de 1 minuto para no generar escrituras por petición.
-- La fachada SOAP de emisión (US-15) reutiliza la misma API key: por el header `X-Api-Key` o por `Auth/Token` dentro del sobre. `Auth/Sign` se ignora. Ver §7.6.
+- La fachada SOAP de emisión y consultas (US-15, US-16) reutiliza la misma API key: por el header `X-Api-Key` o por `Auth/Token` dentro del sobre. `Auth/Sign` se ignora. Ver §7.6.
 
 ### 4.2 Cookie de sesión — para el portal (US-04)
 
@@ -280,18 +280,21 @@ Reglas de validación:
 - Una **nota de crédito** no puede superar el saldo ajustable del original: si lo supera, `400 IMPORTE_EXCEDIDO` y **no** se consume número ni CAE. Una **nota de débito** aumenta el saldo y no está limitada por él.
 - Emitir una nota actualiza el `ImporteOriginalAjustado` del comprobante original dentro de la misma transacción.
 
-### 7.6 SOAP de emisión (US-15)
+### 7.6 SOAP de emisión y consultas (US-15, US-16)
 
-La emisión también se expone por **SOAP 1.1 sobre XML** en `POST /soap`. El WSDL está en `GET /soap?wsdl` y el namespace es `http://ar.gov.afip.dif.FEV1Service/`. No es un camino paralelo: `FECAESolicitar` delega en el mismo `EmitirComprobanteService` de `POST /v1/comprobantes`.
+La emisión y las consultas también se exponen por **SOAP 1.1 sobre XML** en `POST /soap`. El WSDL está en `GET /soap?wsdl` y el namespace es `http://ar.gov.afip.dif.FEV1Service/`. No es un camino paralelo: `FECAESolicitar` delega en `EmitirComprobanteService` (US-05) y las consultas `FECompUltimoAutorizado` y `FECompConsultar` delegan en `ObtenerUltimoAutorizadoService` y `ConsultarComprobanteService` (US-09).
 
 | Operación | Request | Response |
 | --- | --- | --- |
 | `FECAESolicitar` | `Auth` (`Token`, `Sign`), `Cuit`, `PtoVta`, `TipoComprobante`, `Concepto`, `DocTipo`, `DocNro`, `CondicionIVA`, `Items[]` (`Descripcion`, `Cantidad`, `PrecioUnitario`, `AlicuotaIVA`), `IdempotencyKey` opcional | `FeCabResp` con `Resultado` (`"A"`/`"R"`), `CodAutorizacion` (CAE de 14 dígitos), `FchVto` (`yyyyMMdd`) y `Observaciones` |
 | `FECAEGenerar` | Misma estructura que `FECAESolicitar` | `Respuesta` con `Resultado` (`"A"`/`"R"`), `Error` (código canónico) y `Observaciones` (mensaje) |
+| `FECompUltimoAutorizado` | `Auth` opcional, `PtoVta`, `TipoComprobante` | `Resultado` (`"A"`/`"R"`), `PtoVta`, `TipoComprobante`, `UltimoNro` (`0` si no hay emitidos), `Cae`, `FechaEmision` (`yyyyMMdd`), `FchVto` (`yyyyMMdd`) y `Observaciones` |
+| `FECompConsultar` | `Auth` opcional, `PtoVta`, `TipoComprobante`, `Numero` | `Resultado` (`"A"`/`"R"`), datos fiscales equivalentes a `ComprobanteDetalleResponse` (`Id`, `TipoComprobante`, `TipoComprobanteDescripcion`, `PtoVta`, `Numero`, `FechaEmision`, `Cae`, `FchVto`, receptor, importes, `Estado`, `Items[]`) u `Observaciones` |
+| `FEDummy` | `Auth` opcional | `Estado` (`"OK"`), `ServerTime` (ISO 8601 UTC), `Version` y `Service` (`"FacturAR.Api"`) |
 
-- **Autenticación:** header `X-Api-Key` (canónica) o `Auth/Token` dentro del sobre. `Auth/Sign` es opcional e ignorado. Sin credencial: `401 API_KEY_AUSENTE`; credencial inválida o revocada: `401 API_KEY_INVALIDA`. La API key nunca aparece en el `Fault`, en `Observaciones` ni en el log.
-- **Tenant:** sale **solo** de la API key. El `Cuit` del request se compara con el CUIT del contribuyente autenticado; si difieren, se devuelve `Resultado = "R"` con código `VALIDACION` y no se crea el comprobante. El mensaje no revela si el CUIT existe en otra empresa.
-- **`FECAESolicitar` es la única operación que persiste.** `FECAEGenerar` ejecuta las mismas validaciones, no inserta comprobante, no consume número y no genera CAE.
+- **Autenticación:** header `X-Api-Key` (canónica) o `Auth/Token` dentro del sobre. `Auth/Sign` es opcional e ignorado. Sin credencial: `401 API_KEY_AUSENTE`; credencial inválida o revocada: `401 API_KEY_INVALIDA`. La API key nunca aparece en el `Fault`, en `Observaciones` ni en el log. `FEDummy` también exige API key válida.
+- **Tenant:** sale **solo** de la API key. En emisión, el `Cuit` del request se compara con el CUIT del contribuyente autenticado; si difieren, se devuelve `Resultado = "R"` con código `VALIDACION` y no se crea el comprobante. En consultas (`FECompUltimoAutorizado` y `FECompConsultar`), todas las lecturas filtran por el `ContribuyenteId` de la API key; consultar un comprobante inexistente o de otra empresa devuelve `Resultado = "R"` con `COMPROBANTE_NO_ENCONTRADO` y sin ningún dato fiscal.
+- **`FECAESolicitar` es la única operación que persiste.** `FECAEGenerar`, `FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy` son de solo lectura: no insertan comprobantes, no consumen números y no generan eventos de auditoría.
 - **Errores de negocio:** HTTP `200` con `Resultado = "R"` y `Observaciones = "<CODIGO>: <mensaje>"`. **Errores de autenticación o protocolo:** `SOAP Fault` con `faultstring = "<CODIGO>: <mensaje>"`, `detail/codigo`, `detail/mensaje` y HTTP `401`/`400`; MongoDB no disponible `503`; error interno `500` sin detalle. Los códigos son los de §2.1.
 - **Idempotencia:** la extensión opcional `IdempotencyKey` se mapea al mecanismo de US-06. Si se omite, cada reintento es una emisión nueva. La fachada reconoce el replay y `IDEMPOTENCIA_CONFLICTO`; la verificación end-to-end con MongoDB replica set sigue pendiente.
 - **Alcance de tipos:** el contrato XML no transporta `RazonSocial` del receptor. Una Factura C se emite de punta a punta; las Facturas A y B requieren ese dato en el caso de uso y se rechazan por SOAP con `VALIDACION`.
@@ -393,7 +396,7 @@ En Development, el valor completo de la API key demo se entrega **una sola vez**
 - Multi-moneda.
 - Webhooks (US-23, fuera de alcance).
 - Integración real con AFIP (US-24, fuera de alcance).
-- SOAP de consultas o WSAA real. El SOAP actual (US-15) solo expone `FECAESolicitar` y `FECAEGenerar` con API key; US-16 agrega las consultas.
+- WSAA real con certificados X.509 ni padrón fiscal externo. El SOAP del MVP (US-15 y US-16) expone `FECAESolicitar`, `FECAEGenerar`, `FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy` autenticados con API key.
 - Kubernetes: no se usa. Decisión de plataforma en [`docs/plan-implementacion.md`](plan-implementacion.md) §2.
 
 ## 16. Trazabilidad

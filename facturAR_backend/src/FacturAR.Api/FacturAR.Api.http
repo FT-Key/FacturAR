@@ -251,3 +251,60 @@ Content-Type: application/json
 }
 
 ###
+
+# SOAP 1.1 (US-15 y US-16): WSDL, emisión y consultas sobre POST /soap.
+GET {{FacturAR_Api_HostAddress}}/soap?wsdl
+
+###
+
+POST {{FacturAR_Api_HostAddress}}/soap
+X-Api-Key: {{apiKey}}
+SOAPAction: http://ar.gov.afip.dif.FEV1Service/FECompUltimoAutorizado
+Content-Type: text/xml; charset=utf-8
+
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <FECompUltimoAutorizado xmlns="http://ar.gov.afip.dif.FEV1Service/">
+      <request>
+        <PtoVta>1</PtoVta>
+        <TipoComprobante>11</TipoComprobante>
+      </request>
+    </FECompUltimoAutorizado>
+  </soap:Body>
+</soap:Envelope>
+
+###
+
+POST {{FacturAR_Api_HostAddress}}/soap
+X-Api-Key: {{apiKey}}
+SOAPAction: http://ar.gov.afip.dif.FEV1Service/FECompConsultar
+Content-Type: text/xml; charset=utf-8
+
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <FECompConsultar xmlns="http://ar.gov.afip.dif.FEV1Service/">
+      <request>
+        <PtoVta>1</PtoVta>
+        <TipoComprobante>11</TipoComprobante>
+        <Numero>1</Numero>
+      </request>
+    </FECompConsultar>
+  </soap:Body>
+</soap:Envelope>
+
+###
+
+POST {{FacturAR_Api_HostAddress}}/soap
+X-Api-Key: {{apiKey}}
+SOAPAction: http://ar.gov.afip.dif.FEV1Service/FEDummy
+Content-Type: text/xml; charset=utf-8
+
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <FEDummy xmlns="http://ar.gov.afip.dif.FEV1Service/">
+      <request />
+    </FEDummy>
+  </soap:Body>
+</soap:Envelope>
+
+###

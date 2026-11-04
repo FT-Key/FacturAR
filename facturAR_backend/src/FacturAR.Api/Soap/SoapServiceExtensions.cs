@@ -9,7 +9,9 @@ public static class SoapServiceExtensions
     {
         services.AddHttpContextAccessor();
         services.AddSoapCore();
-        services.AddScoped<IContractFecae, ContractFecae>();
+        services.AddScoped<ContractFecae>();
+        services.AddScoped<IContractFecae>(sp => sp.GetRequiredService<ContractFecae>());
+        services.AddScoped<IContractConsultas>(sp => sp.GetRequiredService<ContractFecae>());
         services.AddSingleton<IFaultExceptionTransformer, FecaeFaultExceptionTransformer>();
 
         return services;

@@ -4,7 +4,7 @@
 
 > **Estado del manual.** Este documento describe el contrato del MVP y marca el estado real de cada ruta. Lo que ya tiene historia implementada responde hoy y figura en "Endpoints disponibles hoy"; lo que sigue especificado sin implementación responde `404`.
 
-Qué describe este documento: cómo un tercero pide acceso, activa su cuenta, crea una API key, emite comprobantes, los consulta, usa idempotencia, verifica un comprobante por su CAE y emite por SOAP.
+Qué describe este documento: cómo un tercero pide acceso, activa su cuenta, crea una API key, emite comprobantes, los consulta, usa idempotencia, verifica un comprobante por su CAE y emite o consulta por SOAP.
 
 - **Contrato normativo:** [`docs/contratos-api.md`](contratos-api.md) fija los códigos de error, los roles, la autenticación y el contrato de cada endpoint. Si el manual y el contrato se contradicen, manda el contrato.
 - **Estado real de cada historia:** [`docs/historias-usuario/README.md`](historias-usuario/README.md).
@@ -24,8 +24,8 @@ Base URL local: `http://localhost:5171`. En Docker: `http://localhost:8080`.
 | `DELETE` | `/v1/api-keys/{id}` | Revoca una key. Requiere cookie de empresa (rol `Administrador`). |
 | `POST` | `/v1/api-keys/{id}/regenerar` | Regenera el secreto de una key y devuelve el valor nuevo una única vez. Requiere cookie de empresa (rol `Administrador`). |
 | `POST` | `/v1/comprobantes` | Emisión de facturas A, B y C con CAE simulado. Requiere API key e `Idempotency-Key`. |
-| `POST` | `/soap` | Fachada SOAP 1.1 de emisión: `FECAESolicitar` y `FECAEGenerar`. Requiere API key. |
-| `GET` | `/soap?wsdl` | WSDL de la fachada SOAP de emisión. |
+| `POST` | `/soap` | Fachada SOAP 1.1 de emisión y consultas: `FECAESolicitar`, `FECAEGenerar`, `FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy`. Requiere API key. |
+| `GET` | `/soap?wsdl` | WSDL de la fachada SOAP de emisión y consultas. |
 | `GET` | `/v1/comprobantes` | Lista los comprobantes de la empresa autenticada, con filtros y paginación. |
 | `GET` | `/v1/comprobantes/{id}` | Detalle de un comprobante propio, con sus ítems. |
 | `GET` | `/v1/comprobantes/ultimo-autorizado` | Último número autorizado por tipo y punto de venta. |
@@ -52,8 +52,8 @@ Todo lo demás que aparece en este manual está **especificado pero no implement
 | `DELETE` | `/v1/api-keys/{id}` | cookie de empresa | implementado (US-02) |
 | `POST` | `/v1/api-keys/{id}/regenerar` | cookie de empresa | implementado (US-02) |
 | `POST` | `/v1/comprobantes` | API key | implementado (US-05) |
-| `POST` | `/soap` | API key en header o `Auth/Token` | implementado (US-15); verificación end-to-end con Mongo pendiente |
-| `GET` | `/soap?wsdl` | ninguna | implementado (US-15) |
+| `POST` | `/soap` | API key en header o `Auth/Token` | implementado (US-15, US-16); verificación end-to-end con Mongo pendiente |
+| `GET` | `/soap?wsdl` | ninguna | implementado (US-15, US-16) |
 | `GET` | `/v1/comprobantes` | API key o cookie de empresa | implementado (US-09) |
 | `GET` | `/v1/comprobantes/{id}` | API key o cookie de empresa | implementado (US-09) |
 | `GET` | `/v1/comprobantes/ultimo-autorizado` | API key o cookie de empresa | implementado (US-09) |
@@ -113,6 +113,7 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 | US-04 | §2 Activar la cuenta: login de empresa y roles | Pendiente |
 | US-05 | §5 Emitir una factura | Parcial |
 | US-15 | §5.1 Emitir por SOAP | Parcial |
+| US-16 | §7.4 Consultar por SOAP (`FECompUltimoAutorizado`, `FECompConsultar`, `FEDummy`) | Parcial |
 | US-06 | §6 Idempotencia | Parcial |
 | US-07 | Numeración correlativa del comprobante (reglas de §5) | Pendiente |
 | US-09 | §7 Consultar comprobantes | Parcial |
@@ -126,7 +127,7 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 
 ## Qué es FacturAR
 
-FacturAR es un simulador de facturación electrónica argentina. El diseño del MVP permite solicitar el alta de una empresa, activar una cuenta, crear API keys, emitir comprobantes con CAE simulado, consultarlos y verificar un comprobante por su CAE. De ese recorrido, hoy están implementadas la emisión por API key (US-05), la emisión por SOAP (US-15), las consultas de comprobantes (US-09), la gestión de API keys desde el portal (US-14) y la verificación por CAE; el alta, la activación, la descarga de PDF y las consultas SOAP (US-16) siguen pendientes: ver [Estado de la API](#estado-de-la-api).
+FacturAR es un simulador de facturación electrónica argentina. El diseño del MVP permite solicitar el alta de una empresa, activar una cuenta, crear API keys, emitir comprobantes con CAE simulado, consultarlos y verificar un comprobante por su CAE. De ese recorrido, hoy están implementadas la emisión por API key (US-05), la emisión y consultas por SOAP (US-15, US-16), las consultas de comprobantes (US-09), la gestión de API keys desde el portal (US-14) y la verificación por CAE; el alta, la activación y la descarga de PDF siguen pendientes: ver [Estado de la API](#estado-de-la-api).
 
 > Importante: el CAE es simulado y los comprobantes no tienen validez fiscal. No se realizan llamadas reales a AFIP/ARCA.
 
@@ -179,7 +180,7 @@ Errores del flujo: `404 INVITACION_NO_ENCONTRADA`, `410 INVITACION_VENCIDA`, `40
 
 ## 3. Crear una API key
 
-> **Disponible — US-02 y US-14.** La gestión de API keys funciona desde el portal: en `/api-keys`, un usuario `Administrador` crea una key con un nombre, ve el valor completo una sola vez, lo copia y puede revocar o regenerar keys desde el listado. El contrato de los endpoints (`GET|POST /v1/api-keys`, `DELETE /v1/api-keys/{id}` y `POST /v1/api-keys/{id}/regenerar`) está en [`docs/contratos-api.md`](contratos-api.md); la pantalla y la regla de valor único están detalladas en [`US-14`](historias-usuario/US-14-api-keys-portal.md). Las consultas, la descarga de PDF y los endpoints SOAP siguen pendientes.
+> **Disponible — US-02 y US-14.** La gestión de API keys funciona desde el portal: en `/api-keys`, un usuario `Administrador` crea una key con un nombre, ve el valor completo una sola vez, lo copia y puede revocar o regenerar keys desde el listado. El contrato de los endpoints (`GET|POST /v1/api-keys`, `DELETE /v1/api-keys/{id}` y `POST /v1/api-keys/{id}/regenerar`) está en [`docs/contratos-api.md`](contratos-api.md); la pantalla y la regla de valor único están detalladas en [`US-14`](historias-usuario/US-14-api-keys-portal.md). La descarga de PDF sigue pendiente.
 
 1. Iniciar sesión en el portal como administrador de la empresa.
 2. Abrir la sección API keys.
@@ -206,7 +207,7 @@ La key pertenece a una única empresa. No se comparte entre empresas ni se enví
 
 ## 4. Autenticar requests
 
-> **Base implementada — US-03.** El esquema `ApiKey`, la política `ApiKeyNegocio` y el registro de `UltimoUso` están implementados y probados. `POST /v1/comprobantes` (US-05), las consultas de comprobantes (US-09) y la fachada SOAP de emisión (US-15) ya consumen el esquema; el SOAP de consultas llega con US-16.
+> **Base implementada — US-03.** El esquema `ApiKey`, la política `ApiKeyNegocio` y el registro de `UltimoUso` están implementados y probados. `POST /v1/comprobantes` (US-05), las consultas de comprobantes (US-09) y la fachada SOAP de emisión y consultas (US-15, US-16) ya consumen el esquema.
 
 Enviar la API key en el header `X-Api-Key`. El nombre del header es configurable con `ApiKeys__HeaderName` (default `X-Api-Key`):
 
@@ -635,6 +636,151 @@ Respuesta `200`:
 - `numero` sale de la colección `secuencias` de `(empresa, punto de venta, tipo)`, no de recorrer `comprobantes`.
 - Si no hay secuencia para esa combinación, responde `200` con `numero: 0`; no es un `404`.
 
+### 7.4 Consultar por SOAP (US-16)
+
+> **Parcial — US-16.** `FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy` están implementadas sobre el mismo endpoint `POST /soap` y expuestas en `GET /soap?wsdl`, delegando en `ObtenerUltimoAutorizadoService` y `ConsultarComprobanteService` (US-09). Están cubiertas por tests unitarios y de integración; falta la ejecución en un entorno con .NET 10 SDK y MongoDB real.
+
+Las tres operaciones exigen API key válida (header `X-Api-Key` o `Auth/Token` en el sobre), aislan los datos por el `ContribuyenteId` de la key y son estrictamente de solo lectura.
+
+#### `FECompUltimoAutorizado`
+
+```http
+POST /soap HTTP/1.1
+Host: localhost:5171
+Content-Type: text/xml; charset=utf-8
+SOAPAction: http://ar.gov.afip.dif.FEV1Service/FECompUltimoAutorizado
+X-Api-Key: fak_<prefijo>_<secreto>
+```
+
+```xml
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <FECompUltimoAutorizado xmlns="http://ar.gov.afip.dif.FEV1Service/">
+      <request>
+        <PtoVta>1</PtoVta>
+        <TipoComprobante>11</TipoComprobante>
+      </request>
+    </FECompUltimoAutorizado>
+  </soap:Body>
+</soap:Envelope>
+```
+
+Respuesta con comprobantes emitidos (`UltimoNro = 0` y sin `Cae`, `FechaEmision` ni `FchVto` si no hay emitidos):
+
+```xml
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+  <s:Body>
+    <FECompUltimoAutorizadoResponse xmlns="http://ar.gov.afip.dif.FEV1Service/">
+      <Resultado>A</Resultado>
+      <PtoVta>1</PtoVta>
+      <TipoComprobante>11</TipoComprobante>
+      <UltimoNro>42</UltimoNro>
+      <Cae>12345678901234</Cae>
+      <FechaEmision>20261103</FechaEmision>
+      <FchVto>20261113</FchVto>
+    </FECompUltimoAutorizadoResponse>
+  </s:Body>
+</s:Envelope>
+```
+
+#### `FECompConsultar`
+
+```http
+POST /soap HTTP/1.1
+Host: localhost:5171
+Content-Type: text/xml; charset=utf-8
+SOAPAction: http://ar.gov.afip.dif.FEV1Service/FECompConsultar
+X-Api-Key: fak_<prefijo>_<secreto>
+```
+
+```xml
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <FECompConsultar xmlns="http://ar.gov.afip.dif.FEV1Service/">
+      <request>
+        <PtoVta>1</PtoVta>
+        <TipoComprobante>11</TipoComprobante>
+        <Numero>42</Numero>
+      </request>
+    </FECompConsultar>
+  </soap:Body>
+</soap:Envelope>
+```
+
+Respuesta aprobada (`Resultado = "R"` con `COMPROBANTE_NO_ENCONTRADO` y sin ningún dato fiscal si no existe o pertenece a otra empresa):
+
+```xml
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+  <s:Body>
+    <FECompConsultarResponse xmlns="http://ar.gov.afip.dif.FEV1Service/">
+      <Resultado>A</Resultado>
+      <Id>6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22</Id>
+      <TipoComprobante>11</TipoComprobante>
+      <TipoComprobanteDescripcion>Factura C</TipoComprobanteDescripcion>
+      <PtoVta>1</PtoVta>
+      <Numero>42</Numero>
+      <FechaEmision>20261103</FechaEmision>
+      <Cae>12345678901234</Cae>
+      <FchVto>20261113</FchVto>
+      <DocTipo>99</DocTipo>
+      <DocNro>0</DocNro>
+      <ReceptorRazonSocial>Consumidor Final</ReceptorRazonSocial>
+      <CondicionIVA>5</CondicionIVA>
+      <ImporteNeto>100</ImporteNeto>
+      <ImporteIVA>0</ImporteIVA>
+      <ImporteTotal>100</ImporteTotal>
+      <SaldoPendiente>100</SaldoPendiente>
+      <Moneda>ARS</Moneda>
+      <Estado>Emitido</Estado>
+      <Items>
+        <Item>
+          <Descripcion>Servicio</Descripcion>
+          <Cantidad>1</Cantidad>
+          <PrecioUnitario>100</PrecioUnitario>
+          <AlicuotaIVA>0</AlicuotaIVA>
+          <Subtotal>100</Subtotal>
+        </Item>
+      </Items>
+    </FECompConsultarResponse>
+  </s:Body>
+</s:Envelope>
+```
+
+#### `FEDummy`
+
+```http
+POST /soap HTTP/1.1
+Host: localhost:5171
+Content-Type: text/xml; charset=utf-8
+SOAPAction: http://ar.gov.afip.dif.FEV1Service/FEDummy
+X-Api-Key: fak_<prefijo>_<secreto>
+```
+
+```xml
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <FEDummy xmlns="http://ar.gov.afip.dif.FEV1Service/">
+      <request />
+    </FEDummy>
+  </soap:Body>
+</soap:Envelope>
+```
+
+Respuesta:
+
+```xml
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+  <s:Body>
+    <FEDummyResponse xmlns="http://ar.gov.afip.dif.FEV1Service/">
+      <Estado>OK</Estado>
+      <ServerTime>2026-11-04T14:20:00.0000000Z</ServerTime>
+      <Version>0.1.0</Version>
+      <Service>FacturAR.Api</Service>
+    </FEDummyResponse>
+  </s:Body>
+</s:Envelope>
+```
+
 ## 8. Verificar un comprobante
 
 > **Disponible hoy — US-11 (base implementada).** La verificación no requiere API key. La emisión (`POST /v1/comprobantes`) también está disponible y sí requiere API key.
@@ -726,9 +872,9 @@ const response = await fetch("http://localhost:5171/v1/comprobantes", {
     items: [
       {
         descripcion: "Curso de programación",
-        cantidad: 1,
-        precioUnitario: 10000,
-        alicuotaIva: 21
+        "cantidad": 1,
+        "precioUnitario": 10000,
+        "alicuotaIva": 21
       }
     ]
   })
@@ -808,7 +954,7 @@ El catálogo cerrado de códigos está en [Estado de la API](#estado-de-la-api) 
 ## 12. Preguntas frecuentes
 
 **¿Qué puedo consumir hoy?**
-La emisión de facturas A, B y C y de notas de crédito y débito (`POST /v1/comprobantes`, con API key e `Idempotency-Key`), la emisión por SOAP (`POST /soap`, con `FECAESolicitar` y `FECAEGenerar`), las consultas de comprobantes (`GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` y `GET /v1/comprobantes/ultimo-autorizado`, con API key o cookie de empresa), la verificación pública por CAE (`GET /v1/comprobantes/verificar/{cae}`), los endpoints de salud, el login y la sesión (`/v1/auth/**` y `/v1/admin/auth/**`) y la gestión de API keys (`/v1/api-keys`, US-02 y US-14). El alta, la activación, la descarga de PDF y el SOAP de consultas (US-16) siguen pendientes; el contrato completo está en `docs/contratos-api.md`.
+La emisión de facturas A, B y C y de notas de crédito y débito (`POST /v1/comprobantes`, con API key e `Idempotency-Key`), la emisión y las consultas por SOAP (`POST /soap`, con `FECAESolicitar`, `FECAEGenerar`, `FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy`), las consultas de comprobantes (`GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` y `GET /v1/comprobantes/ultimo-autorizado`, con API key o cookie de empresa), la verificación pública por CAE (`GET /v1/comprobantes/verificar/{cae}`), los endpoints de salud, el login y la sesión (`/v1/auth/**` y `/v1/admin/auth/**`) y la gestión de API keys (`/v1/api-keys`, US-02 y US-14). El alta, la activación y la descarga de PDF siguen pendientes; el contrato completo está en `docs/contratos-api.md`.
 
 **¿Puedo registrarme solo con el CUIT?**
 No. El CUIT es público. La cuenta se activa con una invitación enviada al email del solicitante y aprobada por un administrador global.

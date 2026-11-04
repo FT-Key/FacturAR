@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.ServiceModel.Channels;
 using FacturAR.Api.Auth;
@@ -6,6 +7,7 @@ using FacturAR.Application.Abstractions;
 using FacturAR.Application.ApiKeys;
 using FacturAR.Application.Comprobantes;
 using FacturAR.Contracts.Comprobantes;
+using FacturAR.Contracts.Sistema;
 using FacturAR.Contracts.Soap;
 using FacturAR.Domain.Entities;
 using FacturAR.Domain.Enums;
@@ -209,6 +211,303 @@ public sealed class SoapFecaeTests
     }
 
     [Fact]
+    public async Task FECompUltimoAutorizado_ConEmitidos_DevuelveUltimoNroYCae()
+    {
+        var contexto = new SoapContexto();
+        contexto.Secuencias.UltimoNumero = 42;
+        var comprobante = contexto.NuevoComprobante(numero: 42);
+        contexto.Comprobantes.Comprobantes.Add(comprobante);
+
+        var respuesta = await contexto.Contrato.FECompUltimoAutorizado(new FECompUltimoAutorizadoRequest
+        {
+            PtoVta = 1,
+            TipoComprobante = (int)TipoComprobante.FacturaC
+        });
+
+        Assert.Equal("A", respuesta.Resultado);
+        Assert.Equal(1, respuesta.PtoVta);
+        Assert.Equal((int)TipoComprobante.FacturaC, respuesta.TipoComprobante);
+        Assert.Equal(42, respuesta.UltimoNro);
+        Assert.Equal("12345678901234", respuesta.Cae);
+        Assert.Equal("20261103", respuesta.FechaEmision);
+        Assert.Equal("20261113", respuesta.FchVto);
+        Assert.Null(respuesta.Observaciones);
+        Assert.True(respuesta.ShouldSerializePtoVta());
+        Assert.True(respuesta.ShouldSerializeTipoComprobante());
+        Assert.True(respuesta.ShouldSerializeUltimoNro());
+        Assert.Equal(contexto.ContribuyenteId, contexto.Secuencias.UltimoContribuyenteId);
+        Assert.Equal(contexto.ContribuyenteId, contexto.Comprobantes.UltimoContribuyenteId);
+        Assert.False(contexto.Emision.EmitirLlamado);
+    }
+
+    [Fact]
+    public async Task FECompUltimoAutorizado_SinEmitidos_DevuelveUltimoNroCeroSinCaeNiFechas()
+    {
+        var contexto = new SoapContexto();
+        contexto.Secuencias.UltimoNumero = 0;
+
+        var respuesta = await contexto.Contrato.FECompUltimoAutorizado(new FECompUltimoAutorizadoRequest
+        {
+            PtoVta = 1,
+            TipoComprobante = (int)TipoComprobante.FacturaC
+        });
+
+        Assert.Equal("A", respuesta.Resultado);
+        Assert.Equal(1, respuesta.PtoVta);
+        Assert.Equal((int)TipoComprobante.FacturaC, respuesta.TipoComprobante);
+        Assert.Equal(0, respuesta.UltimoNro);
+        Assert.Null(respuesta.Cae);
+        Assert.Null(respuesta.FechaEmision);
+        Assert.Null(respuesta.FchVto);
+        Assert.Null(respuesta.Observaciones);
+        Assert.Equal(1, contexto.Secuencias.Consultas);
+        Assert.Equal(0, contexto.Comprobantes.ConsultasDetalle);
+    }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(999, 1)]
+    [InlineData(11, 0)]
+    [InlineData(11, -1)]
+    public async Task FECompUltimoAutorizado_ParametrosInvalidos_DevuelveRechazoValidacionSinConsultarRepositorios(
+        int tipoComprobante,
+        int puntoVenta)
+    {
+        var contexto = new SoapContexto();
+
+        var respuesta = await contexto.Contrato.FECompUltimoAutorizado(new FECompUltimoAutorizadoRequest
+        {
+            PtoVta = puntoVenta,
+            TipoComprobante = tipoComprobante
+        });
+
+        Assert.Equal("R", respuesta.Resultado);
+        Assert.StartsWith("VALIDACION: ", respuesta.Observaciones, StringComparison.Ordinal);
+        Assert.False(respuesta.ShouldSerializePtoVta());
+        Assert.False(respuesta.ShouldSerializeTipoComprobante());
+        Assert.False(respuesta.ShouldSerializeUltimoNro());
+        Assert.Equal(0, contexto.Secuencias.Consultas);
+        Assert.Equal(0, contexto.Comprobantes.ConsultasDetalle);
+    }
+
+    [Fact]
+    public async Task FECompUltimoAutorizado_SinCredencial_LanzaFaultApiKeyAusente()
+    {
+        var contexto = new SoapContexto();
+        contexto.Http.Request.Headers.Clear();
+
+        var excepcion = await Assert.ThrowsAsync<FecaeFaultException>(
+            () => contexto.Contrato.FECompUltimoAutorizado(new FECompUltimoAutorizadoRequest
+            {
+                PtoVta = 1,
+                TipoComprobante = 11
+            }));
+
+        Assert.Equal(StatusCodes.Status401Unauthorized, excepcion.StatusCode);
+        Assert.Equal("API_KEY_AUSENTE", excepcion.Codigo);
+        Assert.Equal(0, contexto.Secuencias.Consultas);
+    }
+
+    [Fact]
+    public async Task FECompConsultar_ComprobantePropio_DevuelveDetalleCompleto()
+    {
+        var contexto = new SoapContexto();
+        var comprobante = contexto.NuevoComprobante(numero: 42);
+        contexto.Comprobantes.Comprobantes.Add(comprobante);
+
+        var respuesta = await contexto.Contrato.FECompConsultar(new FECompConsultarRequest
+        {
+            PtoVta = 1,
+            TipoComprobante = (int)TipoComprobante.FacturaC,
+            Numero = 42
+        });
+
+        Assert.Equal("A", respuesta.Resultado);
+        Assert.Equal(comprobante.Id, respuesta.Id);
+        Assert.Equal((int)TipoComprobante.FacturaC, respuesta.TipoComprobante);
+        Assert.Equal("Factura C", respuesta.TipoComprobanteDescripcion);
+        Assert.Equal(1, respuesta.PtoVta);
+        Assert.Equal(42, respuesta.Numero);
+        Assert.Equal("20261103", respuesta.FechaEmision);
+        Assert.Equal("12345678901234", respuesta.Cae);
+        Assert.Equal("20261113", respuesta.FchVto);
+        Assert.Equal("CUIT", respuesta.DocTipo);
+        Assert.Equal("20345678901", respuesta.DocNro);
+        Assert.Equal("Cliente Final", respuesta.ReceptorRazonSocial);
+        Assert.Equal(5, respuesta.CondicionIVA);
+        Assert.Equal(100m, respuesta.ImporteNeto);
+        Assert.Equal(0m, respuesta.ImporteIVA);
+        Assert.Equal(100m, respuesta.ImporteTotal);
+        Assert.Equal(100m, respuesta.SaldoPendiente);
+        Assert.Equal("ARS", respuesta.Moneda);
+        Assert.Equal("Emitido", respuesta.Estado);
+        var item = Assert.Single(respuesta.Items!);
+        Assert.Equal("Servicio", item.Descripcion);
+        Assert.Equal(1m, item.Cantidad);
+        Assert.Equal(100m, item.PrecioUnitario);
+        Assert.Equal(0m, item.AlicuotaIVA);
+        Assert.Equal(100m, item.Subtotal);
+    }
+
+    [Fact]
+    public async Task FECompConsultar_ComprobanteDeOtraEmpresa_DevuelveComprobanteNoEncontradoSinFiltrarDatos()
+    {
+        var contexto = new SoapContexto();
+        var comprobanteAjeno = contexto.NuevoComprobante(contribuyenteId: Guid.NewGuid(), numero: 42);
+        contexto.Comprobantes.Comprobantes.Add(comprobanteAjeno);
+
+        var respuesta = await contexto.Contrato.FECompConsultar(new FECompConsultarRequest
+        {
+            PtoVta = 1,
+            TipoComprobante = (int)TipoComprobante.FacturaC,
+            Numero = 42
+        });
+
+        Assert.Equal("R", respuesta.Resultado);
+        Assert.Equal(
+            "COMPROBANTE_NO_ENCONTRADO: El comprobante no existe.",
+            respuesta.Observaciones);
+        Assert.Null(respuesta.Cae);
+        Assert.Null(respuesta.ReceptorRazonSocial);
+        Assert.Null(respuesta.Items);
+        Assert.False(respuesta.ShouldSerializeId());
+        Assert.False(respuesta.ShouldSerializeNumero());
+        Assert.False(respuesta.ShouldSerializeImporteTotal());
+    }
+
+    [Theory]
+    [InlineData(0, 1, 1)]
+    [InlineData(999, 1, 1)]
+    [InlineData(11, 0, 1)]
+    [InlineData(11, 1, 0)]
+    [InlineData(11, 1, -5)]
+    public async Task FECompConsultar_ParametrosInvalidos_DevuelveRechazoValidacionSinConsultarRepositorio(
+        int tipoComprobante,
+        int puntoVenta,
+        long numero)
+    {
+        var contexto = new SoapContexto();
+
+        var respuesta = await contexto.Contrato.FECompConsultar(new FECompConsultarRequest
+        {
+            PtoVta = puntoVenta,
+            TipoComprobante = tipoComprobante,
+            Numero = numero
+        });
+
+        Assert.Equal("R", respuesta.Resultado);
+        Assert.StartsWith("VALIDACION: ", respuesta.Observaciones, StringComparison.Ordinal);
+        Assert.Equal(0, contexto.Comprobantes.ConsultasDetalle);
+    }
+
+    [Fact]
+    public async Task FECompConsultar_ApiKeyInvalida_LanzaFaultApiKeyInvalida()
+    {
+        var contexto = new SoapContexto();
+        contexto.Autenticador.Resultado = null;
+
+        var excepcion = await Assert.ThrowsAsync<FecaeFaultException>(
+            () => contexto.Contrato.FECompConsultar(new FECompConsultarRequest
+            {
+                PtoVta = 1,
+                TipoComprobante = 11,
+                Numero = 1
+            }));
+
+        Assert.Equal(StatusCodes.Status401Unauthorized, excepcion.StatusCode);
+        Assert.Equal("API_KEY_INVALIDA", excepcion.Codigo);
+        Assert.Equal(0, contexto.Comprobantes.ConsultasDetalle);
+    }
+
+    [Fact]
+    public async Task FEDummy_ConApiKeyValida_DevuelveEstadoOkVersionYServerTimeIsoUtc()
+    {
+        var contexto = new SoapContexto();
+
+        var antes = DateTime.UtcNow.AddSeconds(-2);
+        var respuesta = await contexto.Contrato.FEDummy(new FEDummyRequest());
+        var despues = DateTime.UtcNow.AddSeconds(2);
+
+        Assert.Equal("OK", respuesta.Estado);
+        Assert.Equal("1.2.3-test", respuesta.Version);
+        Assert.Equal("FacturAR.Api", respuesta.Service);
+        Assert.NotNull(respuesta.ServerTime);
+        Assert.EndsWith("Z", respuesta.ServerTime, StringComparison.Ordinal);
+
+        var serverTime = DateTime.Parse(
+            respuesta.ServerTime!,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal);
+        Assert.InRange(serverTime, antes, despues);
+        Assert.Equal(0, contexto.Comprobantes.ConsultasDetalle);
+        Assert.Equal(0, contexto.Secuencias.Consultas);
+        Assert.Equal(0, contexto.Contribuyentes.Consultas);
+        Assert.False(contexto.Emision.EmitirLlamado);
+    }
+
+    [Fact]
+    public async Task FEDummy_SinApiKey_LanzaFaultApiKeyAusente()
+    {
+        var contexto = new SoapContexto();
+        contexto.Http.Request.Headers.Clear();
+
+        var excepcion = await Assert.ThrowsAsync<FecaeFaultException>(
+            () => contexto.Contrato.FEDummy(new FEDummyRequest()));
+
+        Assert.Equal(StatusCodes.Status401Unauthorized, excepcion.StatusCode);
+        Assert.Equal("API_KEY_AUSENTE", excepcion.Codigo);
+    }
+
+    [Fact]
+    public void ConsultasMapeador_MapeaRespuestasYRechazos()
+    {
+        var detalle = new ComprobanteDetalleResponse(
+            Guid.NewGuid(),
+            11,
+            "Factura C",
+            1,
+            42,
+            new DateTime(2026, 11, 3, 0, 0, 0, DateTimeKind.Utc),
+            "12345678901234",
+            new DateTime(2026, 11, 13, 0, 0, 0, DateTimeKind.Utc),
+            new ReceptorComprobanteResponse("CUIT", "20345678901", "Cliente SRL", 5),
+            [new ComprobanteItemResponse("Servicio", 2m, 50m, 0m, 100m)],
+            100m,
+            0m,
+            100m,
+            100m,
+            "ARS",
+            "Emitido",
+            null,
+            null);
+
+        var ultimo = ConsultasMapeador.AUltimoAutorizado(
+            new UltimoAutorizadoResponse(11, "Factura C", 1, 42),
+            detalle);
+        Assert.Equal("A", ultimo.Resultado);
+        Assert.Equal(42, ultimo.UltimoNro);
+        Assert.Equal("12345678901234", ultimo.Cae);
+        Assert.Equal("20261103", ultimo.FechaEmision);
+        Assert.Equal("20261113", ultimo.FchVto);
+
+        var ultimoRechazado = ConsultasMapeador.UltimoAutorizadoRechazado("VALIDACION", "PtoVta inválido.");
+        Assert.Equal("R", ultimoRechazado.Resultado);
+        Assert.Equal("VALIDACION: PtoVta inválido.", ultimoRechazado.Observaciones);
+        Assert.False(ultimoRechazado.ShouldSerializeUltimoNro());
+
+        var consulta = ConsultasMapeador.AConsulta(detalle);
+        Assert.Equal("A", consulta.Resultado);
+        Assert.Equal(42, consulta.Numero);
+        Assert.Equal("12345678901234", consulta.Cae);
+        Assert.Single(consulta.Items!);
+
+        var consultaRechazada = ConsultasMapeador.ConsultaRechazada("COMPROBANTE_NO_ENCONTRADO", "El comprobante no existe.");
+        Assert.Equal("R", consultaRechazada.Resultado);
+        Assert.Equal("COMPROBANTE_NO_ENCONTRADO: El comprobante no existe.", consultaRechazada.Observaciones);
+        Assert.False(consultaRechazada.ShouldSerializeNumero());
+    }
+
+    [Fact]
     public void FecaeMapeador_MapeaDocumentoTipoCuitYConsumidorFinal()
     {
         var solicitud = new FECAESolicitarRequest
@@ -369,6 +668,8 @@ public sealed class SoapFecaeTests
             Http = new DefaultHttpContext();
             Http.Request.Headers[_apiKeysOptions.HeaderName] = ApiKey;
             Contribuyentes = new SoapContribuyentesFake(ContribuyenteId, CuitEmisor);
+            Comprobantes = new ConsultaComprobantesRepositorioFake();
+            Secuencias = new ConsultaSecuenciasRepositorioFake();
             Emision = new SoapEmisionFake
             {
                 Respuesta = new ComprobanteResponse(
@@ -402,6 +703,9 @@ public sealed class SoapFecaeTests
                 usageRegistrar,
                 Contribuyentes,
                 Emision,
+                new ConsultarComprobanteService(Comprobantes),
+                new ObtenerUltimoAutorizadoService(Secuencias),
+                new BuildInformation("1.2.3-test", "abc1234"),
                 new HttpContextAccessor { HttpContext = Http },
                 _apiKeysOptions);
         }
@@ -414,9 +718,51 @@ public sealed class SoapFecaeTests
 
         public SoapContribuyentesFake Contribuyentes { get; }
 
+        public ConsultaComprobantesRepositorioFake Comprobantes { get; }
+
+        public ConsultaSecuenciasRepositorioFake Secuencias { get; }
+
         public SoapEmisionFake Emision { get; }
 
         public ContractFecae Contrato { get; }
+
+        public Comprobante NuevoComprobante(
+            Guid? contribuyenteId = null,
+            int puntoVenta = 1,
+            TipoComprobante tipo = TipoComprobante.FacturaC,
+            long numero = 42)
+            => new()
+            {
+                Id = Guid.NewGuid(),
+                ContribuyenteId = contribuyenteId ?? ContribuyenteId,
+                PuntoVenta = puntoVenta,
+                TipoComprobante = tipo,
+                Numero = numero,
+                FechaEmision = new DateTime(2026, 11, 3, 0, 0, 0, DateTimeKind.Utc),
+                Cae = "12345678901234",
+                FechaVencimientoCae = new DateTime(2026, 11, 13, 0, 0, 0, DateTimeKind.Utc),
+                ReceptorDocumentoTipo = "CUIT",
+                ReceptorDocumentoNumero = "20345678901",
+                ReceptorRazonSocial = "Cliente Final",
+                ReceptorCondicionIva = CondicionIva.ConsumidorFinal,
+                Items =
+                [
+                    new ComprobanteItem
+                    {
+                        Descripcion = "Servicio",
+                        Cantidad = 1m,
+                        PrecioUnitario = 100m,
+                        AlicuotaIva = 0m,
+                        Subtotal = 100m
+                    }
+                ],
+                ImporteNeto = 100m,
+                ImporteIva = 0m,
+                ImporteTotal = 100m,
+                SaldoPendiente = 100m,
+                Moneda = "ARS",
+                Estado = EstadoComprobante.Emitido
+            };
 
         public FECAESolicitarRequest Solicitud(
             string? cuit = CuitEmisor,

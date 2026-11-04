@@ -7,6 +7,8 @@
 **Depende de:** US-03, US-09  
 **Habilita:** US-21
 
+**Estado:** Parcial
+
 ## Historia
 
 Como sistema cliente legado, quiero consultar el último comprobante autorizado, obtener un comprobante y verificar el estado del servicio por SOAP para integrarme sin usar REST.
@@ -26,7 +28,7 @@ El SOAP de consultas reutiliza los casos de uso de US-09 y el contexto de tenant
 - [ ] Los errores se devuelven como `Fault` o resultado controlado.
 - [ ] El WSDL incluye las tres operaciones.
 - [ ] Hay tests de consulta, aislamiento y `FEDummy`.
-- [ ] El contrato está documentado con ejemplos.
+- [x] El contrato está documentado con ejemplos.
 
 ## Escenarios Gherkin
 
@@ -60,15 +62,15 @@ Scenario: FEDummy
 
 ## Tareas técnicas
 
-- [ ] Definir las operaciones SOAP y el WSDL.
-- [ ] Implementar `FECompUltimoAutorizado`.
-- [ ] Implementar `FECompConsultar`.
-- [ ] Implementar `FEDummy`.
-- [ ] Resolver autenticación y tenant.
-- [ ] Reutilizar los casos de uso de consulta.
-- [ ] Mapear errores.
-- [ ] Agregar tests de contrato y aislamiento.
-- [ ] Documentar ejemplos.
+- [x] Definir las operaciones SOAP y el WSDL.
+- [x] Implementar `FECompUltimoAutorizado`.
+- [x] Implementar `FECompConsultar`.
+- [x] Implementar `FEDummy`.
+- [x] Resolver autenticación y tenant.
+- [x] Reutilizar los casos de uso de consulta.
+- [x] Mapear errores.
+- [x] Agregar tests de contrato y aislamiento.
+- [x] Documentar ejemplos.
 
 ## Definition of Done
 
@@ -76,7 +78,7 @@ Scenario: FEDummy
 - [ ] Las consultas están aisladas por empresa.
 - [ ] El WSDL se puede consumir.
 - [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el manual.
+- [x] La historia está enlazada desde el índice y el manual.
 
 ## Contrato técnico
 
@@ -175,3 +177,19 @@ US-16 no agrega claves de configuración propias. Reusa `Soap__Habilitado` y `So
 - No implementa todos los campos de AFIP.
 - No implementa WSAA real.
 - No implementa consultas masivas.
+
+## Notas de implementación
+
+Estado: **Parcial**. El contrato `IContractConsultas`, la extensión de `IContractFecae` y `ContractFecae`, los DTOs XML (`FECompUltimoAutorizadoRequest`/`Response`, `FECompConsultarRequest`/`Response`, `FEDummyRequest`/`Response`), el mapeador `ConsultasMapeador`, las consultas por numeración en `ConsultarComprobanteService` y `IComprobanteRepository`/`ComprobanteRepository`, los tests unitarios y de integración (CP-16.01 a CP-16.12) y la documentación están implementados.
+
+Decisiones y alcance técnico:
+
+1. **Un único servicio SOAP y WSDL compartido.** `IContractFecae` hereda de `IContractConsultas` (`[ServiceContract(Namespace = FecaeNamespaces.Fev1)]`), por lo que `SoapCore` publica las cinco operaciones (`FECAESolicitar`, `FECAEGenerar`, `FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy`) en `POST /soap` y en `GET /soap?wsdl`.
+2. **Reutilización de US-09.** `FECompUltimoAutorizado` delega en `ObtenerUltimoAutorizadoService.ObtenerAsync` (exigiendo `PtoVta >= 1`) y, cuando `UltimoNumero > 0`, obtiene el detalle del comprobante con `ConsultarComprobanteService.ConsultarPorNumeroAsync` (o `ConsultarUltimoEmitidoAsync` como respaldo si el último número de secuencia fue anulado) para poblar `Cae`, `FechaEmision` y `FchVto`. `FECompConsultar` delega en `ConsultarComprobanteService.ConsultarPorNumeroAsync`, que reutiliza exactamente el mismo mapeo a `ComprobanteDetalleResponse` que `GET /v1/comprobantes/{id}`.
+3. **Omisión de campos fiscales en errores de negocio.** `FECompUltimoAutorizadoResponse` y `FECompConsultarResponse` definen métodos `ShouldSerialize*()` para propiedades por valor (`PtoVta`, `TipoComprobante`, `UltimoNro`, `Id`, `Numero`, `CondicionIVA`, importes), garantizando que una respuesta con `Resultado = "R"` (por ejemplo, `COMPROBANTE_NO_ENCONTRADO` o `VALIDACION`) no serialice valores por defecto ni filtre datos fiscales.
+4. **`FEDummy` sin acceso a base de datos.** `FEDummy` valida la API key con `IApiKeyAuthenticator`, registra el uso con `ApiKeyUsageRegistrar` y devuelve `Estado = "OK"`, `ServerTime` en ISO 8601 UTC (`O`), `Version` desde `BuildInformation` y `Service = "FacturAR.Api"`, sin consultar MongoDB.
+
+Bloqueo de entorno y verificaciones pendientes:
+
+- En el entorno local actual solo están instalados los SDK de .NET `9.0.203` y `9.0.301` (y no hay Docker disponible), por lo que `dotnet build FacturAR.slnx -c Release` falla con `NETSDK1045` al requerir `.NET 10.0`. Por la regla 4 de `AGENTS.md`, los checkboxes de criterios de aceptación y Definition of Done que requieren ejecución de `dotnet test FacturAR.slnx` o verificación contra la API en ejecución quedan sin marcar hasta correr la suite en un entorno con .NET 10 SDK (por ejemplo, en el workflow de CI o tras instalar .NET 10 SDK localmente).
+- Pendiente de verificar con MongoDB real: consultas `GetByNumeracionAsync` y `GetUltimoEmitidoAsync` contra la colección `comprobantes` y consumo del WSDL en SoapUI o Postman.

@@ -513,6 +513,91 @@ public sealed class ConsultasComprobantesServiceTests
     }
 
     [Fact]
+    public async Task ConsultarPorNumeroAsync_ConComprobantePropio_DevuelveElDetalle()
+    {
+        var comprobante = NuevoComprobante();
+        var repositorio = new ConsultaComprobantesRepositorioFake();
+        repositorio.Comprobantes.Add(comprobante);
+        var servicio = new ConsultarComprobanteService(repositorio);
+
+        var detalle = await servicio.ConsultarPorNumeroAsync(
+            ContribuyenteId,
+            (int)TipoComprobante.FacturaC,
+            1,
+            42);
+
+        Assert.NotNull(detalle);
+        Assert.Equal(comprobante.Id, detalle.Id);
+        Assert.Equal(42, detalle.Numero);
+        Assert.Equal("12345678901234", detalle.Cae);
+        Assert.Equal(ContribuyenteId, repositorio.UltimoContribuyenteId);
+    }
+
+    [Fact]
+    public async Task ConsultarPorNumeroAsync_ConComprobanteDeOtraEmpresa_DevuelveNull()
+    {
+        var comprobante = NuevoComprobante();
+        comprobante.ContribuyenteId = OtroContribuyenteId;
+        var repositorio = new ConsultaComprobantesRepositorioFake();
+        repositorio.Comprobantes.Add(comprobante);
+        var servicio = new ConsultarComprobanteService(repositorio);
+
+        var detalle = await servicio.ConsultarPorNumeroAsync(
+            ContribuyenteId,
+            (int)TipoComprobante.FacturaC,
+            1,
+            42);
+
+        Assert.Null(detalle);
+        Assert.Equal(ContribuyenteId, repositorio.UltimoContribuyenteId);
+    }
+
+    [Theory]
+    [InlineData(0, 1, 1)]
+    [InlineData(99, 1, 1)]
+    [InlineData(11, 0, 1)]
+    [InlineData(11, -1, 1)]
+    [InlineData(11, 1, 0)]
+    [InlineData(11, 1, -5)]
+    public async Task ConsultarPorNumeroAsync_ConParametrosInvalidos_LanzaValidacionSinConsultar(
+        int tipo,
+        int puntoVenta,
+        long numero)
+    {
+        var repositorio = new ConsultaComprobantesRepositorioFake();
+        var servicio = new ConsultarComprobanteService(repositorio);
+
+        await Assert.ThrowsAsync<ComprobanteValidationException>(
+            () => servicio.ConsultarPorNumeroAsync(ContribuyenteId, tipo, puntoVenta, numero));
+
+        Assert.Equal(0, repositorio.ConsultasDetalle);
+    }
+
+    [Fact]
+    public async Task ConsultarUltimoEmitidoAsync_IgnoraAnuladosYDevuelveElMayorEmitidoDelContribuyente()
+    {
+        var repositorio = new ConsultaComprobantesRepositorioFake();
+        var emitido = NuevoComprobante();
+        var anuladoMayor = NuevoComprobante();
+        anuladoMayor.Numero = 43;
+        anuladoMayor.Estado = EstadoComprobante.Anulado;
+        var ajenoMayor = NuevoComprobante();
+        ajenoMayor.ContribuyenteId = OtroContribuyenteId;
+        ajenoMayor.Numero = 99;
+        repositorio.Comprobantes.AddRange([emitido, anuladoMayor, ajenoMayor]);
+        var servicio = new ConsultarComprobanteService(repositorio);
+
+        var ultimo = await servicio.ConsultarUltimoEmitidoAsync(
+            ContribuyenteId,
+            (int)TipoComprobante.FacturaC,
+            1);
+
+        Assert.NotNull(ultimo);
+        Assert.Equal(42, ultimo.Numero);
+        Assert.Equal(emitido.Cae, ultimo.Cae);
+    }
+
+    [Fact]
     public async Task ObtenerAsync_ConPuntoVenta_DevuelveElNumeroDeLaSecuenciaDelContribuyente()
     {
         var repositorio = new ConsultaSecuenciasRepositorioFake { UltimoNumero = 7 };
@@ -661,6 +746,41 @@ internal sealed class ConsultaComprobantesRepositorioFake : IComprobanteReposito
             c => c.Id == id && c.ContribuyenteId == contribuyenteId));
     }
 
+    public Task<Comprobante?> GetByNumeracionAsync(
+        Guid contribuyenteId,
+        int puntoVenta,
+        TipoComprobante tipo,
+        long numero,
+        CancellationToken cancellationToken = default)
+    {
+        ConsultasDetalle++;
+        UltimoContribuyenteId = contribuyenteId;
+
+        return Task.FromResult(Comprobantes.FirstOrDefault(
+            c => c.ContribuyenteId == contribuyenteId
+                && c.PuntoVenta == puntoVenta
+                && c.TipoComprobante == tipo
+                && c.Numero == numero));
+    }
+
+    public Task<Comprobante?> GetUltimoEmitidoAsync(
+        Guid contribuyenteId,
+        int puntoVenta,
+        TipoComprobante tipo,
+        CancellationToken cancellationToken = default)
+    {
+        ConsultasDetalle++;
+        UltimoContribuyenteId = contribuyenteId;
+
+        return Task.FromResult(Comprobantes
+            .Where(c => c.ContribuyenteId == contribuyenteId
+                && c.PuntoVenta == puntoVenta
+                && c.TipoComprobante == tipo
+                && c.Estado == EstadoComprobante.Emitido)
+            .OrderByDescending(c => c.Numero)
+            .FirstOrDefault());
+    }
+
     public Task<(IReadOnlyList<Comprobante> Items, long Total)> ListarAsync(
         Guid contribuyenteId,
         FiltroListadoComprobantes filtro,
@@ -721,9 +841,9 @@ internal sealed class ConsultaComprobantesRepositorioFake : IComprobanteReposito
 
 internal sealed class ConsultaSecuenciasRepositorioFake : ISecuenciaRepository
 {
-    public long UltimoNumero { get; init; }
+    public long UltimoNumero { get; set; }
 
-    public long MaximoUltimoNumero { get; init; }
+    public long MaximoUltimoNumero { get; set; }
 
     public Guid? UltimoContribuyenteId { get; private set; }
 

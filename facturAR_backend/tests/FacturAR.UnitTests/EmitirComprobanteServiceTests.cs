@@ -157,7 +157,7 @@ public sealed class EmitirComprobanteServiceTests
                 contexto.FacturaA(importeTotal: 9999m),
                 "idem-cp0506"));
 
-        Assert.Equal("El importe total no coincide con el cálculo de los ítems.", ex.Message);
+        Assert.Equal("El importe total no coincide con el cÃ¡lculo de los Ã­tems.", ex.Message);
         Assert.Equal(0, contexto.Secuencias.Llamadas);
         Assert.Equal(0, contexto.Transaccion.Ejecuciones);
         Assert.Empty(contexto.Comprobantes.Comprobantes);
@@ -202,7 +202,7 @@ public sealed class EmitirComprobanteServiceTests
                 contexto.FacturaA() with { PuntoVenta = 3 },
                 "idem-cp0508"));
 
-        Assert.Equal("El punto de venta está inactivo.", ex.Message);
+        Assert.Equal("El punto de venta estÃ¡ inactivo.", ex.Message);
         Assert.Equal(0, contexto.Secuencias.Llamadas);
         Assert.Empty(contexto.Comprobantes.Comprobantes);
     }
@@ -369,7 +369,7 @@ public sealed class EmitirComprobanteServiceTests
         var ex = await Assert.ThrowsAsync<ComprobanteValidationException>(
             () => contexto.Servicio.EmitirAsync(contexto.Emisor.Id, "Emisor", request, "idem-items-nulos"));
 
-        Assert.Equal("Los ítems del comprobante no son válidos.", ex.Message);
+        Assert.Equal("Los Ã­tems del comprobante no son vÃ¡lidos.", ex.Message);
         Assert.Equal(0, contexto.Secuencias.Llamadas);
         Assert.Empty(contexto.Comprobantes.Comprobantes);
     }
@@ -383,7 +383,7 @@ public sealed class EmitirComprobanteServiceTests
         var ex = await Assert.ThrowsAsync<ComprobanteValidationException>(
             () => contexto.Servicio.EmitirAsync(contexto.Emisor.Id, "Emisor", request, "idem-sin-items"));
 
-        Assert.Equal("El comprobante debe tener entre 1 y 500 ítems.", ex.Message);
+        Assert.Equal("El comprobante debe tener entre 1 y 500 Ã­tems.", ex.Message);
         Assert.Equal(0, contexto.Secuencias.Llamadas);
     }
 
@@ -399,7 +399,7 @@ public sealed class EmitirComprobanteServiceTests
         var ex = await Assert.ThrowsAsync<ComprobanteValidationException>(
             () => contexto.Servicio.EmitirAsync(contexto.Emisor.Id, "Emisor", request, "idem-fecha-extrema"));
 
-        Assert.Equal("La fecha de emisión no es válida.", ex.Message);
+        Assert.Equal("La fecha de emisiÃ³n no es vÃ¡lida.", ex.Message);
         Assert.Equal(0, contexto.Secuencias.Llamadas);
         Assert.Empty(contexto.Comprobantes.Comprobantes);
     }
@@ -416,7 +416,7 @@ public sealed class EmitirComprobanteServiceTests
                 contexto.FacturaA(alicuotaIva: 12m),
                 "idem-cp0516"));
 
-        Assert.Equal("La alícuota de IVA no está permitida.", ex.Message);
+        Assert.Equal("La alÃ­cuota de IVA no estÃ¡ permitida.", ex.Message);
         Assert.Equal(0, contexto.Secuencias.Llamadas);
     }
 
@@ -628,6 +628,21 @@ public sealed class EmitirComprobanteServiceTests
         public Task<Comprobante?> GetByIdAsync(
             Guid contribuyenteId,
             Guid id,
+            CancellationToken ct = default)
+            => Task.FromResult<Comprobante?>(null);
+
+        public Task<Comprobante?> GetByNumeracionAsync(
+            Guid contribuyenteId,
+            int puntoVenta,
+            TipoComprobante tipo,
+            long numero,
+            CancellationToken ct = default)
+            => Task.FromResult<Comprobante?>(null);
+
+        public Task<Comprobante?> GetUltimoEmitidoAsync(
+            Guid contribuyenteId,
+            int puntoVenta,
+            TipoComprobante tipo,
             CancellationToken ct = default)
             => Task.FromResult<Comprobante?>(null);
 

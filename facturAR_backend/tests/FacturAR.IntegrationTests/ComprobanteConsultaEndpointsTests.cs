@@ -371,6 +371,41 @@ public sealed class ConsultaComprobantesRepositorioFake : IComprobanteRepository
             c => c.Id == id && c.ContribuyenteId == contribuyenteId));
     }
 
+    public Task<Comprobante?> GetByNumeracionAsync(
+        Guid contribuyenteId,
+        int puntoVenta,
+        TipoComprobante tipo,
+        long numero,
+        CancellationToken cancellationToken = default)
+    {
+        ConsultasDetalle++;
+        UltimoContribuyenteId = contribuyenteId;
+
+        return Task.FromResult(Comprobantes.FirstOrDefault(
+            c => c.ContribuyenteId == contribuyenteId
+                && c.PuntoVenta == puntoVenta
+                && c.TipoComprobante == tipo
+                && c.Numero == numero));
+    }
+
+    public Task<Comprobante?> GetUltimoEmitidoAsync(
+        Guid contribuyenteId,
+        int puntoVenta,
+        TipoComprobante tipo,
+        CancellationToken cancellationToken = default)
+    {
+        ConsultasDetalle++;
+        UltimoContribuyenteId = contribuyenteId;
+
+        return Task.FromResult(Comprobantes
+            .Where(c => c.ContribuyenteId == contribuyenteId
+                && c.PuntoVenta == puntoVenta
+                && c.TipoComprobante == tipo
+                && c.Estado == EstadoComprobante.Emitido)
+            .OrderByDescending(c => c.Numero)
+            .FirstOrDefault());
+    }
+
     public Task<(IReadOnlyList<Comprobante> Items, long Total)> ListarAsync(
         Guid contribuyenteId,
         FiltroListadoComprobantes filtro,

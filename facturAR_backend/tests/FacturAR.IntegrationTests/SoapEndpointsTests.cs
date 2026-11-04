@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Net;
+using System.Net.Http.Json;
 using System.Text;
 using System.Xml.Linq;
 using FacturAR.Application.Abstractions;
@@ -33,6 +35,9 @@ public sealed class SoapEndpointsTests
         var xml = await response.Content.ReadAsStringAsync();
         Assert.Contains("FECAESolicitar", xml);
         Assert.Contains("FECAEGenerar", xml);
+        Assert.Contains("FECompUltimoAutorizado", xml);
+        Assert.Contains("FECompConsultar", xml);
+        Assert.Contains("FEDummy", xml);
         Assert.Contains("http://ar.gov.afip.dif.FEV1Service/", xml);
         Assert.DoesNotContain("ContribuyenteId", xml);
         Assert.DoesNotContain("PasswordHash", xml);
@@ -207,6 +212,363 @@ public sealed class SoapEndpointsTests
     }
 
     [Fact]
+    public async Task CP1602_FECompUltimoAutorizado_ConComprobantesEmitidos_DevuelveUltimoNroYCae()
+    {
+        using var factory = new SoapApiFactory();
+        factory.Secuencias.UltimoNumero = 42;
+        factory.Comprobantes.Comprobantes.Add(NuevoComprobante(SoapApiFactory.ContribuyenteId, numero: 42));
+        using var client = factory.CreateClient();
+
+        using var response = await EnviarConsultaAsync(
+            client,
+            "FECompUltimoAutorizado",
+            """
+            <PtoVta>1</PtoVta>
+            <TipoComprobante>11</TipoComprobante>
+            """,
+            SoapApiFactory.ApiKeyValida);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var documento = XDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("A", Valor(documento, "Resultado"));
+        Assert.Equal("1", Valor(documento, "PtoVta"));
+        Assert.Equal("11", Valor(documento, "TipoComprobante"));
+        Assert.Equal("42", Valor(documento, "UltimoNro"));
+        Assert.Equal("12345678901234", Valor(documento, "Cae"));
+        Assert.Equal("20261103", Valor(documento, "FechaEmision"));
+        Assert.Equal("20261113", Valor(documento, "FchVto"));
+        Assert.Null(Valor(documento, "Observaciones"));
+    }
+
+    [Fact]
+    public async Task CP1603_FECompUltimoAutorizado_SinComprobantesEmitidos_DevuelveUltimoNroCeroSinCae()
+    {
+        using var factory = new SoapApiFactory();
+        factory.Secuencias.UltimoNumero = 0;
+        using var client = factory.CreateClient();
+
+        using var response = await EnviarConsultaAsync(
+            client,
+            "FECompUltimoAutorizado",
+            """
+            <PtoVta>1</PtoVta>
+            <TipoComprobante>11</TipoComprobante>
+            """,
+            SoapApiFactory.ApiKeyValida);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var documento = XDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("A", Valor(documento, "Resultado"));
+        Assert.Equal("1", Valor(documento, "PtoVta"));
+        Assert.Equal("11", Valor(documento, "TipoComprobante"));
+        Assert.Equal("0", Valor(documento, "UltimoNro"));
+        Assert.Null(Valor(documento, "Cae"));
+        Assert.Null(Valor(documento, "FechaEmision"));
+        Assert.Null(Valor(documento, "FchVto"));
+    }
+
+    [Fact]
+    public async Task CP1604_FECompConsultar_ComprobantePropio_DevuelveDatosCompletos()
+    {
+        using var factory = new SoapApiFactory();
+        var comprobante = NuevoComprobante(SoapApiFactory.ContribuyenteId, numero: 42);
+        factory.Comprobantes.Comprobantes.Add(comprobante);
+        using var client = factory.CreateClient();
+
+        using var response = await EnviarConsultaAsync(
+            client,
+            "FECompConsultar",
+            """
+            <PtoVta>1</PtoVta>
+            <TipoComprobante>11</TipoComprobante>
+            <Numero>42</Numero>
+            """,
+            SoapApiFactory.ApiKeyValida);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var documento = XDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("A", Valor(documento, "Resultado"));
+        Assert.Equal(comprobante.Id.ToString(), Valor(documento, "Id"));
+        Assert.Equal("11", Valor(documento, "TipoComprobante"));
+        Assert.Equal("Factura C", Valor(documento, "TipoComprobanteDescripcion"));
+        Assert.Equal("1", Valor(documento, "PtoVta"));
+        Assert.Equal("42", Valor(documento, "Numero"));
+        Assert.Equal("20261103", Valor(documento, "FechaEmision"));
+        Assert.Equal("12345678901234", Valor(documento, "Cae"));
+        Assert.Equal("20261113", Valor(documento, "FchVto"));
+        Assert.Equal("CUIT", Valor(documento, "DocTipo"));
+        Assert.Equal("20345678901", Valor(documento, "DocNro"));
+        Assert.Equal("Cliente Final", Valor(documento, "ReceptorRazonSocial"));
+        Assert.Equal("5", Valor(documento, "CondicionIVA"));
+        Assert.Equal("100", Valor(documento, "ImporteNeto"));
+        Assert.Equal("0", Valor(documento, "ImporteIVA"));
+        Assert.Equal("100", Valor(documento, "ImporteTotal"));
+        Assert.Equal("100", Valor(documento, "SaldoPendiente"));
+        Assert.Equal("ARS", Valor(documento, "Moneda"));
+        Assert.Equal("Emitido", Valor(documento, "Estado"));
+        Assert.Equal("Servicio", Valor(documento, "Descripcion"));
+        Assert.Equal("100", Valor(documento, "Subtotal"));
+    }
+
+    [Fact]
+    public async Task CP1605_FECompConsultar_ComprobanteDeOtraEmpresa_DevuelveComprobanteNoEncontradoSinFiltrarDatos()
+    {
+        using var factory = new SoapApiFactory();
+        var comprobanteAjeno = NuevoComprobante(Guid.NewGuid(), numero: 42);
+        factory.Comprobantes.Comprobantes.Add(comprobanteAjeno);
+        using var client = factory.CreateClient();
+
+        using var response = await EnviarConsultaAsync(
+            client,
+            "FECompConsultar",
+            """
+            <PtoVta>1</PtoVta>
+            <TipoComprobante>11</TipoComprobante>
+            <Numero>42</Numero>
+            """,
+            SoapApiFactory.ApiKeyValida);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var xml = await response.Content.ReadAsStringAsync();
+        var documento = XDocument.Parse(xml);
+        Assert.Equal("R", Valor(documento, "Resultado"));
+        Assert.Contains("COMPROBANTE_NO_ENCONTRADO", Valor(documento, "Observaciones"));
+        Assert.Null(Valor(documento, "Cae"));
+        Assert.Null(Valor(documento, "ImporteTotal"));
+        Assert.Null(Valor(documento, "ReceptorRazonSocial"));
+        Assert.DoesNotContain(comprobanteAjeno.Cae, xml, StringComparison.Ordinal);
+        Assert.DoesNotContain(comprobanteAjeno.ReceptorRazonSocial, xml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CP1606_FEDummy_ConApiKeyValida_DevuelveEstadoOkYMetadatos()
+    {
+        using var factory = new SoapApiFactory();
+        using var client = factory.CreateClient();
+
+        var antes = DateTime.UtcNow.AddSeconds(-5);
+        using var response = await EnviarConsultaAsync(
+            client,
+            "FEDummy",
+            string.Empty,
+            SoapApiFactory.ApiKeyValida);
+        var despues = DateTime.UtcNow.AddSeconds(5);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var documento = XDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("OK", Valor(documento, "Estado"));
+        Assert.Equal("FacturAR.Api", Valor(documento, "Service"));
+        Assert.False(string.IsNullOrWhiteSpace(Valor(documento, "Version")));
+        var serverTimeTexto = Valor(documento, "ServerTime");
+        Assert.NotNull(serverTimeTexto);
+        Assert.EndsWith("Z", serverTimeTexto, StringComparison.Ordinal);
+
+        var serverTime = DateTime.Parse(
+            serverTimeTexto!,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal);
+        Assert.InRange(serverTime, antes, despues);
+    }
+
+    [Fact]
+    public async Task CP1607_FEDummy_SinApiKey_Devuelve401ApiKeyAusente()
+    {
+        using var factory = new SoapApiFactory();
+        using var client = factory.CreateClient();
+
+        using var response = await EnviarConsultaAsync(
+            client,
+            "FEDummy",
+            string.Empty,
+            apiKey: null);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        var documento = XDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("API_KEY_AUSENTE", Valor(documento, "codigo"));
+        Assert.Contains("Client", Valor(documento, "faultcode"));
+    }
+
+    [Fact]
+    public async Task CP1608_FECompConsultar_ConApiKeyInvalida_Devuelve401ApiKeyInvalida()
+    {
+        using var factory = new SoapApiFactory();
+        using var client = factory.CreateClient();
+
+        using var response = await EnviarConsultaAsync(
+            client,
+            "FECompConsultar",
+            """
+            <PtoVta>1</PtoVta>
+            <TipoComprobante>11</TipoComprobante>
+            <Numero>42</Numero>
+            """,
+            SoapApiFactory.ApiKeyDesconocida);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        var documento = XDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("API_KEY_INVALIDA", Valor(documento, "codigo"));
+        Assert.Contains("Client", Valor(documento, "faultcode"));
+        Assert.DoesNotContain(SoapApiFactory.ApiKeyDesconocida, documento.ToString(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(999, 1)]
+    [InlineData(11, 0)]
+    public async Task CP1609_FECompConsultar_ConParametrosInvalidos_DevuelveRechazoValidacion(
+        int tipoComprobante,
+        int puntoVenta)
+    {
+        using var factory = new SoapApiFactory();
+        using var client = factory.CreateClient();
+
+        using var response = await EnviarConsultaAsync(
+            client,
+            "FECompConsultar",
+            $"""
+            <PtoVta>{puntoVenta}</PtoVta>
+            <TipoComprobante>{tipoComprobante}</TipoComprobante>
+            <Numero>1</Numero>
+            """,
+            SoapApiFactory.ApiKeyValida);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var documento = XDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("R", Valor(documento, "Resultado"));
+        Assert.StartsWith("VALIDACION: ", Valor(documento, "Observaciones"), StringComparison.Ordinal);
+        Assert.Equal(0, factory.Comprobantes.ConsultasDetalle);
+    }
+
+    [Fact]
+    public async Task CP1610_ConsistenciaRestVsSoap_EnConsultaDeComprobante()
+    {
+        using var factory = new SoapApiFactory();
+        var comprobante = NuevoComprobante(SoapApiFactory.ContribuyenteId, numero: 42);
+        factory.Comprobantes.Comprobantes.Add(comprobante);
+        using var client = factory.CreateClient();
+
+        using var restRequest = new HttpRequestMessage(HttpMethod.Get, $"/v1/comprobantes/{comprobante.Id}");
+        restRequest.Headers.TryAddWithoutValidation("X-Api-Key", SoapApiFactory.ApiKeyValida);
+        using var restResponse = await client.SendAsync(restRequest);
+        Assert.Equal(HttpStatusCode.OK, restResponse.StatusCode);
+        var detalleRest = await restResponse.Content.ReadFromJsonAsync<ComprobanteDetalleResponse>();
+        Assert.NotNull(detalleRest);
+
+        using var soapResponse = await EnviarConsultaAsync(
+            client,
+            "FECompConsultar",
+            """
+            <PtoVta>1</PtoVta>
+            <TipoComprobante>11</TipoComprobante>
+            <Numero>42</Numero>
+            """,
+            SoapApiFactory.ApiKeyValida);
+        Assert.Equal(HttpStatusCode.OK, soapResponse.StatusCode);
+        var soapDoc = XDocument.Parse(await soapResponse.Content.ReadAsStringAsync());
+
+        Assert.Equal(detalleRest!.Id.ToString(), Valor(soapDoc, "Id"));
+        Assert.Equal(detalleRest.Cae, Valor(soapDoc, "Cae"));
+        Assert.Equal(detalleRest.Numero.ToString(CultureInfo.InvariantCulture), Valor(soapDoc, "Numero"));
+        Assert.Equal(detalleRest.PuntoVenta.ToString(CultureInfo.InvariantCulture), Valor(soapDoc, "PtoVta"));
+        Assert.Equal(detalleRest.TipoComprobante.ToString(CultureInfo.InvariantCulture), Valor(soapDoc, "TipoComprobante"));
+        Assert.Equal(
+            detalleRest.FechaEmision.ToString("yyyyMMdd", CultureInfo.InvariantCulture),
+            Valor(soapDoc, "FechaEmision"));
+        Assert.Equal(
+            detalleRest.FechaVencimientoCae.ToString("yyyyMMdd", CultureInfo.InvariantCulture),
+            Valor(soapDoc, "FchVto"));
+        Assert.Equal(
+            detalleRest.ImporteTotal.ToString(CultureInfo.InvariantCulture),
+            Valor(soapDoc, "ImporteTotal"));
+        Assert.Equal(detalleRest.Estado, Valor(soapDoc, "Estado"));
+    }
+
+    [Fact]
+    public async Task CP1611_ConsistenciaRestVsSoap_EnUltimoAutorizado()
+    {
+        using var factory = new SoapApiFactory();
+        factory.Secuencias.UltimoNumero = 42;
+        factory.Comprobantes.Comprobantes.Add(NuevoComprobante(SoapApiFactory.ContribuyenteId, numero: 42));
+        using var client = factory.CreateClient();
+
+        using var restRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            "/v1/comprobantes/ultimo-autorizado?tipo=11&puntoVenta=1");
+        restRequest.Headers.TryAddWithoutValidation("X-Api-Key", SoapApiFactory.ApiKeyValida);
+        using var restResponse = await client.SendAsync(restRequest);
+        Assert.Equal(HttpStatusCode.OK, restResponse.StatusCode);
+        var ultimoRest = await restResponse.Content.ReadFromJsonAsync<UltimoAutorizadoResponse>();
+        Assert.NotNull(ultimoRest);
+
+        using var soapResponse = await EnviarConsultaAsync(
+            client,
+            "FECompUltimoAutorizado",
+            """
+            <PtoVta>1</PtoVta>
+            <TipoComprobante>11</TipoComprobante>
+            """,
+            SoapApiFactory.ApiKeyValida);
+        Assert.Equal(HttpStatusCode.OK, soapResponse.StatusCode);
+        var soapDoc = XDocument.Parse(await soapResponse.Content.ReadAsStringAsync());
+
+        Assert.Equal(
+            ultimoRest!.UltimoNumero.ToString(CultureInfo.InvariantCulture),
+            Valor(soapDoc, "UltimoNro"));
+        Assert.Equal(
+            ultimoRest.PuntoVenta.ToString(CultureInfo.InvariantCulture),
+            Valor(soapDoc, "PtoVta"));
+        Assert.Equal(
+            ultimoRest.TipoComprobante.ToString(CultureInfo.InvariantCulture),
+            Valor(soapDoc, "TipoComprobante"));
+    }
+
+    [Fact]
+    public async Task CP1612_OperacionesDeConsulta_NoEscribenEnBaseDeDatos()
+    {
+        using var factory = new SoapApiFactory();
+        factory.Secuencias.UltimoNumero = 42;
+        factory.Comprobantes.Comprobantes.Add(NuevoComprobante(SoapApiFactory.ContribuyenteId, numero: 42));
+        using var client = factory.CreateClient();
+
+        var cantidadComprobantesInicial = factory.Comprobantes.Comprobantes.Count;
+        var ultimoNumeroInicial = factory.Secuencias.UltimoNumero;
+        var cantidadEventosInicial = factory.Eventos.Eventos.Count;
+
+        using var respUltimo = await EnviarConsultaAsync(
+            client,
+            "FECompUltimoAutorizado",
+            """
+            <PtoVta>1</PtoVta>
+            <TipoComprobante>11</TipoComprobante>
+            """,
+            SoapApiFactory.ApiKeyValida);
+        Assert.Equal(HttpStatusCode.OK, respUltimo.StatusCode);
+
+        using var respConsultar = await EnviarConsultaAsync(
+            client,
+            "FECompConsultar",
+            """
+            <PtoVta>1</PtoVta>
+            <TipoComprobante>11</TipoComprobante>
+            <Numero>42</Numero>
+            """,
+            SoapApiFactory.ApiKeyValida);
+        Assert.Equal(HttpStatusCode.OK, respConsultar.StatusCode);
+
+        using var respDummy = await EnviarConsultaAsync(
+            client,
+            "FEDummy",
+            string.Empty,
+            SoapApiFactory.ApiKeyValida);
+        Assert.Equal(HttpStatusCode.OK, respDummy.StatusCode);
+
+        Assert.Equal(cantidadComprobantesInicial, factory.Comprobantes.Comprobantes.Count);
+        Assert.Equal(ultimoNumeroInicial, factory.Secuencias.UltimoNumero);
+        Assert.Equal(cantidadEventosInicial, factory.Eventos.Eventos.Count);
+        Assert.False(factory.Emision.EmitirLlamado);
+    }
+
+    [Fact]
     public async Task SoapDeshabilitado_NoPublicaEndpoint()
     {
         using var factory = new SoapDeshabilitadoFactory();
@@ -217,6 +579,66 @@ public sealed class SoapEndpointsTests
 
         using var response = await EnviarAsync(client, "FECAESolicitar", CuitEmisor, apiKey: null);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    private static Comprobante NuevoComprobante(Guid contribuyenteId, long numero = 42)
+        => new()
+        {
+            Id = Guid.NewGuid(),
+            ContribuyenteId = contribuyenteId,
+            PuntoVenta = 1,
+            TipoComprobante = TipoComprobante.FacturaC,
+            Numero = numero,
+            FechaEmision = new DateTime(2026, 11, 3, 0, 0, 0, DateTimeKind.Utc),
+            Cae = "12345678901234",
+            FechaVencimientoCae = new DateTime(2026, 11, 13, 0, 0, 0, DateTimeKind.Utc),
+            ReceptorDocumentoTipo = "CUIT",
+            ReceptorDocumentoNumero = "20345678901",
+            ReceptorRazonSocial = "Cliente Final",
+            ReceptorCondicionIva = CondicionIva.ConsumidorFinal,
+            Items =
+            [
+                new ComprobanteItem
+                {
+                    Descripcion = "Servicio",
+                    Cantidad = 1m,
+                    PrecioUnitario = 100m,
+                    AlicuotaIva = 0m,
+                    Subtotal = 100m
+                }
+            ],
+            ImporteNeto = 100m,
+            ImporteIva = 0m,
+            ImporteTotal = 100m,
+            SaldoPendiente = 100m,
+            Moneda = "ARS",
+            Estado = EstadoComprobante.Emitido
+        };
+
+    private static async Task<HttpResponseMessage> EnviarConsultaAsync(
+        HttpClient client,
+        string operacion,
+        string cuerpoRequestXml,
+        string? apiKey)
+    {
+        var xml = $"""
+            <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+              <soap:Body>
+                <{operacion} xmlns="http://ar.gov.afip.dif.FEV1Service/">
+                  <request>
+                    {cuerpoRequestXml}
+                  </request>
+                </{operacion}>
+              </soap:Body>
+            </soap:Envelope>
+            """;
+
+        return await EnviarAsync(
+            client,
+            operacion,
+            CuitEmisor,
+            apiKey,
+            contenido: new StringContent(xml, Encoding.UTF8, "text/xml"));
     }
 
     private static async Task<HttpResponseMessage> EnviarAsync(
@@ -305,6 +727,12 @@ public sealed class SoapApiFactory : WebApplicationFactory<Program>
 
     public ComprobanteContribuyenteFake Contribuyentes { get; } = new();
 
+    public ConsultaComprobantesRepositorioFake Comprobantes { get; } = new();
+
+    public ConsultaSecuenciasRepositorioFake Secuencias { get; } = new();
+
+    public ComprobanteEventoFake Eventos { get; } = new();
+
     public SoapEmisionFake Emision { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -326,6 +754,15 @@ public sealed class SoapApiFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<IContribuyenteRepository>();
             services.AddSingleton<IContribuyenteRepository>(Contribuyentes);
+
+            services.RemoveAll<IComprobanteRepository>();
+            services.AddSingleton<IComprobanteRepository>(Comprobantes);
+
+            services.RemoveAll<ISecuenciaRepository>();
+            services.AddSingleton<ISecuenciaRepository>(Secuencias);
+
+            services.RemoveAll<IEventoAuditoriaRepository>();
+            services.AddSingleton<IEventoAuditoriaRepository>(Eventos);
 
             services.RemoveAll<IEmitirComprobanteService>();
             services.AddSingleton<IEmitirComprobanteService>(Emision);
