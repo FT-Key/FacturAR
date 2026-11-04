@@ -58,12 +58,7 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
         CancellationToken ct = default)
     {
         ValidarPermisos(rol);
-
-        var emisor = await _contribuyentes.GetByIdAsync(contribuyenteId, ct);
-        if (emisor is null || !emisor.Activo)
-        {
-            throw new CuentaInactivaException();
-        }
+        var emisor = await ObtenerEmisorActivoAsync(contribuyenteId, ct);
 
         var payloadHash = PayloadHasher.Hash(request);
         var resolucion = await _idempotencia.ResolverAsync(contribuyenteId, idempotencyKey, payloadHash, ct);
@@ -77,6 +72,108 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
         {
             throw new IdempotenciaConflictoException();
         }
+
+        var preparada = await PrepararAsync(contribuyenteId, rol, request, emisor, ct);
+
+        Comprobante comprobante;
+
+        try
+        {
+            comprobante = await _transaccion.EjecutarAsync(
+                async token =>
+                {
+                    if (preparada.EsNota)
+                    {
+                        await AjustarSaldoOriginalAsync(
+                            contribuyenteId,
+                            preparada.ComprobanteOriginalId!.Value,
+                            preparada.Tipo,
+                            preparada.Calculo.ImporteTotal,
+                            token);
+                    }
+
+                    var numero = await _secuencias.ObtenerSiguienteNumeroAsync(
+                        contribuyenteId,
+                        request.PuntoVenta,
+                        preparada.Tipo,
+                        token);
+
+                    var ahora = DateTime.UtcNow;
+
+                    var emitido = new Comprobante
+                    {
+                        Id = Guid.NewGuid(),
+                        ContribuyenteId = contribuyenteId,
+                        EmisorCuit = preparada.EmisorCuit,
+                        EmisorRazonSocial = preparada.EmisorRazonSocial,
+                        PuntoVenta = request.PuntoVenta,
+                        TipoComprobante = preparada.Tipo,
+                        Numero = numero,
+                        FechaEmision = preparada.FechaEmision,
+                        Cae = CaeGenerator.Generar(),
+                        CaeVencimiento = preparada.CaeVencimiento,
+                        ReceptorDocumentoTipo = preparada.Receptor.DocumentoTipo,
+                        ReceptorDocumentoNumero = preparada.Receptor.DocumentoNumero,
+                        ReceptorRazonSocial = preparada.Receptor.RazonSocial,
+                        ReceptorCondicionIva = preparada.Receptor.CondicionIva,
+                        ImporteNeto = preparada.Calculo.ImporteNeto,
+                        ImporteIva = preparada.Calculo.ImporteIva,
+                        ImporteTotal = preparada.Calculo.ImporteTotal,
+                        Moneda = preparada.Moneda,
+                        Estado = EstadoComprobante.Emitido,
+                        IdempotencyKey = idempotencyKey,
+                        IdempotencyPayloadHash = payloadHash,
+                        Observaciones = preparada.Observaciones,
+                        Items = [.. preparada.Calculo.Items],
+                        ComprobanteOriginalId = preparada.EsNota ? preparada.ComprobanteOriginalId : null,
+                        ImporteOriginalAjustado = preparada.EsNota ? null : preparada.Calculo.ImporteTotal,
+                        CreatedAt = ahora
+                    };
+
+                    await _comprobantes.AddAsync(emitido, token);
+                    await _eventos.AddAsync(CrearEvento(emitido), token);
+
+                    return emitido;
+                },
+                ct);
+        }
+        catch (IdempotenciaDuplicadaException)
+        {
+            var existente = await ReleerTrasCarreraAsync(contribuyenteId, idempotencyKey, ct);
+
+            if (existente is null)
+            {
+                throw new IdempotenciaConflictoException();
+            }
+
+            if (!string.Equals(existente.IdempotencyPayloadHash, payloadHash, StringComparison.Ordinal))
+            {
+                throw new IdempotenciaConflictoException();
+            }
+
+            return new ResultadoEmision(Mapear(existente), true);
+        }
+
+        return new ResultadoEmision(Mapear(comprobante), false);
+    }
+
+    public Task ValidarAsync(
+        Guid contribuyenteId,
+        string? rol,
+        EmitirComprobanteRequest request,
+        CancellationToken ct = default)
+        => PrepararAsync(contribuyenteId, rol, request, null, ct);
+
+    private async Task<EmisionPreparada> PrepararAsync(
+        Guid contribuyenteId,
+        string? rol,
+        EmitirComprobanteRequest request,
+        Contribuyente? emisor,
+        CancellationToken ct)
+    {
+        ValidarPermisos(rol);
+
+        emisor ??= await ObtenerEmisorActivoAsync(contribuyenteId, ct);
 
         var tipo = (TipoComprobante)request.TipoComprobante;
         ComprobanteValidator.ValidarTipoHabilitado(tipo);
@@ -137,86 +234,18 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
         var caeVencimiento = CalcularCaeVencimiento(fechaEmision, diasVencimiento);
         var moneda = await _parametros.ObtenerMonedaAsync(contribuyenteId, ct);
 
-        Comprobante comprobante;
-
-        try
-        {
-            comprobante = await _transaccion.EjecutarAsync(
-                async token =>
-                {
-                    if (esNota)
-                    {
-                        await AjustarSaldoOriginalAsync(
-                            contribuyenteId,
-                            request.ComprobanteOriginalId!.Value,
-                            tipo,
-                            calculo.ImporteTotal,
-                            token);
-                    }
-
-                    var numero = await _secuencias.ObtenerSiguienteNumeroAsync(
-                        contribuyenteId,
-                        request.PuntoVenta,
-                        tipo,
-                        token);
-
-                    var ahora = DateTime.UtcNow;
-
-                    var emitido = new Comprobante
-                    {
-                        Id = Guid.NewGuid(),
-                        ContribuyenteId = contribuyenteId,
-                        EmisorCuit = emisor.Cuit,
-                        EmisorRazonSocial = emisor.RazonSocial,
-                        PuntoVenta = request.PuntoVenta,
-                        TipoComprobante = tipo,
-                        Numero = numero,
-                        FechaEmision = fechaEmision,
-                        Cae = CaeGenerator.Generar(),
-                        CaeVencimiento = caeVencimiento,
-                        ReceptorDocumentoTipo = receptor.DocumentoTipo,
-                        ReceptorDocumentoNumero = receptor.DocumentoNumero,
-                        ReceptorRazonSocial = receptor.RazonSocial,
-                        ReceptorCondicionIva = receptor.CondicionIva,
-                        ImporteNeto = calculo.ImporteNeto,
-                        ImporteIva = calculo.ImporteIva,
-                        ImporteTotal = calculo.ImporteTotal,
-                        Moneda = moneda,
-                        Estado = EstadoComprobante.Emitido,
-                        IdempotencyKey = idempotencyKey,
-                        IdempotencyPayloadHash = payloadHash,
-                        Observaciones = observaciones,
-                        Items = [.. calculo.Items],
-                        ComprobanteOriginalId = esNota ? request.ComprobanteOriginalId : null,
-                        ImporteOriginalAjustado = esNota ? null : calculo.ImporteTotal,
-                        CreatedAt = ahora
-                    };
-
-                    await _comprobantes.AddAsync(emitido, token);
-                    await _eventos.AddAsync(CrearEvento(emitido), token);
-
-                    return emitido;
-                },
-                ct);
-        }
-        catch (IdempotenciaDuplicadaException)
-        {
-            var existente = await ReleerTrasCarreraAsync(contribuyenteId, idempotencyKey, ct);
-
-            if (existente is null)
-            {
-                throw new IdempotenciaConflictoException();
-            }
-
-            if (!string.Equals(existente.IdempotencyPayloadHash, payloadHash, StringComparison.Ordinal))
-            {
-                throw new IdempotenciaConflictoException();
-            }
-
-            return new ResultadoEmision(Mapear(existente), true);
-        }
-
-        return new ResultadoEmision(Mapear(comprobante), false);
+        return new EmisionPreparada(
+            tipo,
+            emisor.Cuit,
+            emisor.RazonSocial,
+            receptor,
+            calculo,
+            fechaEmision,
+            caeVencimiento,
+            moneda,
+            observaciones,
+            esNota,
+            request.ComprobanteOriginalId);
     }
 
     private async Task<Comprobante?> ReleerTrasCarreraAsync(
@@ -278,6 +307,17 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
         }
 
         throw new ComprobanteValidationException(MensajeSaldoCambiante);
+    }
+
+    private async Task<Contribuyente> ObtenerEmisorActivoAsync(Guid contribuyenteId, CancellationToken ct)
+    {
+        var emisor = await _contribuyentes.GetByIdAsync(contribuyenteId, ct);
+        if (emisor is null || !emisor.Activo)
+        {
+            throw new CuentaInactivaException();
+        }
+
+        return emisor;
     }
 
     private static void ValidarPermisos(string? rol)
@@ -366,4 +406,17 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
             comprobante.ImporteTotal,
             comprobante.Moneda,
             comprobante.Estado.ToString());
+
+    private sealed record EmisionPreparada(
+        TipoComprobante Tipo,
+        string EmisorCuit,
+        string EmisorRazonSocial,
+        ReceptorValidado Receptor,
+        CalculoComprobante Calculo,
+        DateTime FechaEmision,
+        DateTime CaeVencimiento,
+        string Moneda,
+        string? Observaciones,
+        bool EsNota,
+        Guid? ComprobanteOriginalId);
 }

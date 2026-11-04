@@ -11,4 +11,10 @@ public interface IEmitirComprobanteService
         EmitirComprobanteRequest request,
         string idempotencyKey,
         CancellationToken ct = default);
+
+    Task ValidarAsync(
+        Guid contribuyenteId,
+        string? rol,
+        EmitirComprobanteRequest request,
+        CancellationToken ct = default);
 }

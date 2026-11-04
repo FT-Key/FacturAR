@@ -5,7 +5,7 @@
 
 Simulador de facturación electrónica de AFIP/ARCA para el Trabajo Final Integrador de la carrera. Incluye onboarding de empresas con solicitud pública, aprobación por administrador global e invitación por email, además de emisión, consultas, API keys, portal y verificación pública de un CAE.
 
-> Estado actual: base funcional con API, portal Blazor/Razor, MongoDB, emisión de facturas A, B y C y de notas de crédito y débito por API key, endpoint público de verificación, Docker y CI/CD. La emisión está implementada y cubierta por tests unitarios y de integración sin Mongo; la verificación real de transacción, concurrencia e índice único con MongoDB replica set sigue pendiente. El PDF, las consultas y el SOAP están documentados y preparados como próximos incrementos. US-08, US-19, US-20, US-27, US-28 y US-31 están completadas; US-05 está en estado parcial; US-11 tiene base implementada; US-21 está en estado parcial.
+> Estado actual: base funcional con API, portal Blazor/Razor, MongoDB, emisión de facturas A, B y C y de notas de crédito y débito por API key, endpoint público de verificación, Docker y CI/CD. La emisión está implementada y cubierta por tests unitarios y de integración sin Mongo; la verificación real de transacción, concurrencia e índice único con MongoDB replica set sigue pendiente. La fachada SOAP de emisión está implementada y probada sin Mongo; le faltan la verificación end-to-end con Mongo real y el QA de idempotencia. El PDF y el SOAP de consultas (US-16) están documentados y preparados como próximos incrementos. US-08, US-19, US-20, US-27, US-28 y US-31 están completadas; US-05, US-06, US-09, US-14 y US-15 están en estado parcial; US-11 tiene base implementada; US-21 está en estado parcial.
 >
 > Planificación: las historias pendientes están refinadas con **contrato técnico** (modelo de datos, endpoints, validaciones y casos de prueba) contra el [contrato transversal de la API](docs/contratos-api.md), y el [plan de implementación](docs/plan-implementacion.md) fija el orden de ejecución.
 
@@ -33,7 +33,7 @@ Simulador de facturación electrónica de AFIP/ARCA para el Trabajo Final Integr
 | Capa | Tecnología |
 | --- | --- |
 | Backend | .NET 10, ASP.NET Core Minimal API |
-| SOAP | CoreWCF o SoapCore |
+| SOAP | SoapCore 1.2.1.18 (solo `FacturAR.Api`) |
 | Frontend | Blazor Web App (Server) + Razor Pages |
 | Base de datos | MongoDB 8+ (Atlas o replica set local) |
 | PDF / QR | QuestPDF, QRCoder |
@@ -304,6 +304,10 @@ Para volver a una versión anterior, cambiar `IMAGE_TAG` en `.env.production` po
 | `GET` | `/openapi/v1.json` | Documento OpenAPI (solo Development) |
 | `GET` | `/v1/comprobantes/verificar/{cae}` | Verificación pública de un comprobante |
 | `POST` | `/v1/comprobantes` | Emisión de facturas A, B y C. Requiere API key e `Idempotency-Key` |
+| `POST` | `/soap` | Fachada SOAP 1.1 de emisión: `FECAESolicitar` y `FECAEGenerar`. Requiere API key |
+| `GET` | `/soap?wsdl` | WSDL de la fachada SOAP de emisión |
+
+La fachada SOAP reutiliza el mismo caso de uso y la misma API key que REST. El detalle del sobre `R`/`Fault` está en [`docs/contratos-api.md`](docs/contratos-api.md) §7.6 y los ejemplos de request/response en [`docs/manual-integracion.md`](docs/manual-integracion.md).
 
 Endpoints de onboarding planificados (todavía no implementados):
 
