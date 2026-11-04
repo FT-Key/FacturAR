@@ -135,10 +135,12 @@ public sealed class MongoApiKeysTests : IAsyncLifetime
         Assert.Null(documento.RevocadaAt);
         Assert.Null(documento.RegeneradaAt);
 
-        var secreto = creada.Valor.Split('_')[2];
+        var secreto = creada.Valor.Split('_', 3)[2];
         var documentoJson = documento.ToBsonDocument().ToJson();
-        Assert.DoesNotContain(creada.Valor, documentoJson, StringComparison.Ordinal);
-        Assert.DoesNotContain(secreto, documentoJson, StringComparison.Ordinal);
+        var posValor = documentoJson.IndexOf(creada.Valor, StringComparison.Ordinal);
+        var posSecreto = documentoJson.IndexOf(secreto, StringComparison.Ordinal);
+        Assert.True(posValor < 0, $"El valor completo está en Mongo (pos {posValor}). JSON: {documentoJson.Replace(secreto, "<SECRETO>")}");
+        Assert.True(posSecreto < 0, $"El secreto está en Mongo (pos {posSecreto}, largo {secreto.Length}). JSON: {documentoJson.Replace(secreto, "<SECRETO>")}");
 
         var listado = await EnviarAsync(HttpMethod.Get, "/v1/api-keys", cookie);
         Assert.Equal(HttpStatusCode.OK, listado.StatusCode);
@@ -163,7 +165,7 @@ public sealed class MongoApiKeysTests : IAsyncLifetime
         Assert.DoesNotContain("secret", body, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(primera.Valor, body, StringComparison.Ordinal);
         Assert.DoesNotContain(segunda.Valor, body, StringComparison.Ordinal);
-        Assert.DoesNotContain(primera.Valor.Split('_')[2], body, StringComparison.Ordinal);
+        Assert.DoesNotContain(primera.Valor.Split('_', 3)[2], body, StringComparison.Ordinal);
 
         var listado = await LeerAsync<ApiKeyListResponse>(response);
         Assert.Equal(2, listado.Items.Count);
@@ -208,7 +210,7 @@ public sealed class MongoApiKeysTests : IAsyncLifetime
         var listado = await EnviarAsync(HttpMethod.Get, "/v1/api-keys", cookie);
         var listadoBody = await listado.Content.ReadAsStringAsync();
         Assert.DoesNotContain(creada.Valor, listadoBody, StringComparison.Ordinal);
-        Assert.DoesNotContain(creada.Valor.Split('_')[2], listadoBody, StringComparison.Ordinal);
+        Assert.DoesNotContain(creada.Valor.Split('_', 3)[2], listadoBody, StringComparison.Ordinal);
 
         var regenerada = await EnviarAsync(HttpMethod.Post, $"/v1/api-keys/{creada.Id}/regenerar", cookie);
         Assert.Equal(HttpStatusCode.OK, regenerada.StatusCode);
@@ -377,8 +379,8 @@ public sealed class MongoApiKeysTests : IAsyncLifetime
         var datos = string.Join('\n', eventos.Select(e => e.Datos ?? string.Empty));
         Assert.DoesNotContain(creada.Valor, datos, StringComparison.Ordinal);
         Assert.DoesNotContain(regenerada.Valor, datos, StringComparison.Ordinal);
-        Assert.DoesNotContain(creada.Valor.Split('_')[2], datos, StringComparison.Ordinal);
-        Assert.DoesNotContain(regenerada.Valor.Split('_')[2], datos, StringComparison.Ordinal);
+        Assert.DoesNotContain(creada.Valor.Split('_', 3)[2], datos, StringComparison.Ordinal);
+        Assert.DoesNotContain(regenerada.Valor.Split('_', 3)[2], datos, StringComparison.Ordinal);
         Assert.DoesNotContain(hashCreada, datos, StringComparison.Ordinal);
         Assert.DoesNotContain(hashRegenerada, datos, StringComparison.Ordinal);
     }

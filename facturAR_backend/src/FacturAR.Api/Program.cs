@@ -5,6 +5,7 @@ using FacturAR.Api.Comprobantes;
 using FacturAR.Api.Invitaciones;
 using FacturAR.Api.Security;
 using FacturAR.Api.Seed;
+using FacturAR.Api.Soap;
 using FacturAR.Api.Solicitudes;
 using FacturAR.Application.Abstractions;
 using FacturAR.Application.ApiKeys;
@@ -46,6 +47,10 @@ var authOptions = builder.Configuration
 var apiKeysOptions = builder.Configuration
     .GetSection(ApiKeysOptions.SectionName)
     .Get<ApiKeysOptions>() ?? new ApiKeysOptions();
+
+var soapOptions = builder.Configuration
+    .GetSection(SoapOptions.SectionName)
+    .Get<SoapOptions>() ?? new SoapOptions();
 
 var bootstrapAdminOptions = builder.Configuration
     .GetSection("BootstrapAdmin")
@@ -105,6 +110,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton(mongoOptions);
 builder.Services.AddSingleton(authOptions);
 builder.Services.AddSingleton(apiKeysOptions);
+builder.Services.AddSingleton(soapOptions);
 builder.Services.AddSingleton(bootstrapAdminOptions);
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<ParametrosFacturacion>>().Value);
 builder.Services.AddSingleton(seedOptions);
@@ -184,6 +190,7 @@ builder.Services.AddHostedService<SeedHostedService>();
 
 builder.Services.AddFacturarCookies(authOptions, builder.Environment.IsDevelopment());
 builder.Services.AddFacturarApiKeyAuthentication();
+builder.Services.AddFacturarSoap();
 builder.Services.AddComprobanteConsultaAuthorization();
 
 var solicitudAltaPolicy = new SolicitudAltaRateLimitPolicy(solicitudAltaRateLimitOptions);
@@ -245,6 +252,7 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 
     await context.Response.WriteAsJsonAsync(error);
 }));
+app.UseFacturarSoap(soapOptions);
 app.Use(async (context, next) =>
 {
     var request = context.Request;

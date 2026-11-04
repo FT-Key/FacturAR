@@ -7,6 +7,8 @@
 **Depende de:** US-03, US-05  
 **Habilita:** US-16, US-21
 
+**Estado:** Parcial
+
 ## Historia
 
 Como sistema cliente legado, quiero invocar `FECAESolicitar` por SOAP para emitir comprobantes usando un contrato compatible con el flujo de AFIP.
@@ -17,17 +19,17 @@ El SOAP es una fachada del mismo caso de uso de emisión. No duplica reglas ni a
 
 ## Criterios de aceptación
 
-- [ ] Se expone `FECAESolicitar` con un contrato XML compatible con el flujo AFIP simulado.
-- [ ] El request incluye `Auth` (token y sign) o la API key según el contrato acordado.
-- [ ] El servicio resuelve el contribuyente autenticado.
-- [ ] El servicio reutiliza `EmitirComprobanteService`.
-- [ ] La respuesta incluye `Cae`, `CaeFchVto`, `Resultado` y observaciones.
-- [ ] Un error de validación devuelve un `Fault` o un resultado `R` con mensaje claro.
-- [ ] Un cliente no puede emitir para otra empresa.
+- [x] Se expone `FECAESolicitar` con un contrato XML compatible con el flujo AFIP simulado.
+- [x] El request incluye `Auth` (token y sign) o la API key según el contrato acordado.
+- [x] El servicio resuelve el contribuyente autenticado.
+- [x] El servicio reutiliza `EmitirComprobanteService`.
+- [x] La respuesta incluye `Cae`, `CaeFchVto`, `Resultado` y observaciones.
+- [x] Un error de validación devuelve un `Fault` o un resultado `R` con mensaje claro.
+- [x] Un cliente no puede emitir para otra empresa.
 - [ ] La numeración y el CAE son los mismos que en REST.
-- [ ] El WSDL está disponible y documentado.
-- [ ] Hay tests de request exitoso, error y aislamiento.
-- [ ] El SOAP no omite autenticación ni validaciones.
+- [x] El WSDL está disponible y documentado.
+- [x] Hay tests de request exitoso, error y aislamiento.
+- [x] El SOAP no omite autenticación ni validaciones.
 
 ## Escenarios Gherkin
 
@@ -58,23 +60,23 @@ Scenario: Aislamiento SOAP
 
 ## Tareas técnicas
 
-- [ ] Definir el contrato SOAP y el WSDL.
-- [ ] Configurar SoapCore o CoreWCF.
-- [ ] Implementar `FECAESolicitar`.
-- [ ] Resolver autenticación y tenant.
-- [ ] Reutilizar el caso de uso de emisión.
-- [ ] Mapear errores a `Fault` o resultado `R`.
-- [ ] Publicar el WSDL.
-- [ ] Agregar tests de contrato y aislamiento.
-- [ ] Documentar un ejemplo de request y response.
+- [x] Definir el contrato SOAP y el WSDL.
+- [x] Configurar SoapCore o CoreWCF.
+- [x] Implementar `FECAESolicitar`.
+- [x] Resolver autenticación y tenant.
+- [x] Reutilizar el caso de uso de emisión.
+- [x] Mapear errores a `Fault` o resultado `R`.
+- [x] Publicar el WSDL.
+- [x] Agregar tests de contrato y aislamiento.
+- [x] Documentar un ejemplo de request y response.
 
 ## Definition of Done
 
 - [ ] `FECAESolicitar` emite un comprobante válido.
 - [ ] El SOAP y el REST producen el mismo resultado funcional.
 - [ ] El WSDL se puede consumir desde SoapUI o Postman.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el manual.
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el manual.
 
 ## Contrato técnico
 
@@ -239,3 +241,41 @@ Los valores se leen con el prefijo `Soap__` y se pueden sobrescribir por variabl
 - No implementa WSAA real ni certificados AFIP.
 - No implementa todos los campos de AFIP.
 - No implementa SOAP de consultas; eso corresponde a US-16.
+
+## Notas de implementación
+
+Estado: **Parcial**. La fachada SOAP, el WSDL, la autenticación, el aislamiento, el mapeo de errores, la idempotencia de US-06 y los tests automáticos sin Mongo están implementados. Faltan la verificación end-to-end con MongoDB replica set y el QA manual de idempotencia.
+
+Evidencia ejecutada:
+
+- `dotnet build FacturAR.slnx -c Release`: 0 errores; queda 1 advertencia preexistente de `MongoNotasCreditoDebitoTests`.
+- `dotnet test FacturAR.slnx -c Release --no-build --logger "console;verbosity=minimal"`: **501 unitarios aprobados, 117 de integración aprobados, 151 omitidos, 0 fallos**. Los omitidos son los `[MongoFact]`. Incluye 19 tests unitarios de contrato/mapeo/faults, 3 de `ValidarAsync` y 10 tests de integración de `SoapEndpointsTests`.
+- `dotnet format FacturAR.slnx --verify-no-changes`: sin cambios.
+- `dotnet list package --vulnerable`: sin paquetes vulnerables reportados.
+
+QA manual con la API real y MongoDB detenido (sin Playwright MCP disponible; se usó `curl`):
+
+- `GET /soap?wsdl` → `200`, con `FECAESolicitar`, `FECAEGenerar` y namespace `http://ar.gov.afip.dif.FEV1Service/`; el WSDL no contiene `ContribuyenteId`, `PasswordHash` ni `IdempotencyPayloadHash`.
+- `FECAESolicitar` sin `X-Api-Key` → `401` con `SOAP Fault` `API_KEY_AUSENTE`.
+- `FECAESolicitar` con una key con formato válido y Mongo caído → `503` con `SOAP Fault` `MONGO_NO_DISPONIBLE`.
+- Sobre XML mal formado → `400` con `SOAP Fault` `VALIDACION` y `faultcode` `s:Client`.
+- `FECAEGenerar` sin `X-Api-Key` → `401` con `SOAP Fault` `API_KEY_AUSENTE`.
+- Con `Soap__Habilitado=false` → `GET /soap?wsdl` y `POST /soap` responden `404`.
+
+Decisiones y desvíos:
+
+1. **`FECAEGenerar` sin persistir.** Se agregó `ValidarAsync` a `IEmitirComprobanteService` y se extrajo `PrepararAsync` de `EmitirAsync`. `EmitirAsync` conserva su comportamiento y `ValidarAsync` no consume número, no genera CAE y no escribe comprobante ni evento; los tests lo verifican. Es una extensión controlada del caso de uso para cumplir el contrato de `FECAEGenerar`, que la historia describe como diagnóstico.
+2. **Errores de negocio.** Se devuelve HTTP `200` con `Resultado = "R"` y `Observaciones = "<CODIGO>: <mensaje>"`, según la sección "Sobre el envelope `R` / `Fault`". La tabla de operaciones enumera los códigos canónicos y sus HTTP de REST; el sobre SOAP sigue la regla específica de la historia. La respuesta usa los nombres del contrato técnico: `Cae` se expone como `CodAutorizacion` y `CaeFchVto` como `FchVto` (`yyyyMMdd`).
+3. **Aislamiento.** El `Cuit` se compara con el contribuyente autenticado antes de emitir. Un CUIT ajeno devuelve `VALIDACION` sin consultar el CUIT ajeno ni crear comprobante.
+4. **Autenticación.** Se reutiliza `IApiKeyAuthenticator` de US-03. Se acepta el header `X-Api-Key` y, como alternativa, `Auth/Token`; `Auth/Sign` se ignora. La key no se registra en el `Fault`, en `Observaciones` ni en el log.
+5. **Idempotencia.** `IdempotencyKey` se mapea al caso de uso; si se omite se genera `soap-{guid:N}`. La fachada reconoce el replay de US-06 y mapea `IDEMPOTENCIA_CONFLICTO` a `Resultado = "R"`. La verificación real de replay/conflicto con MongoDB replica set sigue pendiente.
+6. **Tipos de comprobante.** El contrato XML no incluye `RazonSocial` del receptor. Factura C funciona de punta a punta; A y B se rechazan con `VALIDACION` porque el caso de uso exige ese dato. Se documenta como límite del contrato de US-15.
+7. **`Concepto`.** Se acepta por compatibilidad con el contrato AFIP y no altera el cálculo del MVP.
+
+Casos de prueba:
+
+- Verificados: CP-15.01, CP-15.04, CP-15.11, CP-15.12 y CP-15.13 con la API real; CP-15.05, CP-15.06 y CP-15.07 en la capa SOAP con autenticador y emisión fake; CP-15.03 en `ValidarAsync` con repositorios fake; CP-15.09 en el mapeo de `IdempotenciaConflictoException` a `IDEMPOTENCIA_CONFLICTO`.
+- Pendientes con MongoDB real: CP-15.02 (emisión y persistencia), CP-15.03 (punto de venta inexistente real), CP-15.06 (aislamiento con datos persistidos), CP-15.07 (validación real), CP-15.08 (replay idempotente) y CP-15.10 (comparación REST/SOAP).
+- Pendiente de herramienta: consumo del WSDL desde SoapUI o Postman; el WSDL y los POST se verificaron con `curl`.
+
+Pendiente de QA manual: emisión exitosa de una Factura C con MongoDB replica set, comparación del mismo payload por REST y SOAP, y reintento con `IdempotencyKey` (replay y conflicto) contra Mongo real.
