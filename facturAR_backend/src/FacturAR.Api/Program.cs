@@ -140,6 +140,8 @@ builder.Services.AddScoped<VerificarComprobanteService>();
 builder.Services.AddScoped<ListarComprobantesService>();
 builder.Services.AddScoped<ConsultarComprobanteService>();
 builder.Services.AddScoped<ObtenerUltimoAutorizadoService>();
+builder.Services.AddScoped<ObtenerDashboardService>();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IEmitirComprobanteService, EmitirComprobanteService>();
 builder.Services.AddScoped<IIdempotenciaService, IdempotenciaService>();
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
@@ -396,6 +398,7 @@ app.MapInvitacionEndpoints();
 app.MapApiKeyEndpoints();
 app.MapComprobanteEndpoints();
 app.MapComprobanteConsultaEndpoints();
+app.MapComprobanteDashboardEndpoint();
 app.MapComprobantePdfEndpoint();
 
 app.Run();
