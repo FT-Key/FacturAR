@@ -126,19 +126,17 @@ public sealed class ContractFecae : IContractFecae
                 return ConsultasMapeador.AUltimoAutorizadoRechazado("VALIDACION", MensajeConsultaInvalida);
             }
 
-            var ultimo = await _ultimoAutorizado.ObtenerAsync(
+            var comprobante = await _consultas.ConsultarUltimoEmitidoAsync(
                 autenticado.ContribuyenteId,
                 request.TipoComprobante,
                 request.PtoVta,
                 ct);
 
-            var comprobante = ultimo.Numero > 0
-                ? await _consultas.ConsultarUltimoEmitidoAsync(
-                    autenticado.ContribuyenteId,
-                    request.TipoComprobante,
-                    request.PtoVta,
-                    ct)
-                : null;
+            var ultimo = await _ultimoAutorizado.ObtenerAsync(
+                autenticado.ContribuyenteId,
+                request.TipoComprobante,
+                request.PtoVta,
+                ct);
 
             return ConsultasMapeador.AUltimoAutorizadoAprobado(ultimo, comprobante);
         }

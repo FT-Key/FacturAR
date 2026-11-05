@@ -11,7 +11,6 @@ public static class SoapServiceExtensions
         services.AddSoapCore();
         services.AddScoped<ContractFecae>();
         services.AddScoped<IContractFecae>(sp => sp.GetRequiredService<ContractFecae>());
-        services.AddScoped<IContractConsultas>(sp => sp.GetRequiredService<ContractFecae>());
         services.AddSingleton<IFaultExceptionTransformer, FecaeFaultExceptionTransformer>();
 
         return services;

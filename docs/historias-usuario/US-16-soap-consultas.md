@@ -99,8 +99,8 @@ Las tres operaciones comparten el endpoint `/soap` y el WSDL `/soap?wsdl` con US
 
 | Operación | Ruta / método | Autenticación | Request | Response | Errores |
 | --- | --- | --- | --- | --- | --- |
-| `FECompUltimoAutorizado` | `POST /soap` (`SOAPAction: .../FECompUltimoAutorizado`) | API key en `X-Api-Key` (o `Auth/Token`) | `PtoVta` (int), `TipoComprobante` (int) | `Resultado` (`"A"`/`"R"`), `UltimoNro` (long), `Cae`, `FechaEmision`, `FchVto`, `PtoVta`, `TipoComprobante` | `VALIDACION` 400, `API_KEY_AUSENTE` 401, `API_KEY_INVALIDA` 401, `MONGO_NO_DISPONIBLE` 503, `ERROR_INTERNO` 500 |
-| `FECompConsultar` | `POST /soap` (`SOAPAction: .../FECompConsultar`) | API key en `X-Api-Key` (o `Auth/Token`) | `TipoComprobante` (int), `PtoVta` (int), `Numero` (long) | `Resultado` (`"A"`/`"R"`), `Cuit`, `PtoVta`, `TipoComprobante`, `Numero`, `FechaEmision`, `Cae`, `FchVto`, `DocTipo`, `DocNro`, `CondicionIVA`, `Moneda`, `ImporteNeto`, `ImporteIva`, `ImporteTotal`, `Observaciones` | `VALIDACION` 400, `COMPROBANTE_NO_ENCONTRADO` 404, `API_KEY_AUSENTE` 401, `API_KEY_INVALIDA` 401, `MONGO_NO_DISPONIBLE` 503, `ERROR_INTERNO` 500 |
+| `FECompUltimoAutorizado` | `POST /soap` (`SOAPAction: .../FECompUltimoAutorizado`) | API key en `X-Api-Key` (o `Auth/Token`) | `PtoVta` (int), `TipoComprobante` (int) | `Resultado` (`"A"`/`"R"`), `UltimoNro` (long), `Cae`, `FechaEmision`, `FchVto`, `PtoVta`, `TipoComprobante` | `VALIDACION` (sobre `R`), `API_KEY_AUSENTE` 401, `API_KEY_INVALIDA` 401, `MONGO_NO_DISPONIBLE` 503, `ERROR_INTERNO` 500 |
+| `FECompConsultar` | `POST /soap` (`SOAPAction: .../FECompConsultar`) | API key en `X-Api-Key` (o `Auth/Token`) | `TipoComprobante` (int), `PtoVta` (int), `Numero` (long) | `Resultado` (`"A"`/`"R"`), `Cuit`, `PtoVta`, `TipoComprobante`, `Numero`, `FechaEmision`, `Cae`, `FchVto`, `DocTipo`, `DocNro`, `CondicionIVA`, `Moneda`, `ImporteNeto`, `ImporteIva`, `ImporteTotal`, `Observaciones` | `VALIDACION` (sobre `R`), `COMPROBANTE_NO_ENCONTRADO` (sobre `R`), `API_KEY_AUSENTE` 401, `API_KEY_INVALIDA` 401, `MONGO_NO_DISPONIBLE` 503, `ERROR_INTERNO` 500 |
 | `FEDummy` | `POST /soap` (`SOAPAction: .../FEDummy`) | API key en `X-Api-Key` (o `Auth/Token`) | Sin cuerpo de negocio | `Estado` (`"OK"`), `ServerTime` (ISO 8601 UTC), `Version`, `Service` | `API_KEY_AUSENTE` 401, `API_KEY_INVALIDA` 401, `ERROR_INTERNO` 500 |
 
 Reglas de operación:
@@ -153,11 +153,11 @@ US-16 no agrega claves de configuración propias. Reusa `Soap__Habilitado` y `So
 | CP-16.02 | Empresa con última factura C `Numero` 42 | Invocar `FECompUltimoAutorizado` con `PtoVta` 1 y `TipoComprobante` 11 | `Resultado` = `"A"` y `UltimoNro` = `42` |
 | CP-16.03 | Empresa sin comprobantes del tipo pedido | Invocar `FECompUltimoAutorizado` | `Resultado` = `"A"` y `UltimoNro` = `0`, sin error |
 | CP-16.04 | Comprobante propio `Numero` 42 | Invocar `FECompConsultar` con tipo, `PtoVta` y `Numero` | `Resultado` = `"A"` y los datos fiscales coinciden con el comprobante almacenado |
-| CP-16.05 | Comprobante de la empresa B | Invocar `FECompConsultar` pidiendo ese `Numero` desde la empresa A | `COMPROBANTE_NO_ENCONTRADO` 404, sin datos del comprobante ajeno y sin revelar su existencia |
+| CP-16.05 | Comprobante de la empresa B | Invocar `FECompConsultar` pidiendo ese `Numero` desde la empresa A | HTTP `200` con `Resultado = "R"` y `COMPROBANTE_NO_ENCONTRADO`, sin datos del comprobante ajeno y sin revelar su existencia |
 | CP-16.06 | API key válida | Invocar `FEDummy` | `Estado` = `"OK"`, `ServerTime` en ISO 8601 UTC y `Version` presente |
 | CP-16.07 | Sin API key | Invocar `FEDummy` | `SOAP Fault` con `codigo` = `API_KEY_AUSENTE` y HTTP `401` |
 | CP-16.08 | API key inválida | Invocar `FECompConsultar` | `SOAP Fault` con `codigo` = `API_KEY_INVALIDA` y HTTP `401` |
-| CP-16.09 | API key válida | Invocar `FECompConsultar` con `TipoComprobante` inexistente | `VALIDACION` 400 dentro del sobre de error, sin consulta a la base |
+| CP-16.09 | API key válida | Invocar `FECompConsultar` con `TipoComprobante` inexistente | HTTP `200` con `Resultado = "R"` y `VALIDACION`, sin consulta a la base |
 | CP-16.10 | Comprobante propio | Invocar `FECompConsultar` por SOAP y consultar el mismo comprobante por REST | Los campos devueltos son los mismos: tipo, punto de venta, número, CAE, vencimiento, importes, moneda y estado |
 | CP-16.11 | Comprobante propio | Invocar `FECompUltimoAutorizado` por SOAP y `GET /v1/comprobantes/ultimo-autorizado` por REST | Ambos devuelven el mismo número y el mismo CAE |
 | CP-16.12 | API key válida | Invocar cualquiera de las tres operaciones | Ninguna escribe documentos: el número de comprobantes, secuencias y eventos no cambia |
@@ -185,11 +185,11 @@ Estado: **Parcial**. El contrato `IContractConsultas`, la extensión de `IContra
 Decisiones y alcance técnico:
 
 1. **Un único servicio SOAP y WSDL compartido.** `IContractFecae` hereda de `IContractConsultas` (`[ServiceContract(Namespace = FecaeNamespaces.Fev1)]`), por lo que `SoapCore` publica las cinco operaciones (`FECAESolicitar`, `FECAEGenerar`, `FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy`) en `POST /soap` y en `GET /soap?wsdl`.
-2. **Reutilización de US-09.** `FECompUltimoAutorizado` delega en `ObtenerUltimoAutorizadoService.ObtenerAsync` (exigiendo `PtoVta >= 1`) y, cuando `UltimoNumero > 0`, obtiene el detalle del comprobante con `ConsultarComprobanteService.ConsultarPorNumeroAsync` (o `ConsultarUltimoEmitidoAsync` como respaldo si el último número de secuencia fue anulado) para poblar `Cae`, `FechaEmision` y `FchVto`. `FECompConsultar` delega en `ConsultarComprobanteService.ConsultarPorNumeroAsync`, que reutiliza exactamente el mismo mapeo a `ComprobanteDetalleResponse` que `GET /v1/comprobantes/{id}`.
+2. **Reutilización de US-09.** `FECompUltimoAutorizado` valida tipo y punto de venta con `ObtenerUltimoAutorizadoService.ObtenerAsync` y resuelve el mayor comprobante en estado `Emitido` con `ConsultarComprobanteService.ConsultarUltimoEmitidoAsync`; si no hay emitidos, `UltimoNro = 0` aunque la secuencia tenga un número. `FECompConsultar` delega en `ConsultarComprobanteService.ConsultarPorNumeroAsync`, que reutiliza exactamente el mismo mapeo a `ComprobanteDetalleResponse` que `GET /v1/comprobantes/{id}`.
 3. **Omisión de campos fiscales en errores de negocio.** `FECompUltimoAutorizadoResponse` y `FECompConsultarResponse` definen métodos `ShouldSerialize*()` para propiedades por valor (`PtoVta`, `TipoComprobante`, `UltimoNro`, `Numero`, `CondicionIVA`, importes), garantizando que una respuesta con `Resultado = "R"` (por ejemplo, `COMPROBANTE_NO_ENCONTRADO` o `VALIDACION`) no serialice valores por defecto ni filtre datos fiscales.
 4. **`FEDummy` sin acceso a base de datos.** `FEDummy` valida la API key con `IApiKeyAuthenticator`, registra el uso con `ApiKeyUsageRegistrar` y devuelve `Estado = "OK"`, `ServerTime` en ISO 8601 UTC (`yyyy-MM-ddTHH:mm:ssZ`), `Version` desde `BuildInformation` y `Service = "FacturAR.Api"`, sin consultar MongoDB.
 
 Verificaciones:
 
-- `dotnet test FacturAR.slnx -c Release --no-build --logger "console;verbosity=minimal"`: 528 tests unitarios aprobados y 130 tests de integración aprobados (0 fallos), cubriendo CP-16.01 a CP-16.12.
+- `dotnet test FacturAR.slnx -c Release --no-build --logger "console;verbosity=minimal"`: 542 tests unitarios aprobados y 145 tests de integración aprobados (157 omitidos sin connection string, 0 fallos), cubriendo CP-16.01 a CP-16.12.
 - Pendiente de verificar con MongoDB real: consultas `GetByNumeracionAsync` y `GetUltimoEmitidoAsync` contra la colección `comprobantes` y consumo manual del WSDL en SoapUI o Postman.

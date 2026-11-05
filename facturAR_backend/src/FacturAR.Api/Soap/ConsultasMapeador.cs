@@ -18,21 +18,19 @@ public static class ConsultasMapeador
         UltimoAutorizadoResponse ultimo,
         ComprobanteDetalleResponse? comprobante = null)
     {
-        var ultimoNumero = comprobante is not null && comprobante.Numero > ultimo.Numero
-            ? comprobante.Numero
-            : ultimo.Numero;
-
-        var tieneComprobante = ultimoNumero > 0 && comprobante is not null;
-
         return new FECompUltimoAutorizadoResponse
         {
             Resultado = ResultadoAprobado,
             PtoVta = ultimo.PuntoVenta ?? comprobante?.PuntoVenta ?? 0,
             TipoComprobante = ultimo.TipoComprobante,
-            UltimoNro = ultimoNumero,
-            Cae = tieneComprobante ? comprobante!.Cae : null,
-            FechaEmision = tieneComprobante ? FormatearFechaComprobante(comprobante!.FechaEmision) : null,
-            FchVto = tieneComprobante ? FormatearFechaComprobante(comprobante!.CaeVencimiento) : null
+            UltimoNro = comprobante?.Numero ?? 0,
+            Cae = comprobante?.Cae,
+            FechaEmision = comprobante is null
+                ? null
+                : FormatearFechaComprobante(comprobante.FechaEmision),
+            FchVto = comprobante is null
+                ? null
+                : FormatearFechaComprobante(comprobante.CaeVencimiento)
         };
     }
 
@@ -63,31 +61,6 @@ public static class ConsultasMapeador
             ImporteTotal = comprobante.ImporteTotal,
             Estado = comprobante.Estado,
             Observaciones = comprobante.Observaciones
-        };
-
-    public static FECompConsultarResponse AConsultaAprobada(
-        ComprobanteResponse comprobante,
-        string? cuit = null,
-        string? observaciones = null)
-        => new()
-        {
-            Resultado = ResultadoAprobado,
-            Cuit = cuit,
-            PtoVta = comprobante.PuntoVenta,
-            TipoComprobante = comprobante.TipoComprobante,
-            Numero = comprobante.Numero,
-            FechaEmision = FormatearFechaComprobante(comprobante.FechaEmision),
-            Cae = comprobante.Cae,
-            FchVto = FormatearFechaComprobante(comprobante.CaeVencimiento),
-            DocTipo = comprobante.Receptor.DocumentoTipo,
-            DocNro = comprobante.Receptor.DocumentoNumero,
-            CondicionIVA = comprobante.Receptor.CondicionIva,
-            Moneda = comprobante.Moneda,
-            ImporteNeto = comprobante.ImporteNeto,
-            ImporteIva = comprobante.ImporteIva,
-            ImporteTotal = comprobante.ImporteTotal,
-            Estado = comprobante.Estado,
-            Observaciones = observaciones
         };
 
     public static FECompConsultarResponse AConsultaRechazada(string codigo, string mensaje)

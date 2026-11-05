@@ -91,22 +91,6 @@ public sealed class VerificarComprobanteServiceTests
             CancellationToken cancellationToken = default)
             => Task.FromResult<(IReadOnlyList<Comprobante>, long)>(([], 0));
 
-
-        public Task<Comprobante?> GetByNumeracionAsync(
-            Guid contribuyenteId,
-            int puntoVenta,
-            int tipoComprobante,
-            long numero,
-            CancellationToken cancellationToken = default)
-            => Task.FromResult<Comprobante?>(null);
-
-        public Task<Comprobante?> GetUltimoEmitidoAsync(
-            Guid contribuyenteId,
-            int puntoVenta,
-            int tipoComprobante,
-            CancellationToken cancellationToken = default)
-            => Task.FromResult<Comprobante?>(null);
-
         public Task<Comprobante?> GetByIdempotencyKeyAsync(
             Guid contribuyenteId,
             string clave,

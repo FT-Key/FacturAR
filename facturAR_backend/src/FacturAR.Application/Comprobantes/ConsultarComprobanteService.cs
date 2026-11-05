@@ -29,12 +29,12 @@ public sealed class ConsultarComprobanteService(IComprobanteRepository comproban
 
     public async Task<ComprobanteDetalleResponse?> ConsultarPorNumeroAsync(
         Guid contribuyenteId,
-        int tipo,
+        int tipoComprobante,
         int puntoVenta,
         long numero,
         CancellationToken ct = default)
     {
-        ValidarTipoYPuntoVenta(tipo, puntoVenta);
+        ValidarTipoYPuntoVenta(tipoComprobante, puntoVenta);
 
         if (numero < 1)
         {
@@ -44,7 +44,7 @@ public sealed class ConsultarComprobanteService(IComprobanteRepository comproban
         var comprobante = await comprobantes.GetByNumeracionAsync(
             contribuyenteId,
             puntoVenta,
-            (TipoComprobante)tipo,
+            (TipoComprobante)tipoComprobante,
             numero,
             ct);
 
@@ -53,62 +53,8 @@ public sealed class ConsultarComprobanteService(IComprobanteRepository comproban
 
     public async Task<ComprobanteDetalleResponse?> ConsultarUltimoEmitidoAsync(
         Guid contribuyenteId,
-        int tipo,
-        int puntoVenta,
-        CancellationToken ct = default)
-    {
-        ValidarTipoYPuntoVenta(tipo, puntoVenta);
-
-        var comprobante = await comprobantes.GetUltimoEmitidoAsync(
-            contribuyenteId,
-            puntoVenta,
-            (TipoComprobante)tipo,
-            ct);
-
-        return comprobante is null ? null : Mapear(comprobante);
-    }
-
-    private static void ValidarTipoYPuntoVenta(int tipo, int puntoVenta)
-    {
-        if (!Enum.IsDefined(typeof(TipoComprobante), tipo))
-        {
-            throw new ComprobanteValidationException("El tipo de comprobante indicado no es válido.");
-        }
-
-        if (puntoVenta < 1)
-        {
-            throw new ComprobanteValidationException("puntoVenta debe ser mayor o igual a 1.");
-        }
-    }
-
-    public async Task<ComprobanteDetalleResponse?> ConsultarPorNumeroAsync(
-        Guid contribuyenteId,
-        int puntoVenta,
         int tipoComprobante,
-        long numero,
-        CancellationToken ct = default)
-    {
-        ValidarTipoYPuntoVenta(tipoComprobante, puntoVenta);
-
-        if (numero <= 0)
-        {
-            throw new ComprobanteValidationException("El número de comprobante debe ser mayor a cero.");
-        }
-
-        var comprobante = await comprobantes.GetByNumeracionAsync(
-            contribuyenteId,
-            puntoVenta,
-            tipoComprobante,
-            numero,
-            ct);
-
-        return comprobante is null ? null : Mapear(comprobante);
-    }
-
-    public async Task<ComprobanteDetalleResponse?> ConsultarUltimoEmitidoAsync(
-        Guid contribuyenteId,
         int puntoVenta,
-        int tipoComprobante,
         CancellationToken ct = default)
     {
         ValidarTipoYPuntoVenta(tipoComprobante, puntoVenta);
@@ -116,7 +62,7 @@ public sealed class ConsultarComprobanteService(IComprobanteRepository comproban
         var comprobante = await comprobantes.GetUltimoEmitidoAsync(
             contribuyenteId,
             puntoVenta,
-            tipoComprobante,
+            (TipoComprobante)tipoComprobante,
             ct);
 
         return comprobante is null ? null : Mapear(comprobante);

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Net;
 using System.ServiceModel.Channels;
 using FacturAR.Api.Auth;
@@ -261,7 +261,28 @@ public sealed class SoapFecaeTests
         Assert.Null(respuesta.FchVto);
         Assert.Null(respuesta.Observaciones);
         Assert.Equal(1, contexto.Secuencias.Consultas);
-        Assert.Equal(0, contexto.Comprobantes.ConsultasDetalle);
+        Assert.Equal(1, contexto.Comprobantes.ConsultasDetalle);
+    }
+
+    [Fact]
+    public async Task FECompUltimoAutorizado_ConUltimoAnulado_DevuelveElMayorEmitido()
+    {
+        var contexto = new SoapContexto();
+        contexto.Secuencias.UltimoNumero = 43;
+        contexto.Comprobantes.Comprobantes.Add(contexto.NuevoComprobante(numero: 42));
+        var anulado = contexto.NuevoComprobante(numero: 43);
+        anulado.Estado = EstadoComprobante.Anulado;
+        contexto.Comprobantes.Comprobantes.Add(anulado);
+
+        var respuesta = await contexto.Contrato.FECompUltimoAutorizado(new FECompUltimoAutorizadoRequest
+        {
+            PtoVta = 1,
+            TipoComprobante = (int)TipoComprobante.FacturaC
+        });
+
+        Assert.Equal("A", respuesta.Resultado);
+        Assert.Equal(42, respuesta.UltimoNro);
+        Assert.Equal("12345678901234", respuesta.Cae);
     }
 
     [Theory]
@@ -637,174 +658,6 @@ public sealed class SoapFecaeTests
         Assert.Equal(HttpStatusCode.InternalServerError, ObtenerStatus(message));
     }
 
-    [Fact]
-    public async Task FECompUltimoAutorizado_ConSecuenciaYComprobante_DevuelveNumeroYFecha()
-    {
-        var contexto = new SoapContexto();
-        contexto.Secuencias.UltimoNumero = 5;
-        contexto.Comprobantes.Comprobantes.Add(contexto.NuevoComprobante(numero: 5, fechaEmision: new DateTime(2026, 11, 3, 0, 0, 0, DateTimeKind.Utc)));
-
-        var respuesta = await contexto.Contrato.FECompUltimoAutorizado(new FECompUltimoAutorizadoRequest
-        {
-            Cuit = CuitEmisor,
-            PtoVta = 1,
-            TipoComprobante = 11
-        });
-
-        Assert.Equal("A", respuesta.Resultado);
-        Assert.Equal(1, respuesta.PtoVta);
-        Assert.Equal(11, respuesta.TipoComprobante);
-        Assert.Equal(5, respuesta.CbteNro);
-        Assert.Equal("20261103", respuesta.FechaEmision);
-        Assert.Null(respuesta.Observaciones);
-    }
-
-    [Fact]
-    public async Task FECompUltimoAutorizado_SinEmisionesPrevias_DevuelveCeroSinFecha()
-    {
-        var contexto = new SoapContexto();
-
-        var respuesta = await contexto.Contrato.FECompUltimoAutorizado(new FECompUltimoAutorizadoRequest
-        {
-            Cuit = CuitEmisor,
-            PtoVta = 1,
-            TipoComprobante = 11
-        });
-
-        Assert.Equal("A", respuesta.Resultado);
-        Assert.Equal(0, respuesta.CbteNro);
-        Assert.Null(respuesta.FechaEmision);
-        Assert.Null(respuesta.Observaciones);
-    }
-
-    [Fact]
-    public async Task FECompUltimoAutorizado_ConCuitDeOtraEmpresa_DevuelveRechazoDeAislamiento()
-    {
-        var contexto = new SoapContexto();
-
-        var respuesta = await contexto.Contrato.FECompUltimoAutorizado(new FECompUltimoAutorizadoRequest
-        {
-            Cuit = CuitAjeno,
-            PtoVta = 1,
-            TipoComprobante = 11
-        });
-
-        Assert.Equal("R", respuesta.Resultado);
-        Assert.StartsWith("VALIDACION: ", respuesta.Observaciones, StringComparison.Ordinal);
-        Assert.Equal(0, contexto.Secuencias.Consultas);
-    }
-
-    [Theory]
-    [InlineData(0, 11)]
-    [InlineData(1, 99)]
-    public async Task FECompUltimoAutorizado_ConParametrosInvalidos_DevuelveRechazoValidacion(int ptoVta, int tipo)
-    {
-        var contexto = new SoapContexto();
-
-        var respuesta = await contexto.Contrato.FECompUltimoAutorizado(new FECompUltimoAutorizadoRequest
-        {
-            Cuit = CuitEmisor,
-            PtoVta = ptoVta,
-            TipoComprobante = tipo
-        });
-
-        Assert.Equal("R", respuesta.Resultado);
-        Assert.StartsWith("VALIDACION: ", respuesta.Observaciones, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task FECompConsultar_ConComprobantePropio_DevuelveDetalleCompleto()
-    {
-        var contexto = new SoapContexto();
-        contexto.Comprobantes.Comprobantes.Add(contexto.NuevoComprobante(numero: 7));
-
-        var respuesta = await contexto.Contrato.FECompConsultar(new FECompConsultarRequest
-        {
-            Cuit = CuitEmisor,
-            PtoVta = 1,
-            TipoComprobante = 11,
-            CbteNro = 7
-        });
-
-        Assert.Equal("A", respuesta.Resultado);
-        Assert.Equal(CuitEmisor, respuesta.Cuit);
-        Assert.Equal(1, respuesta.PtoVta);
-        Assert.Equal(11, respuesta.TipoComprobante);
-        Assert.Equal(7, respuesta.Numero);
-        Assert.Equal("20261103", respuesta.FechaEmision);
-        Assert.Equal("12345678901234", respuesta.Cae);
-        Assert.Equal("20261113", respuesta.FchVto);
-        Assert.Equal(80, respuesta.DocTipo);
-        Assert.Equal("30712345671", respuesta.DocNro);
-        Assert.Equal(1, respuesta.CondicionIVA);
-        Assert.Equal("ARS", respuesta.Moneda);
-        Assert.Equal(100m, respuesta.ImporteNeto);
-        Assert.Equal(21m, respuesta.ImporteIva);
-        Assert.Equal(121m, respuesta.ImporteTotal);
-        Assert.Equal("Emitido", respuesta.Estado);
-        Assert.Null(respuesta.Observaciones);
-    }
-
-    [Fact]
-    public async Task FECompConsultar_InexistenteODeOtraEmpresa_DevuelveComprobanteNoEncontrado()
-    {
-        var contexto = new SoapContexto();
-        var ajeno = contexto.NuevoComprobante(numero: 7);
-        ajeno.ContribuyenteId = Guid.NewGuid();
-        contexto.Comprobantes.Comprobantes.Add(ajeno);
-
-        var respuesta = await contexto.Contrato.FECompConsultar(new FECompConsultarRequest
-        {
-            Cuit = CuitEmisor,
-            PtoVta = 1,
-            TipoComprobante = 11,
-            CbteNro = 7
-        });
-
-        Assert.Equal("R", respuesta.Resultado);
-        Assert.StartsWith("COMPROBANTE_NO_ENCONTRADO: ", respuesta.Observaciones, StringComparison.Ordinal);
-        Assert.Null(respuesta.Cae);
-        Assert.False(respuesta.ShouldSerializePtoVta());
-        Assert.False(respuesta.ShouldSerializeTipoComprobante());
-        Assert.False(respuesta.ShouldSerializeNumero());
-        Assert.False(respuesta.ShouldSerializeCondicionIVA());
-        Assert.False(respuesta.ShouldSerializeImporteNeto());
-        Assert.False(respuesta.ShouldSerializeImporteIva());
-        Assert.False(respuesta.ShouldSerializeImporteTotal());
-    }
-
-    [Fact]
-    public async Task FECompConsultar_ConNumeroInvalido_DevuelveRechazoValidacion()
-    {
-        var contexto = new SoapContexto();
-
-        var respuesta = await contexto.Contrato.FECompConsultar(new FECompConsultarRequest
-        {
-            Cuit = CuitEmisor,
-            PtoVta = 1,
-            TipoComprobante = 11,
-            CbteNro = 0
-        });
-
-        Assert.Equal("R", respuesta.Resultado);
-        Assert.StartsWith("VALIDACION: ", respuesta.Observaciones, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task FEDummy_SinApiKey_DevuelveEstadoOkYVersion()
-    {
-        var contexto = new SoapContexto();
-        contexto.Http.Request.Headers.Remove("X-Api-Key");
-
-        var respuesta = await contexto.Contrato.FEDummy(new FEDummyRequest());
-
-        Assert.Equal("OK", respuesta.AppServer);
-        Assert.Equal("OK", respuesta.DbServer);
-        Assert.Equal("OK", respuesta.AuthServer);
-        Assert.Equal("1.2.3-test", respuesta.Version);
-        Assert.Null(contexto.Autenticador.UltimoValor);
-    }
-
     private static string LeerCuerpo(Message message)
     {
         using var reader = message.GetReaderAtBodyContents();
@@ -850,8 +703,6 @@ public sealed class SoapFecaeTests
             {
                 Resultado = new ResultadoApiKey(Guid.NewGuid(), ContribuyenteId)
             };
-            Comprobantes = new ConsultaComprobantesRepositorioFake();
-            Secuencias = new ConsultaSecuenciasRepositorioFake();
 
             var usageRegistrar = new ApiKeyUsageRegistrar(
                 new SoapScopeFactoryFake(),
@@ -883,10 +734,6 @@ public sealed class SoapFecaeTests
         public ConsultaSecuenciasRepositorioFake Secuencias { get; }
 
         public SoapEmisionFake Emision { get; }
-
-        public ConsultaComprobantesRepositorioFake Comprobantes { get; }
-
-        public ConsultaSecuenciasRepositorioFake Secuencias { get; }
 
         public ContractFecae Contrato { get; }
 
@@ -925,31 +772,6 @@ public sealed class SoapFecaeTests
                 ImporteNeto = 100m,
                 ImporteIva = 0m,
                 ImporteTotal = 100m,
-                Moneda = "ARS",
-                Estado = EstadoComprobante.Emitido
-            };
-
-        public Comprobante NuevoComprobante(
-            long numero = 1,
-            DateTime? fechaEmision = null)
-            => new()
-            {
-                ContribuyenteId = ContribuyenteId,
-                EmisorCuit = CuitEmisor,
-                EmisorRazonSocial = "Demo SRL",
-                PuntoVenta = 1,
-                TipoComprobante = TipoComprobante.FacturaC,
-                Numero = numero,
-                FechaEmision = fechaEmision ?? new DateTime(2026, 11, 3, 0, 0, 0, DateTimeKind.Utc),
-                Cae = "12345678901234",
-                CaeVencimiento = new DateTime(2026, 11, 13, 0, 0, 0, DateTimeKind.Utc),
-                ReceptorDocumentoTipo = "CUIT",
-                ReceptorDocumentoNumero = "30712345671",
-                ReceptorRazonSocial = "Cliente S.A.",
-                ReceptorCondicionIva = CondicionIva.ResponsableInscripto,
-                ImporteNeto = 100m,
-                ImporteIva = 21m,
-                ImporteTotal = 121m,
                 Moneda = "ARS",
                 Estado = EstadoComprobante.Emitido
             };
@@ -1119,3 +941,4 @@ public sealed class SoapFecaeTests
         }
     }
 }
+
