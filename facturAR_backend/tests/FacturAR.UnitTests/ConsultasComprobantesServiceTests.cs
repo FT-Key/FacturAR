@@ -728,6 +728,16 @@ internal sealed class ConsultaComprobantesRepositorioFake : IComprobanteReposito
 
     public int ConsultasDetalle { get; private set; }
 
+    public int ConsultasMetricas { get; private set; }
+
+    public Guid? UltimoContribuyenteMetricas { get; private set; }
+
+    public DateTime? UltimoDesdeMetricas { get; private set; }
+
+    public DateTime? UltimoHastaMetricas { get; private set; }
+
+    public MetricasDashboard? MetricasPersonalizadas { get; init; }
+
     public Task<Comprobante?> GetByCaeAsync(
         string cae,
         CancellationToken cancellationToken = default)
@@ -817,6 +827,34 @@ internal sealed class ConsultaComprobantesRepositorioFake : IComprobanteReposito
             (items, TotalPersonalizado ?? coincidencias.Count));
     }
 
+    public Task<MetricasDashboard> ObtenerMetricasAsync(
+        Guid contribuyenteId,
+        DateTime desde,
+        DateTime hastaExclusivo,
+        CancellationToken cancellationToken = default)
+    {
+        ConsultasMetricas++;
+        UltimoContribuyenteMetricas = contribuyenteId;
+        UltimoDesdeMetricas = desde;
+        UltimoHastaMetricas = hastaExclusivo;
+
+        if (MetricasPersonalizadas is not null)
+        {
+            return Task.FromResult(MetricasPersonalizadas);
+        }
+
+        var emitidos = Comprobantes
+            .Where(c => c.ContribuyenteId == contribuyenteId
+                && c.Estado == EstadoComprobante.Emitido
+                && c.FechaEmision >= desde
+                && c.FechaEmision < hastaExclusivo)
+            .ToList();
+
+        return Task.FromResult(new MetricasDashboard(
+            emitidos.Count,
+            emitidos.Sum(c => c.ImporteTotal)));
+    }
+
     public Task<Comprobante?> GetByIdempotencyKeyAsync(
         Guid contribuyenteId,
         string clave,
@@ -886,6 +924,17 @@ internal sealed class ConsultaSecuenciasRepositorioFake : ISecuenciaRepository
         UltimoContribuyenteId = contribuyenteId;
         UltimoPuntoVenta = null;
         UltimoTipo = tipo;
+        ConsultoMaximo = true;
+
+        return Task.FromResult(MaximoUltimoNumero);
+    }
+
+    public Task<long> ObtenerMaximoUltimoNumeroGlobalAsync(
+        Guid contribuyenteId,
+        CancellationToken ct = default)
+    {
+        Consultas++;
+        UltimoContribuyenteId = contribuyenteId;
         ConsultoMaximo = true;
 
         return Task.FromResult(MaximoUltimoNumero);

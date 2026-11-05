@@ -91,6 +91,13 @@ public sealed class VerificarComprobanteServiceTests
             CancellationToken cancellationToken = default)
             => Task.FromResult<(IReadOnlyList<Comprobante>, long)>(([], 0));
 
+        public Task<MetricasDashboard> ObtenerMetricasAsync(
+            Guid contribuyenteId,
+            DateTime desde,
+            DateTime hastaExclusivo,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(new MetricasDashboard(0, 0m));
+
         public Task<Comprobante?> GetByIdempotencyKeyAsync(
             Guid contribuyenteId,
             string clave,
