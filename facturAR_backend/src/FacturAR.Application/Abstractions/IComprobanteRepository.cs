@@ -1,5 +1,6 @@
 using FacturAR.Application.Comprobantes;
 using FacturAR.Domain.Entities;
+using FacturAR.Domain.Enums;
 
 namespace FacturAR.Application.Abstractions;
 
@@ -8,6 +9,19 @@ public interface IComprobanteRepository
     Task<Comprobante?> GetByCaeAsync(string cae, CancellationToken cancellationToken = default);
 
     Task<Comprobante?> GetByIdAsync(Guid contribuyenteId, Guid id, CancellationToken cancellationToken = default);
+
+    Task<Comprobante?> GetByNumeracionAsync(
+        Guid contribuyenteId,
+        int puntoVenta,
+        TipoComprobante tipo,
+        long numero,
+        CancellationToken cancellationToken = default);
+
+    Task<Comprobante?> GetUltimoEmitidoAsync(
+        Guid contribuyenteId,
+        int puntoVenta,
+        TipoComprobante tipo,
+        CancellationToken cancellationToken = default);
 
     Task<Comprobante?> GetByIdempotencyKeyAsync(
         Guid contribuyenteId,
