@@ -1,0 +1,165 @@
+@page "/"
+@using System.Globalization
+@using System.Net
+@using FacturAR.Contracts.Comprobantes
+@attribute [StreamRendering]
+@inject FacturarApiClient ApiClient
+@inject NavigationManager Navigation
+@inject IConfiguration Configuration
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Dashboard - FacturAR</PageTitle>
+
+<div class="py-4 d-flex flex-wrap justify-content-between align-items-end gap-2">
+    <div>
+        <h1 class="h3 mb-1">Dashboard</h1>
+        <p class="text-muted mb-0">Estado de la facturación del mes.</p>
+    </div>
+    <a class="btn btn-outline-secondary btn-sm" href="/comprobantes">Ver comprobantes</a>
+</div>
+
+@if (_accesoDenegado)
+{
+    <section class="card border-danger" role="alert">
+        <div class="card-body">
+            <h2 class="h5">Acceso denegado</h2>
+            <p class="mb-2">Tu rol no permite consultar el dashboard.</p>
+            <p class="small text-muted mb-0">403 SIN_PERMISOS</p>
+        </div>
+    </section>
+}
+else if (_error is not null)
+{
+    <MensajeError Mensaje="@_error" UrlReintentar="/" />
+}
+else if (_dashboard is null)
+{
+    <div class="text-muted" role="status" aria-busy="true">Cargando dashboard…</div>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <TarjetaMetrica Titulo="Comprobantes emitidos"
+                            Valor="@_dashboard.CantidadComprobantes.ToString(CultureInfo.InvariantCulture)"
+                            Nota="En el mes" />
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <TarjetaMetrica Titulo="Importe total"
+                            Valor="@FormatoFacturar.Importe(_dashboard.ImporteTotal)"
+                            Nota="En el mes" />
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <TarjetaMetrica Titulo="Último CAE"
+                            Valor="@(_dashboard.UltimoCae ?? "—")"
+                            Nota="Comprobante emitido más reciente" />
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <TarjetaMetrica Titulo="Último número autorizado"
+                            Valor="@_dashboard.UltimoNumeroAutorizado.ToString(CultureInfo.InvariantCulture)"
+                            Nota="Máximo entre secuencias" />
+        </div>
+    </div>
+
+    <section class="card" aria-labelledby="titulo-ultimos">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+                <h2 id="titulo-ultimos" class="h5 mb-0">Últimos comprobantes</h2>
+                <a class="btn btn-link btn-sm" href="/comprobantes">Ver todos</a>
+            </div>
+
+            @if (_dashboard.UltimosComprobantes.Count == 0)
+            {
+                <EstadoVacio Titulo="Todavía no emitiste comprobantes"
+                             Explicacion="Cuando emitas tu primer comprobante, acá vas a ver el resumen del mes y los últimos movimientos."
+                             AccionTexto="Emitir el primer comprobante"
+                             AccionHref="/comprobantes/nuevo" />
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Tipo y número</th>
+                                <th scope="col">Fecha</th>
+                                <th scope="col">Receptor</th>
+                                <th scope="col" class="text-end">Importe</th>
+                                <th scope="col">Estado</th>
+                                <th scope="col" class="text-end">
+                                    <span class="visually-hidden">Acciones</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var comprobante in _dashboard.UltimosComprobantes)
+                            {
+                                <FilaComprobante @key="comprobante.Id" Comprobante="comprobante" />
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    private DashboardResponse? _dashboard;
+    private string? _error;
+    private bool _accesoDenegado;
+
+    private CancellationToken Token => HttpContext?.RequestAborted ?? CancellationToken.None;
+
+    private string? Cookie => HttpContext?.Request.Cookies.TryGetValue(NombreCookieEmpresa, out var valor) == true
+        && !string.IsNullOrEmpty(valor)
+            ? $"{NombreCookieEmpresa}={valor}"
+            : null;
+
+    private string NombreCookieEmpresa =>
+        Configuration["Auth:Cookie:NombreContribuyente"] ?? ".FacturAR.Contribuyente";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = AuthenticationState is null ? null : (await AuthenticationState).User;
+        if (usuario?.Identity?.IsAuthenticated != true)
+        {
+            if (AuthenticationStateProvider is ApiAuthenticationStateProvider { ApiNoDisponible: true })
+            {
+                _error = "No pudimos contactar al servicio. Intentá de nuevo en unos minutos.";
+                return;
+            }
+
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var resultado = await ApiClient.ObtenerDashboardAsync(Cookie, null, Token);
+
+        if (resultado.SinSesion)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (resultado.Status == HttpStatusCode.Forbidden)
+        {
+            _accesoDenegado = true;
+            return;
+        }
+
+        if (!resultado.Exitoso || resultado.Valor is null)
+        {
+            _error = resultado.Mensaje ?? "No pudimos cargar el dashboard.";
+            return;
+        }
+
+        _dashboard = resultado.Valor;
+    }
+}

@@ -13,6 +13,8 @@ public sealed class ApiAuthenticationStateProvider : AuthenticationStateProvider
     private readonly IHttpContextAccessor _httpContextAccessor;
     private AuthenticationState? _cache;
 
+    public bool ApiNoDisponible { get; private set; }
+
     public ApiAuthenticationStateProvider(
         FacturarApiClient api,
         IHttpContextAccessor httpContextAccessor)
@@ -63,8 +65,9 @@ public sealed class ApiAuthenticationStateProvider : AuthenticationStateProvider
                 ], authenticationType: "cookies.admin"));
             }
         }
-        catch (HttpRequestException)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
+            ApiNoDisponible = true;
         }
 
         return _cache = Anonimo;
@@ -72,6 +75,7 @@ public sealed class ApiAuthenticationStateProvider : AuthenticationStateProvider
 
     public void Invalidar()
     {
+        ApiNoDisponible = false;
         _cache = null;
         NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
     }

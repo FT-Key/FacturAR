@@ -1,0 +1,370 @@
+@page "/comprobantes"
+@using System.Globalization
+@using System.Net
+@using FacturAR.Contracts.Comunes
+@using FacturAR.Contracts.Comprobantes
+@attribute [StreamRendering]
+@inject FacturarApiClient ApiClient
+@inject NavigationManager Navigation
+@inject IConfiguration Configuration
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Comprobantes - FacturAR</PageTitle>
+
+<div class="py-4">
+    <h1 class="h3 mb-1">Comprobantes</h1>
+    <p class="text-muted mb-0">Filtrá y consultá los comprobantes de tu empresa.</p>
+</div>
+
+@if (_accesoDenegado)
+{
+    <section class="card border-danger" role="alert">
+        <div class="card-body">
+            <h2 class="h5">Acceso denegado</h2>
+            <p class="mb-2">Tu rol no permite consultar comprobantes.</p>
+            <p class="small text-muted mb-0">403 SIN_PERMISOS</p>
+        </div>
+    </section>
+}
+else
+{
+    <form method="get"
+          action="/comprobantes"
+          class="row g-2 align-items-end mb-3"
+          data-enhance-nav="false"
+          aria-busy="@(Cargando ? "true" : "false")">
+        <input type="hidden" name="page" value="1" />
+
+        <div class="col-12 col-sm-6 col-md-2">
+            <label class="form-label small" for="desde">Desde</label>
+            <input id="desde" name="desde" type="date" class="form-control form-control-sm"
+                   value="@Desde" disabled="@Cargando" />
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-2">
+            <label class="form-label small" for="hasta">Hasta</label>
+            <input id="hasta" name="hasta" type="date" class="form-control form-control-sm"
+                   value="@Hasta" disabled="@Cargando" />
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-2">
+            <label class="form-label small" for="tipo">Tipo</label>
+            <select id="tipo" name="tipo" class="form-select form-select-sm" disabled="@Cargando">
+                <option value="" selected="@string.IsNullOrWhiteSpace(Tipo)">Todos</option>
+                @foreach (var opcion in Tipos)
+                {
+                    <option value="@opcion.Valor" selected="@(Tipo == opcion.Valor)">@opcion.Texto</option>
+                }
+            </select>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-2">
+            <label class="form-label small" for="estado">Estado</label>
+            <select id="estado" name="estado" class="form-select form-select-sm" disabled="@Cargando">
+                <option value="" selected="@string.IsNullOrWhiteSpace(Estado)">Todos</option>
+                @foreach (var opcion in Estados)
+                {
+                    <option value="@opcion.Valor" selected="@(Estado == opcion.Valor)">@opcion.Texto</option>
+                }
+            </select>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-1">
+            <label class="form-label small" for="puntoVenta">Punto de venta</label>
+            <input id="puntoVenta" name="puntoVenta" type="number" min="1" class="form-control form-control-sm"
+                   value="@PuntoVenta" disabled="@Cargando" />
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-2">
+            <label class="form-label small" for="receptor">Receptor</label>
+            <input id="receptor" name="receptor" type="search" class="form-control form-control-sm"
+                   value="@Receptor" disabled="@Cargando" />
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-1">
+            <label class="form-label small" for="pageSize">Por página</label>
+            <select id="pageSize" name="pageSize" class="form-select form-select-sm" disabled="@Cargando">
+                @foreach (var tamanio in TamaniosPagina)
+                {
+                    <option value="@tamanio" selected="@(TamanioSeleccionado == tamanio)">@tamanio</option>
+                }
+            </select>
+        </div>
+
+        <div class="col-12 col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm" disabled="@Cargando">Filtrar</button>
+            <a class="btn btn-link btn-sm" href="/comprobantes">Limpiar</a>
+        </div>
+    </form>
+
+    @if (_errorFiltro is not null)
+    {
+        <div class="alert alert-danger" role="alert">@_errorFiltro</div>
+    }
+    else if (_error is not null)
+    {
+        <MensajeError Mensaje="@_error" UrlReintentar="@Navigation.Uri" />
+    }
+    else if (_pagina is null)
+    {
+        <div class="text-muted" role="status" aria-busy="true">Cargando comprobantes…</div>
+    }
+    else if (_pagina.Items.Count == 0)
+    {
+        <EstadoVacio Titulo="No hay comprobantes para estos filtros"
+                     Explicacion="Probá ampliar el rango de fechas o limpiar los filtros para ver todos los comprobantes."
+                     AccionTexto="Limpiar filtros"
+                     AccionHref="/comprobantes" />
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">Tipo y número</th>
+                        <th scope="col">Fecha</th>
+                        <th scope="col">Receptor</th>
+                        <th scope="col" class="text-end">Importe</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col" class="text-end">
+                            <span class="visually-hidden">Acciones</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var comprobante in _pagina.Items)
+                    {
+                        <FilaComprobante @key="comprobante.Id" Comprobante="comprobante" />
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <Paginador Page="_pagina.Page"
+                   TotalPages="_pagina.TotalPages"
+                   Total="_pagina.Total"
+                   AnteriorUrl="@(_pagina.Page > 1 ? UrlPagina(_pagina.Page - 1) : null)"
+                   SiguienteUrl="@(_pagina.Page < _pagina.TotalPages ? UrlPagina(_pagina.Page + 1) : null)" />
+    }
+}
+
+@code {
+    private static readonly (string Valor, string Texto)[] Tipos =
+    [
+        ("1", "Factura A"),
+        ("6", "Factura B"),
+        ("11", "Factura C"),
+        ("2", "Nota de débito A"),
+        ("3", "Nota de crédito A"),
+        ("7", "Nota de débito B"),
+        ("8", "Nota de crédito B"),
+        ("12", "Nota de débito C"),
+        ("13", "Nota de crédito C")
+    ];
+
+    private static readonly (string Valor, string Texto)[] Estados =
+    [
+        ("0", "Borrador"),
+        ("1", "Emitido"),
+        ("2", "Anulado"),
+        ("3", "Rechazado")
+    ];
+
+    private static readonly int[] TamaniosPagina = [20, 50, 100];
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Desde { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Hasta { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Tipo { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Estado { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? PuntoVenta { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Receptor { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Page { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? PageSize { get; set; }
+
+    private PaginaResponse<ComprobanteResumenResponse>? _pagina;
+    private ComprobanteFiltros? _filtro;
+    private string? _error;
+    private string? _errorFiltro;
+    private bool _accesoDenegado;
+
+    private bool Cargando => _pagina is null && _error is null && _errorFiltro is null;
+
+    private int TamanioSeleccionado => int.TryParse(
+            PageSize,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out var tamanio)
+        ? Math.Clamp(ComprobanteFiltros.NormalizarPageSize(tamanio), 1, ComprobanteFiltros.PageSizeMaximo)
+        : ComprobanteFiltros.PageSizePorDefecto;
+
+    private CancellationToken Token => HttpContext?.RequestAborted ?? CancellationToken.None;
+
+    private string? Cookie => HttpContext?.Request.Cookies.TryGetValue(NombreCookieEmpresa, out var valor) == true
+        && !string.IsNullOrEmpty(valor)
+            ? $"{NombreCookieEmpresa}={valor}"
+            : null;
+
+    private string NombreCookieEmpresa =>
+        Configuration["Auth:Cookie:NombreContribuyente"] ?? ".FacturAR.Contribuyente";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = AuthenticationState is null ? null : (await AuthenticationState).User;
+        if (usuario?.Identity?.IsAuthenticated != true)
+        {
+            if (AuthenticationStateProvider is ApiAuthenticationStateProvider { ApiNoDisponible: true })
+            {
+                _error = "No pudimos contactar al servicio. Intentá de nuevo en unos minutos.";
+                return;
+            }
+
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (!TryCrearFiltro(out var filtro, out var error))
+        {
+            _errorFiltro = error;
+            return;
+        }
+
+        _filtro = filtro;
+
+        var resultado = await ApiClient.ListarComprobantesAsync(Cookie, filtro, Token);
+
+        if (resultado.SinSesion)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (resultado.Status == HttpStatusCode.Forbidden)
+        {
+            _accesoDenegado = true;
+            return;
+        }
+
+        if (!resultado.Exitoso || resultado.Valor is null)
+        {
+            _error = resultado.Mensaje ?? "No pudimos cargar los comprobantes.";
+            return;
+        }
+
+        _pagina = resultado.Valor;
+    }
+
+    private bool TryCrearFiltro(out ComprobanteFiltros filtro, out string? error)
+    {
+        error = null;
+        DateOnly? desde = null;
+        DateOnly? hasta = null;
+
+        if (!string.IsNullOrWhiteSpace(Desde))
+        {
+            if (!DateOnly.TryParseExact(
+                    Desde.Trim(),
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var valor))
+            {
+                filtro = new ComprobanteFiltros();
+                error = "La fecha «desde» debe tener el formato AAAA-MM-DD.";
+                return false;
+            }
+
+            desde = valor;
+        }
+
+        if (!string.IsNullOrWhiteSpace(Hasta))
+        {
+            if (!DateOnly.TryParseExact(
+                    Hasta.Trim(),
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var valor))
+            {
+                filtro = new ComprobanteFiltros();
+                error = "La fecha «hasta» debe tener el formato AAAA-MM-DD.";
+                return false;
+            }
+
+            hasta = valor;
+        }
+
+        if (desde is DateOnly inicio && hasta is DateOnly fin && inicio > fin)
+        {
+            filtro = new ComprobanteFiltros();
+            error = "La fecha «desde» no puede ser posterior a «hasta».";
+            return false;
+        }
+
+        var tipo = int.TryParse(Tipo, NumberStyles.Integer, CultureInfo.InvariantCulture, out var valorTipo)
+            ? valorTipo
+            : (int?)null;
+
+        var estado = int.TryParse(Estado, NumberStyles.Integer, CultureInfo.InvariantCulture, out var valorEstado)
+            ? valorEstado
+            : (int?)null;
+
+        var puntoVenta = int.TryParse(
+            PuntoVenta,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out var valorPuntoVenta)
+            && valorPuntoVenta >= 1
+                ? valorPuntoVenta
+                : (int?)null;
+
+        var pagina = int.TryParse(Page, NumberStyles.Integer, CultureInfo.InvariantCulture, out var valorPagina)
+            && valorPagina >= 1
+                ? valorPagina
+                : 1;
+
+        var tamanio = int.TryParse(
+            PageSize,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out var valorTamanio)
+                ? Math.Clamp(ComprobanteFiltros.NormalizarPageSize(valorTamanio), 1, ComprobanteFiltros.PageSizeMaximo)
+                : ComprobanteFiltros.PageSizePorDefecto;
+
+        filtro = new ComprobanteFiltros(
+            desde,
+            hasta,
+            tipo,
+            estado,
+            puntoVenta,
+            Receptor,
+            pagina,
+            tamanio);
+
+        return true;
+    }
+
+    private string UrlPagina(int page)
+        => $"/comprobantes?{(_filtro! with { Page = page }).ConstruirQueryString()}";
+}

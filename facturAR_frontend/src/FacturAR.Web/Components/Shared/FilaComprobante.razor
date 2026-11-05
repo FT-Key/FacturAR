@@ -1,0 +1,36 @@
+@using FacturAR.Contracts.Comprobantes
+
+<tr>
+    <td>
+        <div class="fw-semibold">@Comprobante.TipoComprobanteDescripcion</div>
+        <div class="small text-muted font-monospace">@Numero</div>
+    </td>
+    <td>@FormatoFacturar.FechaLocal(Comprobante.FechaEmision)</td>
+    <td>
+        <div>@Comprobante.ReceptorRazonSocial</div>
+        <div class="small text-muted">@Comprobante.ReceptorDocumentoNumero</div>
+    </td>
+    <td class="text-end">
+        <ImporteTexto Valor="@Comprobante.ImporteTotal" />
+    </td>
+    <td>
+        <EstadoComprobanteBadge Estado="@Comprobante.Estado" />
+    </td>
+    <td class="text-end">
+        <div class="d-flex flex-wrap justify-content-end gap-2">
+            <a class="btn btn-outline-primary btn-sm"
+               href="/comprobantes/@Comprobante.Id"
+               aria-label="Ver detalle del comprobante @Numero">Detalle</a>
+            <a class="btn btn-outline-secondary btn-sm"
+               href="/comprobantes/@Comprobante.Id/pdf"
+               aria-label="Descargar PDF del comprobante @Numero">PDF</a>
+        </div>
+    </td>
+</tr>
+
+@code {
+    [Parameter, EditorRequired]
+    public ComprobanteResumenResponse Comprobante { get; set; } = default!;
+
+    private string Numero => $"{Comprobante.PuntoVenta:D4}-{Comprobante.Numero:D8}";
+}

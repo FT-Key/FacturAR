@@ -1,0 +1,22 @@
+<div class="alert alert-light border" role="status">
+    <h2 class="h5">@Titulo</h2>
+    <p class="mb-3">@Explicacion</p>
+    @if (!string.IsNullOrWhiteSpace(AccionTexto) && !string.IsNullOrWhiteSpace(AccionHref))
+    {
+        <a class="btn btn-primary btn-sm" href="@AccionHref">@AccionTexto</a>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Titulo { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Explicacion { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? AccionTexto { get; set; }
+
+    [Parameter]
+    public string? AccionHref { get; set; }
+}
