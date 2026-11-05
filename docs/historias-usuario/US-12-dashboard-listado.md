@@ -17,10 +17,10 @@ El dashboard y el listado solo muestran datos del contribuyente autenticado. La 
 
 ## Criterios de aceptación
 
-- [ ] El dashboard muestra cantidad de comprobantes emitidos, importe total del mes, último CAE y último número autorizado.
-- [ ] El dashboard muestra los últimos cinco comprobantes.
-- [ ] El listado permite filtrar por fecha, tipo, punto de venta, estado y receptor.
-- [ ] El listado tiene paginación y conserva los filtros.
+- [x] El dashboard muestra cantidad de comprobantes emitidos, importe total del mes, último CAE y último número autorizado.
+- [x] El dashboard muestra los últimos cinco comprobantes.
+- [x] El listado permite filtrar por fecha, tipo, punto de venta, estado y receptor.
+- [x] El listado tiene paginación y conserva los filtros.
 - [ ] Cada fila muestra tipo, número, fecha, receptor, importe y estado.
 - [ ] Se puede abrir el detalle de un comprobante.
 - [ ] Se puede descargar el PDF de un comprobante propio.
@@ -73,14 +73,14 @@ Scenario: Aislamiento
 
 ## Tareas técnicas
 
-- [ ] Crear el endpoint o servicio de métricas del dashboard.
-- [ ] Crear la página del dashboard en el portal.
-- [ ] Crear la página de listado con filtros y paginación.
+- [x] Crear el endpoint o servicio de métricas del dashboard.
+- [x] Crear la página del dashboard en el portal.
+- [x] Crear la página de listado con filtros y paginación.
 - [ ] Integrar el detalle y la descarga de PDF.
-- [ ] Aplicar el contexto de tenant.
+- [x] Aplicar el contexto de tenant.
 - [ ] Formatear importes y fechas.
 - [ ] Agregar estados de carga, vacío y error.
-- [ ] Agregar tests de métricas y filtros.
+- [x] Agregar tests de métricas y filtros.
 - [ ] Probar el flujo en desktop y mobile.
 
 ## Definition of Done
@@ -88,8 +88,8 @@ Scenario: Aislamiento
 - [ ] El dashboard muestra datos correctos y aislados por empresa.
 - [ ] El listado filtra, pagina y descarga PDF.
 - [ ] El portal es usable en desktop y mobile.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el manual.
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el manual.
 
 ## Contrato técnico
 
@@ -303,3 +303,62 @@ Antes de empezar US-12 tiene que existir:
 - No implementa gráficos históricos avanzados.
 - No implementa exportación CSV o Excel.
 - No implementa edición o anulación de comprobantes.
+
+## Evidencia
+
+Comandos ejecutados el 2026-11-05:
+
+```powershell
+dotnet build FacturAR.slnx -c Release
+dotnet format FacturAR.slnx --verify-no-changes
+dotnet test FacturAR.slnx -c Release --no-build --logger "console;verbosity=minimal"
+```
+
+Resultado:
+
+- Build: OK, 0 errores y 0 advertencias.
+- Formato: OK, sin cambios pendientes.
+- Tests: 712 aprobados, 164 omitidos (`MongoFact` sin connection string), 0 fallos.
+- Tests nuevos de US-12: 14 casos unitarios (`ObtenerDashboardServiceTests`) y 11 de integración (`DashboardEndpointTests`).
+- Casos `MongoFact` de US-12: 7 en `MongoDashboardTests`, omitidos en esta corrida.
+
+QA mínima con Playwright (2026-11-05):
+
+- `/inicio` responde OK.
+- `/` sin sesión redirige a `/login`.
+- `/comprobantes` y `/comprobantes/{guid}` sin sesión redirigen a `/login`.
+- `/comprobantes/nuevo` responde `404` porque la emisión manual es US-13.
+- Con la API caída, el dashboard muestra «No pudimos contactar al servicio» y el botón «Reintentar».
+- `GET /v1/comprobantes/dashboard` sin credenciales responde `401 API_KEY_AUSENTE`.
+
+## Estado de implementación (2026-11-05)
+
+**Implementado**
+
+- `GET /v1/comprobantes/dashboard` con `mes=YYYY-MM` opcional, periodo `[desde, hasta)` en UTC, autenticación por API key o cookie de empresa con rol `Administrador`, `Emisor` o `Consulta`, y `ContribuyenteId` resuelto desde la credencial.
+- `ObtenerDashboardService`: métricas del mes (solo `Emitido`), último CAE emitido, máximo número autorizado de `secuencias` y últimos cinco comprobantes.
+- `DashboardResponse` y `PeriodoDashboard` en `FacturAR.Contracts`; método de métricas en `IComprobanteRepository` y agregación en `ComprobanteRepository`.
+- Portal Blazor: `/` (dashboard), `/comprobantes` (listado con filtros y paginación) y `/comprobantes/{id:guid}` (detalle), más los componentes compartidos `TarjetaMetrica`, `FilaComprobante`, `EstadoComprobanteBadge`, `ImporteTexto`, `Paginador`, `EstadoVacio` y `MensajeError`. La landing pública quedó en `/inicio`.
+- `FacturarApiClient.ObtenerDashboardAsync`, `ListarComprobantesAsync`, `ObtenerComprobanteAsync` y `DescargarPdfAsync`.
+
+**Tests**
+
+- 14 casos unitarios y 11 de integración sin Mongo en verde.
+- 7 casos `MongoFact` de `MongoDashboardTests` pendientes de ejecución con MongoDB real.
+
+**QA mínima**
+
+- Rutas públicas y redirección a `/login`, error de API caída y `401 API_KEY_AUSENTE` verificados con Playwright el 2026-11-05.
+
+**Pendientes**
+
+- CP-01, CP-03, CP-04, CP-05, CP-06, CP-07, CP-08, CP-10, CP-11, CP-12, CP-13 y CP-14: requieren sesión iniciada y/o MongoDB real (métricas con datos, aislamiento, filtros y paginación end-to-end, descarga de PDF desde el listado, detalle, formato argentino, conservación de filtros, carga, teclado, responsive, conciliación dashboard/listado y rol `Consulta`).
+- CP-02: estado vacío real con una empresa sin comprobantes.
+- CP-09 y CP-15/CP-16: cubiertos por tests e integración; la verificación con MongoDB real de CP-15/CP-16 sigue pendiente.
+- 7 `MongoFact` de `MongoDashboardTests`.
+- Revisión responsive y de accesibilidad por teclado en navegador.
+- Prueba manual completa del portal en desktop y mobile.
+
+**Bloqueos**
+
+- Las verificaciones pendientes dependen de una sesión de empresa válida y de MongoDB con replica set; no hay funcionalidad faltante identificada para el alcance de US-12.

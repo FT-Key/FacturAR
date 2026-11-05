@@ -30,6 +30,7 @@ Base URL local: `http://localhost:5171`. En Docker: `http://localhost:8080`.
 | `GET` | `/v1/comprobantes/{id}` | Detalle de un comprobante propio, con sus ítems. |
 | `GET` | `/v1/comprobantes/{id}/pdf` | PDF del comprobante con sus datos fiscales y el QR de verificación. |
 | `GET` | `/v1/comprobantes/ultimo-autorizado` | Último número autorizado por tipo y punto de venta. |
+| `GET` | `/v1/comprobantes/dashboard` | Métricas del mes y últimos cinco comprobantes de la empresa autenticada. |
 
 Todo lo demás que aparece en este manual está **especificado pero no implementado**: esas rutas responden `404` hasta que su historia se complete.
 
@@ -59,6 +60,7 @@ Todo lo demás que aparece en este manual está **especificado pero no implement
 | `GET` | `/v1/comprobantes/{id}` | API key o cookie de empresa | implementado (US-09) |
 | `GET` | `/v1/comprobantes/ultimo-autorizado` | API key o cookie de empresa | implementado (US-09) |
 | `GET` | `/v1/comprobantes/{id}/pdf` | API key o cookie de empresa | implementado (US-10) |
+| `GET` | `/v1/comprobantes/dashboard` | API key o cookie de empresa | implementado (US-12) |
 
 La API key viaja en el header `X-Api-Key`. La sesión del portal usa cookies con esquemas separados: `cookies.contribuyente` para empresas y `cookies.admin` para la consola global. La cookie de empresa habilita las consultas de comprobantes (US-09) con rol `Administrador`, `Emisor` o `Consulta`; `POST /v1/comprobantes`, `/soap` y `/v1/admin/**` quedan fuera de ese alcance. Ver `docs/contratos-api.md` §4.
 
@@ -119,6 +121,7 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 | US-07 | Numeración correlativa del comprobante (reglas de §5) | Pendiente |
 | US-09 | §7 Consultar comprobantes | Parcial |
 | US-10 | §7.4 Descarga del PDF (`GET /v1/comprobantes/{id}/pdf`) | Parcial |
+| US-12 | §7.6 Dashboard (`GET /v1/comprobantes/dashboard`) | Parcial |
 | US-11 | §8 Verificar un comprobante por CAE | Base implementada |
 | US-27 | §1 Revisión y aprobación del administrador global | Pendiente |
 | US-28 | §2 Activar la cuenta: invitación por token | Completada |
@@ -738,6 +741,65 @@ SOAPAction: http://ar.gov.afip.dif.FEV1Service/FEDummy
 ```
 
 Los errores de negocio viajan con HTTP `200`, `Resultado = "R"` y `Observaciones = "<CODIGO>: <mensaje>"`. Los errores de autenticación o protocolo viajan como `SOAP Fault` con HTTP `401`/`400`, y `MONGO_NO_DISPONIBLE` como `503`. El detalle está en [`docs/contratos-api.md`](contratos-api.md) §7.6 y los casos de prueba en [`US-16`](historias-usuario/US-16-soap-consultas.md).
+
+### 7.6 Dashboard
+
+> **Parcial — US-12.** El endpoint está implementado y cubierto por tests unitarios y de integración sin Mongo; faltan la verificación con MongoDB real, los casos con sesión y datos reales y la revisión responsive.
+
+```http
+GET /v1/comprobantes/dashboard?mes=2026-10
+X-Api-Key: fak_<prefijo>_<secreto>
+```
+
+Acepta **API key** (`X-Api-Key`) o la **cookie de empresa** (`cookies.contribuyente`) con rol `Administrador`, `Emisor` o `Consulta`. El `ContribuyenteId` sale siempre de la credencial: nunca se envía en el body ni en el query string.
+
+| Parámetro | Obligatorio | Regla |
+| --- | --- | --- |
+| `mes` | No | Formato `YYYY-MM`. Default: mes actual en UTC. Otro formato responde `400 VALIDACION`. |
+
+El periodo es `[desde, hasta)` en UTC: `mes=2026-10` va del `2026-10-01T00:00:00Z` al `2026-11-01T00:00:00Z`. `cantidadComprobantes` e `importeTotal` cuentan **solo** comprobantes en estado `Emitido`; `ultimoCae` es el CAE del comprobante emitido más reciente (`null` si no hay) y `ultimoNumeroAutorizado` es el máximo global de `UltimoNumero` de las secuencias de la empresa.
+
+Respuesta `200` (`DashboardResponse`):
+
+```json
+{
+  "periodo": { "desde": "2026-10-01T00:00:00Z", "hasta": "2026-11-01T00:00:00Z" },
+  "cantidadComprobantes": 12,
+  "importeTotal": 150000.00,
+  "ultimoCae": "12345678901234",
+  "ultimoNumeroAutorizado": 42,
+  "ultimosComprobantes": [
+    {
+      "id": "6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22",
+      "tipoComprobante": 11,
+      "tipoComprobanteDescripcion": "Factura C",
+      "puntoVenta": 1,
+      "numero": 42,
+      "fechaEmision": "2026-10-25T14:30:00Z",
+      "cae": "12345678901234",
+      "receptorRazonSocial": "Cliente Final",
+      "receptorDocumentoNumero": "20345678901",
+      "importeTotal": 121000.00,
+      "moneda": "ARS",
+      "estado": "Emitido"
+    }
+  ]
+}
+```
+
+`ultimosComprobantes` son los cinco más recientes por `FechaEmision` descendente, con la misma forma de `ComprobanteResumenResponse`.
+
+Errores:
+
+| Código | HTTP | Cuándo |
+| --- | --- | --- |
+| `VALIDACION` | `400` | `mes` no tiene el formato `YYYY-MM`. |
+| `API_KEY_AUSENTE` | `401` | No se envió el header `X-Api-Key` ni la cookie de empresa. |
+| `API_KEY_INVALIDA` | `401` | La API key no existe, está revocada o el hash no coincide. |
+| `CREDENCIALES_INVALIDAS` | `401` | La cookie de empresa no es válida o la sesión venció. |
+| `SIN_PERMISOS` | `403` | El rol del principal no permite consultar comprobantes. |
+| `MONGO_NO_DISPONIBLE` | `503` | No hay conexión con MongoDB. |
+| `ERROR_INTERNO` | `500` | Falla inesperada; el detalle queda solo en el log. |
 
 ## 8. Verificar un comprobante
 

@@ -384,6 +384,7 @@ En Development, el valor completo de la API key demo se entrega **una sola vez**
 - Consulta por id: `GET /v1/comprobantes/{id}` (Guid). Un id inexistente o de otra empresa responde `404 COMPROBANTE_NO_ENCONTRADO`; un id que no es Guid responde `400 VALIDACION`.
 - Último autorizado: `GET /v1/comprobantes/ultimo-autorizado?tipo=1&puntoVenta=1`. `tipo` es obligatorio y va en singular; `puntoVenta` es opcional. Sin secuencia responde `numero: 0`; sin `puntoVenta`, la respuesta lo devuelve como `null`.
 - PDF: `GET /v1/comprobantes/{id}/pdf` → `application/pdf` con `Content-Disposition: inline; filename="0001-00000001.pdf"`.
+- Dashboard: `GET /v1/comprobantes/dashboard?mes=2026-10` (API key o cookie de empresa). `mes` es opcional (`YYYY-MM`; default mes UTC) y la respuesta es `DashboardResponse`. Errores: `400 VALIDACION`, `401 API_KEY_AUSENTE`, `401 API_KEY_INVALIDA`, `401 CREDENCIALES_INVALIDAS`, `403 SIN_PERMISOS`, `503 MONGO_NO_DISPONIBLE`, `500 ERROR_INTERNO`.
 - API keys: `GET|POST /v1/api-keys`, `DELETE /v1/api-keys/{id}`, `POST /v1/api-keys/{id}/regenerar`.
 - Solicitud de alta (público): `POST /v1/solicitudes-alta`.
 - Activación (público): `GET /v1/invitaciones/{token}` y `POST /v1/invitaciones/{token}/aceptar`.

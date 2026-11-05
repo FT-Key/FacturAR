@@ -77,6 +77,11 @@ GET {{FacturAR_Api_HostAddress}}/v1/comprobantes/ultimo-autorizado?tipo=11&punto
 X-Api-Key: {{apiKey}}
 Accept: application/json
 
+### Dashboard del mes (US-12)
+GET {{FacturAR_Api_HostAddress}}/v1/comprobantes/dashboard?mes=2026-10
+X-Api-Key: {{apiKey}}
+Accept: application/json
+
 ###
 
 # Replay idempotente (US-06): repetir la MISMA Idempotency-Key con el mismo body.
