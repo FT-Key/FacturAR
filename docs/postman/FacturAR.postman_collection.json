@@ -657,6 +657,90 @@
               "body": "{\n  \"tipoComprobante\": 11,\n  \"puntoVenta\": 1,\n  \"numero\": 42\n}"
             }
           ]
+        },
+        {
+          "name": "Descargar PDF",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Devuelve un PDF inline', () => {",
+                  "  const disposition = pm.response.headers.get('Content-Disposition');",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf');",
+                  "  pm.expect(disposition).to.include('inline');",
+                  "  pm.expect(disposition).to.include('filename=');",
+                  "  pm.expect(disposition).to.include('.pdf');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Api-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes/6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22/pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "comprobantes",
+                "6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22",
+                "pdf"
+              ]
+            },
+            "description": "US-10. Devuelve el PDF del comprobante con `Content-Disposition: inline` y nombre `{PuntoVenta:D4}-{Numero:D8}.pdf`. Acepta API key o cookie de empresa; no altera el comprobante ni consume número ni CAE. Un id de otra empresa responde `404 COMPROBANTE_NO_ENCONTRADO`."
+          },
+          "response": [
+            {
+              "name": "200 — PDF inline",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Api-Key",
+                    "value": "{{apiKey}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/v1/comprobantes/6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22/pdf",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "comprobantes",
+                    "6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22",
+                    "pdf"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "text",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/pdf"
+                },
+                {
+                  "key": "Content-Disposition",
+                  "value": "inline; filename=\"0001-00000001.pdf\""
+                }
+              ],
+              "cookie": [],
+              "body": "%PDF-1.4 ... (contenido binario)"
+            }
+          ]
         }
       ]
     },

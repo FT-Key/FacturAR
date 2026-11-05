@@ -17,18 +17,18 @@ El PDF se genera a partir de un comprobante persistido. El QR contiene la URL p�
 
 ## Criterios de aceptación
 
-- [ ] Se puede descargar el PDF de un comprobante propio.
-- [ ] El PDF incluye emisor, receptor, tipo, punto de venta, número, fecha, CAE, vencimiento, ítems e importes.
-- [ ] El PDF incluye la leyenda "Comprobante simulado sin validez fiscal".
-- [ ] El QR apunta a `/verificar?cae=<CAE>` usando la URL base configurada.
-- [ ] El QR se puede leer con un lector estándar.
-- [ ] Un comprobante de otra empresa devuelve `404`.
-- [ ] Un comprobante inexistente devuelve `404`.
-- [ ] El PDF se genera en menos de 3 segundos en condiciones normales.
-- [ ] El archivo descargado tiene un nombre legible y seguro.
-- [ ] No se exponen datos internos ni secretos.
-- [ ] Se puede regenerar el PDF sin alterar el comprobante.
-- [ ] Hay tests de contenido, QR y aislamiento.
+- [x] Se puede descargar el PDF de un comprobante propio. — `GET /v1/comprobantes/{id}/pdf` responde `200 application/pdf`; cubierto por `ComprobantePdfEndpointTests`.
+- [x] El PDF incluye emisor, receptor, tipo, punto de venta, número, fecha, CAE, vencimiento, ítems e importes. — Cubierto por `ComprobantePdfContenidoTests` (texto fiscal).
+- [x] El PDF incluye la leyenda "Comprobante simulado sin validez fiscal". — Cubierto por `ComprobantePdfContenidoTests` (texto literal).
+- [x] El QR apunta a `/verificar?cae=<CAE>` usando la URL base configurada. — QR decodificado con ZXing en `ComprobantePdfContenidoTests` a `http://localhost:5116/verificar?cae=12345678901234`.
+- [ ] El QR se puede leer con un lector estándar. — Pendiente: el test decodifica el QR con ZXing, pero falta escanear un PDF real con un lector estándar.
+- [x] Un comprobante de otra empresa devuelve `404`. — `ComprobantePdfEndpointTests` (404 otra empresa); el aislamiento contra MongoDB real está en `MongoComprobantePdfTests` (omitido sin connection string).
+- [x] Un comprobante inexistente devuelve `404`. — `ComprobantePdfEndpointTests` (404 inexistente).
+- [x] El PDF se genera en menos de 3 segundos en condiciones normales. — `ComprobantePdfContenidoTests` mide con `Stopwatch` y warm-up.
+- [x] El archivo descargado tiene un nombre legible y seguro. — `ComprobantePdfModeloTests`: `0001-00000001.pdf` y `0012-00000345.pdf`, solo dígitos y guiones.
+- [x] No se exponen datos internos ni secretos. — `ComprobantePdfContenidoTests` verifica la ausencia de datos internos.
+- [x] Se puede regenerar el PDF sin alterar el comprobante. — `ComprobantePdfContenidoTests` regenera y compara; que MongoDB no cambie se verifica en `MongoComprobantePdfTests` (omitido sin connection string).
+- [x] Hay tests de contenido, QR y aislamiento. — 6 + 7 + 9 casos verdes; 5 `[MongoFact]` escritos y omitidos sin connection string.
 
 ## Escenarios Gherkin
 
@@ -66,22 +66,22 @@ Scenario: Regeneración
 
 ## Tareas técnicas
 
-- [ ] Crear `IPdfComprobanteService` en Application.
-- [ ] Implementar la generación con QuestPDF.
-- [ ] Generar el QR con QRCoder.
-- [ ] Configurar `Portal__BaseUrl` para el link de verificación.
-- [ ] Crear `GET /v1/comprobantes/{id}/pdf`.
-- [ ] Aplicar autenticación y filtro de tenant.
-- [ ] Agregar tests de contenido y QR.
-- [ ] Documentar el endpoint y el formato del archivo.
+- [x] Crear `IPdfComprobanteService` en Application.
+- [x] Implementar la generación con QuestPDF.
+- [x] Generar el QR con QRCoder.
+- [x] Configurar `Portal__BaseUrl` para el link de verificación.
+- [x] Crear `GET /v1/comprobantes/{id}/pdf`.
+- [x] Aplicar autenticación y filtro de tenant.
+- [x] Agregar tests de contenido y QR.
+- [x] Documentar el endpoint y el formato del archivo. — OpenAPI expone la ruta; `docs/manual-integracion.md` §7.4, `FacturAR.Api.http` y la colección Postman.
 
 ## Definition of Done
 
-- [ ] El PDF se descarga y contiene todos los datos requeridos.
-- [ ] El QR abre la verificación pública correcta.
-- [ ] No se puede descargar el PDF de otra empresa.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el manual.
+- [x] El PDF se descarga y contiene todos los datos requeridos. — `ComprobantePdfEndpointTests` (200, headers y firma `%PDF-`) y `ComprobantePdfContenidoTests` (datos fiscales); la descarga con datos persistidos en MongoDB real sigue pendiente.
+- [ ] El QR abre la verificación pública correcta. — El QR contiene la URL correcta, pero falta abrir un PDF real y escanearlo con un lector estándar.
+- [x] No se puede descargar el PDF de otra empresa. — `ComprobantePdfEndpointTests` (404 otra empresa); el aislamiento con MongoDB real está en `MongoComprobantePdfTests` (omitido).
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el manual.
 
 ## Contrato técnico
 
@@ -206,6 +206,35 @@ Antes de empezar US-10 tiene que existir:
 - **Api**: el handler que devuelve el archivo con `Results.File` y el `Content-Disposition` `inline`.
 - **Tests**: `FacturAR.UnitTests` para la construcción del nombre de archivo y de la URL del QR; `FacturAR.IntegrationTests` con `MongoFact` para contenido, QR, aislamiento, regeneración y tiempo de generación.
 - **Documentación**: `docs/contratos-api.md` §14, `docs/manual-integracion.md` (sección de descargas), `docs/postman/FacturAR.postman_collection.json` y `facturAR_backend/src/FacturAR.Api/FacturAR.Api.http`.
+
+## Evidencia
+
+Fecha de verificación: 2026-11-05.
+
+| Comando | Resultado |
+| --- | --- |
+| `dotnet build FacturAR.slnx -c Release` | 0 errores, 0 advertencias. |
+| `dotnet test FacturAR.slnx -c Release --no-build --logger "console;verbosity=minimal"` | 474 unitarios y 109 de integración aprobados; 152 omitidos (`MongoFact` sin `MONGO_CONNECTION_STRING`); 0 fallos. |
+| `dotnet format FacturAR.slnx --verify-no-changes` | Sin cambios pendientes. |
+
+Tests nuevos:
+
+- `ComprobantePdfContenidoTests` (6): texto fiscal, leyenda literal, ausencia de datos internos, QR decodificado con ZXing, regeneración y generación en menos de 3 segundos con warm-up.
+- `ComprobantePdfModeloTests` (7): nombres `0001-00000001.pdf` y `0012-00000345.pdf`, URL del QR con y sin barra final, escape y smoke.
+- `ComprobantePdfEndpointTests` (9): 200 con `Content-Type`, `Content-Disposition` y firma `%PDF-`; punto de venta 12 y número 345; 404 inexistente; 404 de otra empresa; 400 con id que no es `Guid`; 401 `API_KEY_AUSENTE`; 403 `SIN_PERMISOS`; 500 `ERROR_INTERNO` sin PDF.
+- `MongoComprobantePdfTests` (5, `[MongoFact]`): PDF real persistido, aislamiento real, inexistente, regeneración sin cambios y tiempo. Escritos y compilando; omitidos sin connection string.
+
+QA manual sin Mongo (API en Development en `http://localhost:5171`): `/health/live` responde `200`; `GET /v1/comprobantes/{id}/pdf` sin credenciales responde `401 API_KEY_AUSENTE`; con API key inválida responde `503 MONGO_NO_DISPONIBLE` porque no hay Mongo para validar la key; `/openapi/v1.json` expone `/v1/comprobantes/{id}/pdf`; `/v1/comprobantes/verificar/{cae}` responde `500` por Mongo caído, comportamiento preexistente de US-11 ajeno a US-10.
+
+Pendiente de verificación:
+
+- Correr los 5 casos `[MongoFact]` de `MongoComprobantePdfTests` con MongoDB 8+ en replica set.
+- Abrir un PDF real y escanear el QR con un lector estándar.
+- Verificar la generación del PDF en el contenedor Docker Linux.
+
+## Estado de implementación
+
+US-10 queda **Parcial**: el endpoint, el servicio QuestPDF, el QR con QRCoder, la configuración de `Portal__BaseUrl`, la autenticación con filtro de tenant y la documentación están implementados, y la suite automática sin Mongo está verde. Faltan la corrida de los 5 `[MongoFact]`, la lectura del QR de un PDF real con un lector estándar y la verificación en el contenedor Docker. No se mueve a `historias-usuario-terminadas/` hasta cerrar esos puntos.
 
 ## Notas de alcance
 
