@@ -949,11 +949,13 @@ az webapp restart --name facturar-web-utn-frt --resource-group rg-facturar
 
 La CI (`.github/workflows/ci.yml`) tiene tres jobs.
 
+Desde el 2026-11-05 no corre en cada push: se ejecuta con `workflow_dispatch`, en pull requests hacia `main` y en push a `main` (promoción `development` → `main`). Las ramas de trabajo y los pull requests hacia `development` no consumen Actions. Si el ruleset de `development` exige los checks de CI, hay que ejecutar la CI manualmente sobre la rama del PR después del último push o quitar esos checks requeridos del ruleset.
+
 | Job | Qué hace |
 | --- | --- |
 | `Validar nombre de rama` | Solo en pull requests. Acepta `feature/us-XX-slug`, `fix/us-XX-slug` o una rama auxiliar `chore/`, `docs/`, `refactor/`, `test/`, `perf/`, `ci/` o `build/`. Omite `main` y `development` para permitir la promoción. |
 | `Build y tests` | Restaura, compila en `Release`, **verifica formato y analizadores**, levanta MongoDB 8.2 como servicio, ejecuta la suite completa y sube `TestResults` como artefacto. |
-| `Construir imágenes Docker` | Construye la imagen de la API y la del portal **sin publicarlas**, para validar ambos Dockerfiles en cada push y PR. |
+| `Construir imágenes Docker` | Construye la imagen de la API y la del portal **sin publicarlas**, para validar ambos Dockerfiles en las ejecuciones de CI. |
 
 El gate de lint es el paso **Verificar formato y analizadores**:
 
