@@ -253,6 +253,76 @@ public sealed class FacturarApiClient(HttpClient httpClient)
             null,
             cancellationToken);
 
+    public Task<ResultadoApi<DashboardResponse>> ObtenerDashboardAsync(
+        string? cookie,
+        string? mes,
+        CancellationToken ct = default)
+    {
+        var path = string.IsNullOrWhiteSpace(mes)
+            ? "v1/comprobantes/dashboard"
+            : $"v1/comprobantes/dashboard?mes={Uri.EscapeDataString(mes.Trim())}";
+
+        return EnviarAsync<DashboardResponse>(HttpMethod.Get, path, cookie, null, ct);
+    }
+
+    public Task<ResultadoApi<PaginaResponse<ComprobanteResumenResponse>>> ListarComprobantesAsync(
+        string? cookie,
+        ComprobanteFiltros filtro,
+        CancellationToken ct = default)
+        => EnviarAsync<PaginaResponse<ComprobanteResumenResponse>>(
+            HttpMethod.Get,
+            $"v1/comprobantes?{filtro.ConstruirQueryString()}",
+            cookie,
+            null,
+            ct);
+
+    public Task<ResultadoApi<ComprobanteDetalleResponse>> ObtenerComprobanteAsync(
+        string? cookie,
+        Guid id,
+        CancellationToken ct = default)
+        => EnviarAsync<ComprobanteDetalleResponse>(
+            HttpMethod.Get,
+            $"v1/comprobantes/{id}",
+            cookie,
+            null,
+            ct);
+
+    public async Task<ResultadoApi<byte[]>> DescargarPdfAsync(
+        string? cookie,
+        Guid id,
+        CancellationToken ct = default)
+    {
+        using var request = CrearRequest(HttpMethod.Get, $"v1/comprobantes/{id}/pdf", cookie);
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await httpClient.SendAsync(
+                request,
+                HttpCompletionOption.ResponseHeadersRead,
+                ct);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
+        {
+            return ResultadoApi<byte[]>.Fallido(HttpStatusCode.ServiceUnavailable, null, MensajeApiNoDisponible);
+        }
+
+        using (response)
+        {
+            if (response.IsSuccessStatusCode)
+            {
+                var bytes = await response.Content.ReadAsByteArrayAsync(ct);
+                return ResultadoApi<byte[]>.ConExito(bytes);
+            }
+
+            var error = await LeerErrorAsync(response, ct);
+            return ResultadoApi<byte[]>.Fallido(
+                response.StatusCode,
+                error?.Codigo,
+                error?.Mensaje ?? MensajeApiNoDisponible);
+        }
+    }
+
     private async Task<ResultadoApi<bool>> EnviarSinContenidoAsync(
         HttpMethod method,
         string path,

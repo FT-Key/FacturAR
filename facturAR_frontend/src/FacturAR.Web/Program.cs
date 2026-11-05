@@ -1,6 +1,7 @@
 using FacturAR.Contracts.Sistema;
 using FacturAR.Web.Auth;
 using FacturAR.Web.Components;
+using FacturAR.Web.Endpoints;
 using FacturAR.Web.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 
@@ -68,6 +69,7 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorPages();
+app.MapComprobantePdfProxy();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

@@ -1,0 +1,22 @@
+<div class="alert alert-danger" role="alert">
+    <p class="mb-2">@Mensaje</p>
+    @if (!string.IsNullOrWhiteSpace(UrlReintentar))
+    {
+        <a class="btn btn-outline-secondary btn-sm" href="@UrlReintentar">Reintentar</a>
+    }
+    else
+    {
+        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="Reintentar">Reintentar</button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Mensaje { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback Reintentar { get; set; }
+
+    [Parameter]
+    public string? UrlReintentar { get; set; }
+}

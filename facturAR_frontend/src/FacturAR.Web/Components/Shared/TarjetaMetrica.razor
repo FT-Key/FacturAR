@@ -1,0 +1,21 @@
+<div class="card h-100">
+    <div class="card-body">
+        <p class="text-muted small text-uppercase mb-1">@Titulo</p>
+        <p class="fs-3 fw-semibold mb-1">@Valor</p>
+        @if (!string.IsNullOrWhiteSpace(Nota))
+        {
+            <p class="small text-muted mb-0">@Nota</p>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Titulo { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Valor { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Nota { get; set; }
+}

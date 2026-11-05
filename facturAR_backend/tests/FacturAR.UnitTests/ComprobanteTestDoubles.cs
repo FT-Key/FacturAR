@@ -286,6 +286,24 @@ internal sealed class ComprobanteRepositorioFake : IComprobanteRepository
         return Task.FromResult<(IReadOnlyList<Comprobante>, long)>((items, coincidencias.Count));
     }
 
+    public Task<MetricasDashboard> ObtenerMetricasAsync(
+        Guid contribuyenteId,
+        DateTime desde,
+        DateTime hastaExclusivo,
+        CancellationToken cancellationToken = default)
+    {
+        var emitidos = Comprobantes
+            .Where(c => c.ContribuyenteId == contribuyenteId
+                && c.Estado == EstadoComprobante.Emitido
+                && c.FechaEmision >= desde
+                && c.FechaEmision < hastaExclusivo)
+            .ToList();
+
+        return Task.FromResult(new MetricasDashboard(
+            emitidos.Count,
+            emitidos.Sum(c => c.ImporteTotal)));
+    }
+
     public Task<Comprobante?> GetByIdempotencyKeyAsync(
         Guid contribuyenteId,
         string clave,

@@ -1,0 +1,42 @@
+<nav class="d-flex flex-wrap justify-content-between align-items-center gap-2"
+     aria-label="Paginación de comprobantes">
+    <span class="text-muted small">
+        @Total comprobante(s) · página @Page de @Math.Max(TotalPages, 1)
+    </span>
+    <div class="btn-group btn-group-sm" role="group" aria-label="Navegación entre páginas">
+        @if (Page > 1 && !string.IsNullOrWhiteSpace(AnteriorUrl))
+        {
+            <a class="btn btn-outline-secondary" href="@AnteriorUrl" aria-label="Página anterior">Anterior</a>
+        }
+        else
+        {
+            <button type="button" class="btn btn-outline-secondary" disabled aria-label="Página anterior">Anterior</button>
+        }
+
+        @if (Page < TotalPages && !string.IsNullOrWhiteSpace(SiguienteUrl))
+        {
+            <a class="btn btn-outline-secondary" href="@SiguienteUrl" aria-label="Página siguiente">Siguiente</a>
+        }
+        else
+        {
+            <button type="button" class="btn btn-outline-secondary" disabled aria-label="Página siguiente">Siguiente</button>
+        }
+    </div>
+</nav>
+
+@code {
+    [Parameter]
+    public int Page { get; set; } = 1;
+
+    [Parameter]
+    public int TotalPages { get; set; }
+
+    [Parameter]
+    public long Total { get; set; }
+
+    [Parameter]
+    public string? AnteriorUrl { get; set; }
+
+    [Parameter]
+    public string? SiguienteUrl { get; set; }
+}

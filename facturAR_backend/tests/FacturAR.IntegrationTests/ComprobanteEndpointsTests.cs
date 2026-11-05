@@ -775,6 +775,27 @@ public sealed class ComprobanteRepositorioEnMemoria : IComprobanteRepository
         }
     }
 
+    public Task<MetricasDashboard> ObtenerMetricasAsync(
+        Guid contribuyenteId,
+        DateTime desde,
+        DateTime hastaExclusivo,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_gate)
+        {
+            var emitidos = _comprobantes
+                .Where(c => c.ContribuyenteId == contribuyenteId
+                    && c.Estado == EstadoComprobante.Emitido
+                    && c.FechaEmision >= desde
+                    && c.FechaEmision < hastaExclusivo)
+                .ToList();
+
+            return Task.FromResult(new MetricasDashboard(
+                emitidos.Count,
+                emitidos.Sum(c => c.ImporteTotal)));
+        }
+    }
+
     public Task<Comprobante?> GetByIdempotencyKeyAsync(
         Guid contribuyenteId,
         string clave,

@@ -104,5 +104,10 @@ public sealed class SecuenciaServiceTests
             TipoComprobante tipo,
             CancellationToken ct = default)
             => Task.FromResult(numero);
+
+        public Task<long> ObtenerMaximoUltimoNumeroGlobalAsync(
+            Guid contribuyenteId,
+            CancellationToken ct = default)
+            => Task.FromResult(numero);
     }
 }

@@ -35,6 +35,12 @@ public interface IComprobanteRepository
         int pageSize,
         CancellationToken cancellationToken = default);
 
+    Task<MetricasDashboard> ObtenerMetricasAsync(
+        Guid contribuyenteId,
+        DateTime desde,
+        DateTime hastaExclusivo,
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(Comprobante comprobante, CancellationToken cancellationToken = default);
 
     Task<bool> AjustarSaldoAsync(

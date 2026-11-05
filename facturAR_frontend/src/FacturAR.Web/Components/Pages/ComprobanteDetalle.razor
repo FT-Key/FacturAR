@@ -1,0 +1,240 @@
+@page "/comprobantes/{Id:guid}"
+@using System.Globalization
+@using System.Net
+@using FacturAR.Contracts.Comprobantes
+@attribute [StreamRendering]
+@inject FacturarApiClient ApiClient
+@inject NavigationManager Navigation
+@inject IConfiguration Configuration
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Comprobante - FacturAR</PageTitle>
+
+@if (_accesoDenegado)
+{
+    <section class="card border-danger" role="alert">
+        <div class="card-body">
+            <h1 class="h5">Acceso denegado</h1>
+            <p class="mb-2">Tu rol no permite consultar este comprobante.</p>
+            <a class="btn btn-outline-secondary btn-sm" href="/comprobantes">Volver al listado</a>
+        </div>
+    </section>
+}
+else if (_noEncontrado)
+{
+    <section class="card" role="status">
+        <div class="card-body">
+            <h1 class="h5">No encontrado</h1>
+            <p class="mb-2">No existe un comprobante con el identificador indicado.</p>
+            <a class="btn btn-outline-secondary btn-sm" href="/comprobantes">Volver al listado</a>
+        </div>
+    </section>
+}
+else if (_error is not null)
+{
+    <MensajeError Mensaje="@_error" UrlReintentar="@Navigation.Uri" />
+}
+else if (_detalle is null)
+{
+    <div class="text-muted" role="status" aria-busy="true">Cargando comprobante…</div>
+}
+else
+{
+    <div class="py-4 d-flex flex-wrap justify-content-between align-items-end gap-2">
+        <div>
+            <h1 class="h3 mb-1">Comprobante @Numero</h1>
+            <p class="text-muted mb-0">@_detalle.TipoComprobanteDescripcion</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-secondary btn-sm" href="/comprobantes">Volver al listado</a>
+            <a class="btn btn-primary btn-sm"
+               href="/comprobantes/@Id/pdf"
+               aria-label="Descargar PDF del comprobante @Numero">Descargar PDF</a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-lg-6">
+            <section class="card h-100" aria-labelledby="titulo-emisor">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 id="titulo-emisor" class="h5 mb-0">Emisor</h2>
+                        <EstadoComprobanteBadge Estado="@_detalle.Estado" />
+                    </div>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">CUIT</dt>
+                        <dd class="col-sm-8 font-monospace">@_detalle.EmisorCuit</dd>
+                        <dt class="col-sm-4">Razón social</dt>
+                        <dd class="col-sm-8">@_detalle.EmisorRazonSocial</dd>
+                        <dt class="col-sm-4">Fecha de emisión</dt>
+                        <dd class="col-sm-8">@FormatoFacturar.FechaLocal(_detalle.FechaEmision)</dd>
+                        <dt class="col-sm-4">CAE</dt>
+                        <dd class="col-sm-8 font-monospace">@_detalle.Cae</dd>
+                        <dt class="col-sm-4">Vencimiento del CAE</dt>
+                        <dd class="col-sm-8">@FormatoFacturar.FechaLocal(_detalle.CaeVencimiento)</dd>
+                    </dl>
+                </div>
+            </section>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <section class="card h-100" aria-labelledby="titulo-receptor">
+                <div class="card-body">
+                    <h2 id="titulo-receptor" class="h5 mb-3">Receptor</h2>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Razón social</dt>
+                        <dd class="col-sm-8">@_detalle.Receptor.RazonSocial</dd>
+                        <dt class="col-sm-4">Documento</dt>
+                        <dd class="col-sm-8">@_detalle.Receptor.DocumentoTipo @_detalle.Receptor.DocumentoNumero</dd>
+                        <dt class="col-sm-4">Condición IVA</dt>
+                        <dd class="col-sm-8">@CondicionIvaTexto(_detalle.Receptor.CondicionIva)</dd>
+                        <dt class="col-sm-4">Moneda</dt>
+                        <dd class="col-sm-8">@_detalle.Moneda</dd>
+                    </dl>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <section class="card mb-3" aria-labelledby="titulo-importes">
+        <div class="card-body">
+            <h2 id="titulo-importes" class="h5 mb-3">Importes</h2>
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Importe neto</dt>
+                <dd class="col-sm-3"><ImporteTexto Valor="@_detalle.ImporteNeto" /></dd>
+                <dt class="col-sm-3">IVA</dt>
+                <dd class="col-sm-3"><ImporteTexto Valor="@_detalle.ImporteIva" /></dd>
+                <dt class="col-sm-3">Total</dt>
+                <dd class="col-sm-3 fw-semibold"><ImporteTexto Valor="@_detalle.ImporteTotal" /></dd>
+            </dl>
+        </div>
+    </section>
+
+    <section class="card" aria-labelledby="titulo-items">
+        <div class="card-body">
+            <h2 id="titulo-items" class="h5 mb-3">Ítems</h2>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Descripción</th>
+                            <th scope="col" class="text-end">Cantidad</th>
+                            <th scope="col" class="text-end">Precio unitario</th>
+                            <th scope="col" class="text-end">IVA</th>
+                            <th scope="col" class="text-end">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in _detalle.Items)
+                        {
+                            <tr>
+                                <td>@item.Descripcion</td>
+                                <td class="text-end">@Cantidad(item.Cantidad)</td>
+                                <td class="text-end"><ImporteTexto Valor="@item.PrecioUnitario" /></td>
+                                <td class="text-end">@Cantidad(item.AlicuotaIva)%</td>
+                                <td class="text-end"><ImporteTexto Valor="@item.Subtotal" /></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(_detalle.Observaciones))
+    {
+        <section class="card mt-3" aria-labelledby="titulo-observaciones">
+            <div class="card-body">
+                <h2 id="titulo-observaciones" class="h5 mb-2">Observaciones</h2>
+                <p class="mb-0">@_detalle.Observaciones</p>
+            </div>
+        </section>
+    }
+}
+
+@code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private ComprobanteDetalleResponse? _detalle;
+    private string? _error;
+    private bool _noEncontrado;
+    private bool _accesoDenegado;
+
+    private string Numero => _detalle is null
+        ? string.Empty
+        : $"{_detalle.PuntoVenta:D4}-{_detalle.Numero:D8}";
+
+    private CancellationToken Token => HttpContext?.RequestAborted ?? CancellationToken.None;
+
+    private string? Cookie => HttpContext?.Request.Cookies.TryGetValue(NombreCookieEmpresa, out var valor) == true
+        && !string.IsNullOrEmpty(valor)
+            ? $"{NombreCookieEmpresa}={valor}"
+            : null;
+
+    private string NombreCookieEmpresa =>
+        Configuration["Auth:Cookie:NombreContribuyente"] ?? ".FacturAR.Contribuyente";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = AuthenticationState is null ? null : (await AuthenticationState).User;
+        if (usuario?.Identity?.IsAuthenticated != true)
+        {
+            if (AuthenticationStateProvider is ApiAuthenticationStateProvider { ApiNoDisponible: true })
+            {
+                _error = "No pudimos contactar al servicio. Intentá de nuevo en unos minutos.";
+                return;
+            }
+
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var resultado = await ApiClient.ObtenerComprobanteAsync(Cookie, Id, Token);
+
+        if (resultado.SinSesion)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (resultado.Status == HttpStatusCode.Forbidden)
+        {
+            _accesoDenegado = true;
+            return;
+        }
+
+        if (resultado.Status == HttpStatusCode.NotFound)
+        {
+            _noEncontrado = true;
+            return;
+        }
+
+        if (!resultado.Exitoso || resultado.Valor is null)
+        {
+            _error = resultado.Mensaje ?? "No pudimos cargar el comprobante.";
+            return;
+        }
+
+        _detalle = resultado.Valor;
+    }
+
+    private static string Cantidad(decimal valor)
+        => valor.ToString("N2", CultureInfo.GetCultureInfo("es-AR"));
+
+    private static string CondicionIvaTexto(int valor) => valor switch
+    {
+        1 => "Responsable Inscripto",
+        4 => "Exento",
+        5 => "Consumidor Final",
+        6 => "Monotributo",
+        7 => "Sujeto No Categorizado",
+        _ => valor.ToString(CultureInfo.InvariantCulture)
+    };
+}

@@ -3,6 +3,7 @@ using FacturAR.Application.Comprobantes;
 using FacturAR.Domain.Entities;
 using FacturAR.Domain.Enums;
 using FacturAR.Infrastructure.Mongo;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace FacturAR.Infrastructure.Repositories;
@@ -120,6 +121,40 @@ public sealed class ComprobanteRepository : IComprobanteRepository
         return (items, total);
     }
 
+    public async Task<MetricasDashboard> ObtenerMetricasAsync(
+        Guid contribuyenteId,
+        DateTime desde,
+        DateTime hastaExclusivo,
+        CancellationToken cancellationToken = default)
+    {
+        var filtro = Filtro.Eq(c => c.ContribuyenteId, contribuyenteId)
+            & Filtro.Eq(c => c.Estado, EstadoComprobante.Emitido)
+            & Filtro.Gte(c => c.FechaEmision, desde)
+            & Filtro.Lt(c => c.FechaEmision, hastaExclusivo);
+
+        var grupo = new BsonDocument
+        {
+            { "_id", 1 },
+            { "cantidad", new BsonDocument("$sum", 1) },
+            { "importeTotal", new BsonDocument("$sum", "$ImporteTotal") }
+        };
+
+        var resultado = await _context.Comprobantes
+            .Aggregate()
+            .Match(filtro)
+            .Group(grupo)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (resultado is null)
+        {
+            return new MetricasDashboard(0, 0m);
+        }
+
+        return new MetricasDashboard(
+            LeerEntero(resultado, "cantidad"),
+            LeerDecimal(resultado, "importeTotal"));
+    }
+
     public async Task<Comprobante?> GetByIdempotencyKeyAsync(
         Guid contribuyenteId,
         string clave,
@@ -162,5 +197,25 @@ public sealed class ComprobanteRepository : IComprobanteRepository
             cancellationToken);
 
         return resultado.ModifiedCount == 1;
+    }
+
+    private static int LeerEntero(BsonDocument documento, string campo)
+        => documento.TryGetValue(campo, out var valor) && valor.IsNumeric
+            ? valor.ToInt32()
+            : 0;
+
+    private static decimal LeerDecimal(BsonDocument documento, string campo)
+    {
+        if (!documento.TryGetValue(campo, out var valor))
+        {
+            return 0m;
+        }
+
+        return valor switch
+        {
+            BsonDecimal128 decimal128 => (decimal)decimal128.Value,
+            _ when valor.IsNumeric => Convert.ToDecimal(valor.ToDouble()),
+            _ => 0m
+        };
     }
 }

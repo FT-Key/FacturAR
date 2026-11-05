@@ -20,4 +20,8 @@ public interface ISecuenciaRepository
         Guid contribuyenteId,
         TipoComprobante tipo,
         CancellationToken ct = default);
+
+    Task<long> ObtenerMaximoUltimoNumeroGlobalAsync(
+        Guid contribuyenteId,
+        CancellationToken ct = default);
 }

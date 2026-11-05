@@ -77,4 +77,19 @@ public sealed class SecuenciaRepository(MongoDbContext context, MongoSesionActua
 
         return secuencia?.UltimoNumero ?? 0;
     }
+
+    public async Task<long> ObtenerMaximoUltimoNumeroGlobalAsync(
+        Guid contribuyenteId,
+        CancellationToken ct = default)
+    {
+        var filtro = Filtro.Eq(s => s.ContribuyenteId, contribuyenteId);
+
+        var secuencia = await context.Secuencias
+            .Find(filtro)
+            .Sort(Orden.Descending(s => s.UltimoNumero))
+            .Limit(1)
+            .FirstOrDefaultAsync(ct);
+
+        return secuencia?.UltimoNumero ?? 0;
+    }
 }
