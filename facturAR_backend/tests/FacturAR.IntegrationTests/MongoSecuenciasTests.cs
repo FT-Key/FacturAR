@@ -221,6 +221,20 @@ public sealed class MongoSecuenciasTests : IAsyncLifetime
         Assert.Equal(6, (await SecuenciaAsync(ContribuyenteA, 1, TipoComprobante.FacturaC)).UltimoNumero);
     }
 
+    [MongoFact]
+    public async Task CP0713_ElIndiceUnicoDeNumeracionImpideDuplicados()
+    {
+        var original = NuevoComprobante(ContribuyenteA, 1, TipoComprobante.FacturaC, 1);
+        await _context!.Comprobantes.InsertOneAsync(original);
+
+        var duplicado = NuevoComprobante(ContribuyenteA, 1, TipoComprobante.FacturaC, 1);
+
+        var excepcion = await Assert.ThrowsAsync<MongoWriteException>(
+            () => _context!.Comprobantes.InsertOneAsync(duplicado));
+
+        Assert.Equal(11000, excepcion.WriteError?.Code);
+    }
+
     private SecuenciaService CrearServicio()
     {
         var sesionActual = new MongoSesionActual();
