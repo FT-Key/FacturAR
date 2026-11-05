@@ -23,6 +23,7 @@ using FacturAR.Infrastructure.LoginIntent;
 using FacturAR.Infrastructure.Mongo;
 using FacturAR.Infrastructure.Notificaciones;
 using FacturAR.Infrastructure.Password;
+using FacturAR.Infrastructure.Pdf;
 using FacturAR.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.RateLimiting;
@@ -184,6 +185,7 @@ builder.Services.AddHostedService<SeedHostedService>();
 builder.Services.AddFacturarCookies(authOptions, builder.Environment.IsDevelopment());
 builder.Services.AddFacturarApiKeyAuthentication();
 builder.Services.AddComprobanteConsultaAuthorization();
+builder.Services.AddComprobantePdf(notificacionesOptions.PortalBaseUrl);
 
 var solicitudAltaPolicy = new SolicitudAltaRateLimitPolicy(solicitudAltaRateLimitOptions);
 
@@ -364,6 +366,7 @@ app.MapInvitacionEndpoints();
 app.MapApiKeyEndpoints();
 app.MapComprobanteEndpoints();
 app.MapComprobanteConsultaEndpoints();
+app.MapComprobantePdfEndpoint();
 
 app.Run();
 
