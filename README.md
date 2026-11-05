@@ -421,14 +421,17 @@ La guía operativa completa está en [`docs/despliegue-azure.md`](docs/despliegu
 
 Se ejecuta en:
 
-- Push a `main` y `development`.
-- Pull requests hacia `main` y `development`.
+- Manualmente con `workflow_dispatch`.
+- Push a `main` (promoción desde `development`).
+- Pull requests hacia `main` (promoción desde `development`).
+
+Las ramas de trabajo y los pull requests hacia `development` no disparan la CI automáticamente para no consumir Actions. Si el ruleset de `development` exige los checks de CI, ejecutá la CI manualmente sobre la rama del PR después del último push o quitá esos checks requeridos del ruleset.
 
 Jobs:
 
 1. `Validar nombre de rama`: solo en pull requests. Exige `feature/us-XX-slug`, `fix/us-XX-slug` o una rama auxiliar `chore/`, `docs/`, `refactor/`, `test/`, `perf/`, `ci/` o `build/`. Omite `main` y `development` para permitir la promoción entre ramas.
 2. `Build y tests`: restaura, compila en `Release`, **verifica formato y analizadores** con `dotnet format FacturAR.slnx --verify-no-changes --verbosity minimal`, levanta MongoDB 8.2 como servicio, ejecuta la suite completa (incluidos los tests `MongoFact`) y sube `TestResults` como artefacto.
-3. `Construir imágenes Docker`: construye la imagen de la API y la del portal **sin publicarlas**, para validar ambos Dockerfiles en cada push y PR. Usa los build args `SOURCE_COMMIT=${{ github.sha }}` y `APP_VERSION=0.1.0`, con caché de GitHub Actions separada por imagen.
+3. `Construir imágenes Docker`: construye la imagen de la API y la del portal **sin publicarlas**, para validar ambos Dockerfiles en las ejecuciones de CI. Usa los build args `SOURCE_COMMIT=${{ github.sha }}` y `APP_VERSION=0.1.0`, con caché de GitHub Actions separada por imagen.
 
 La CI debe pasar antes de mergear. No publica ni despliega nada.
 

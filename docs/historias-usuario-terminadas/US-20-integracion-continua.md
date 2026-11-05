@@ -16,7 +16,7 @@ Como equipo, quiero validar cada cambio con build, tests y nombre de rama antes 
 
 La integración continua vive en `.github/workflows/ci.yml` y no publica ni despliega imágenes. El despliegue continuo es una historia separada: **US-31**.
 
-La CI se ejecuta en pushes y pull requests a `main` y `development`, levanta MongoDB 8 como servicio y ejecuta los tests unitarios y los tests `MongoFact`.
+La CI se ejecuta manualmente o en la promoción de `development` a `main` (pull request hacia `main` y push a `main`), levanta MongoDB 8 como servicio y ejecuta los tests unitarios y los tests `MongoFact`. Las ramas de trabajo y los pull requests hacia `development` no la disparan automáticamente.
 
 Para que las reglas de GitHub funcionen, la rama default debe ser `development` y los rulesets deben exigir los checks de CI. El paso a paso está en [`docs/despliegue-azure.md`](../despliegue-azure.md), secciones 4.1 a 4.3.
 
@@ -24,7 +24,7 @@ Para que las reglas de GitHub funcionen, la rama default debe ser `development` 
 
 - [x] CI valida el nombre de la rama en pull requests.
 - [x] CI omite la validación de nombre en las ramas de promoción `development` y `main`.
-- [x] CI restaura, compila en `Release` y ejecuta tests en pushes y pull requests a `main` y `development`.
+- [x] CI restaura, compila en `Release` y ejecuta tests manualmente o en la promoción de `development` a `main`.
 - [x] CI levanta MongoDB 8 y ejecuta los tests `MongoFact`, no solo los unitarios.
 - [x] CI sube los resultados de tests como artefacto.
 - [x] CI no publica imágenes ni despliega.

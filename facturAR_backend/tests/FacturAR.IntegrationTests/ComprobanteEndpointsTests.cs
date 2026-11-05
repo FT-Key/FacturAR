@@ -47,6 +47,28 @@ public sealed class ComprobanteEndpointsTests
     }
 
     [Fact]
+    public async Task Emitir_ConContribuyenteInactivo_Devuelve403CuentaInactiva()
+    {
+        using var factory = new ComprobanteApiKeyFactory();
+        var contribuyente = factory.Contribuyentes.Contribuyentes
+            .Single(c => c.Id == ComprobanteApiKeyFactory.ContribuyenteId);
+        contribuyente.Activo = false;
+        using var client = factory.CreateClient();
+
+        var response = await EnviarAsync(
+            client,
+            FacturaA(),
+            "idem-cuenta-inactiva",
+            ComprobanteApiKeyFactory.ApiKeyValida);
+
+        var error = await AssertErrorAsync(response, HttpStatusCode.Forbidden, "CUENTA_INACTIVA");
+        Assert.Equal("El contribuyente está inactivo.", error.Mensaje);
+        Assert.Empty(factory.Comprobantes.Comprobantes);
+        Assert.Equal(0, factory.Secuencias.Llamadas);
+        Assert.Empty(factory.Eventos.Eventos);
+    }
+
+    [Fact]
     public async Task Emitir_SinIdempotencyKey_Devuelve400Validacion()
     {
         using var factory = new ComprobanteApiKeyFactory();

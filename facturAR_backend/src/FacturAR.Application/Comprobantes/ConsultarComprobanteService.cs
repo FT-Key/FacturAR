@@ -8,12 +8,18 @@ namespace FacturAR.Application.Comprobantes;
 
 public sealed class ConsultarComprobanteService(IComprobanteRepository comprobantes)
 {
+    public Task<Comprobante?> ConsultarEntidadAsync(
+        Guid contribuyenteId,
+        Guid id,
+        CancellationToken ct = default)
+        => comprobantes.GetByIdAsync(contribuyenteId, id, ct);
+
     public async Task<ComprobanteDetalleResponse?> ConsultarAsync(
         Guid contribuyenteId,
         Guid id,
         CancellationToken ct = default)
     {
-        var comprobante = await comprobantes.GetByIdAsync(contribuyenteId, id, ct);
+        var comprobante = await ConsultarEntidadAsync(contribuyenteId, id, ct);
 
         return comprobante is null ? null : Mapear(comprobante);
     }
