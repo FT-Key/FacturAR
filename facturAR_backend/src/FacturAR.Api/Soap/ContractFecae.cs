@@ -132,11 +132,13 @@ public sealed class ContractFecae : IContractFecae
                 request.PtoVta,
                 ct);
 
-            var comprobante = await _consultas.ConsultarUltimoEmitidoAsync(
-                autenticado.ContribuyenteId,
-                request.TipoComprobante,
-                request.PtoVta,
-                ct);
+            var comprobante = ultimo.Numero > 0
+                ? await _consultas.ConsultarUltimoEmitidoAsync(
+                    autenticado.ContribuyenteId,
+                    request.TipoComprobante,
+                    request.PtoVta,
+                    ct)
+                : null;
 
             return ConsultasMapeador.AUltimoAutorizadoAprobado(ultimo, comprobante);
         }

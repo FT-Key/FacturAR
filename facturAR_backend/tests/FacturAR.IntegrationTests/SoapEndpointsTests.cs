@@ -288,9 +288,8 @@ public sealed class SoapEndpointsTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var documento = XDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal("A", Valor(documento, "Resultado"));
-        Assert.Equal(comprobante.Id.ToString(), Valor(documento, "Id"));
+        Assert.Equal(CuitEmisor, Valor(documento, "Cuit"));
         Assert.Equal("11", Valor(documento, "TipoComprobante"));
-        Assert.Equal("Factura C", Valor(documento, "TipoComprobanteDescripcion"));
         Assert.Equal("1", Valor(documento, "PtoVta"));
         Assert.Equal("42", Valor(documento, "Numero"));
         Assert.Equal("20261103", Valor(documento, "FechaEmision"));
@@ -298,16 +297,12 @@ public sealed class SoapEndpointsTests
         Assert.Equal("20261113", Valor(documento, "FchVto"));
         Assert.Equal("CUIT", Valor(documento, "DocTipo"));
         Assert.Equal("20345678901", Valor(documento, "DocNro"));
-        Assert.Equal("Cliente Final", Valor(documento, "ReceptorRazonSocial"));
         Assert.Equal("5", Valor(documento, "CondicionIVA"));
         Assert.Equal("100", Valor(documento, "ImporteNeto"));
-        Assert.Equal("0", Valor(documento, "ImporteIVA"));
+        Assert.Equal("0", Valor(documento, "ImporteIva"));
         Assert.Equal("100", Valor(documento, "ImporteTotal"));
-        Assert.Equal("100", Valor(documento, "SaldoPendiente"));
         Assert.Equal("ARS", Valor(documento, "Moneda"));
         Assert.Equal("Emitido", Valor(documento, "Estado"));
-        Assert.Equal("Servicio", Valor(documento, "Descripcion"));
-        Assert.Equal("100", Valor(documento, "Subtotal"));
     }
 
     [Fact]
@@ -466,7 +461,7 @@ public sealed class SoapEndpointsTests
         Assert.Equal(HttpStatusCode.OK, soapResponse.StatusCode);
         var soapDoc = XDocument.Parse(await soapResponse.Content.ReadAsStringAsync());
 
-        Assert.Equal(detalleRest!.Id.ToString(), Valor(soapDoc, "Id"));
+        Assert.Equal(detalleRest!.EmisorCuit, Valor(soapDoc, "Cuit"));
         Assert.Equal(detalleRest.Cae, Valor(soapDoc, "Cae"));
         Assert.Equal(detalleRest.Numero.ToString(CultureInfo.InvariantCulture), Valor(soapDoc, "Numero"));
         Assert.Equal(detalleRest.PuntoVenta.ToString(CultureInfo.InvariantCulture), Valor(soapDoc, "PtoVta"));
@@ -475,11 +470,12 @@ public sealed class SoapEndpointsTests
             detalleRest.FechaEmision.ToString("yyyyMMdd", CultureInfo.InvariantCulture),
             Valor(soapDoc, "FechaEmision"));
         Assert.Equal(
-            detalleRest.FechaVencimientoCae.ToString("yyyyMMdd", CultureInfo.InvariantCulture),
+            detalleRest.CaeVencimiento.ToString("yyyyMMdd", CultureInfo.InvariantCulture),
             Valor(soapDoc, "FchVto"));
         Assert.Equal(
             detalleRest.ImporteTotal.ToString(CultureInfo.InvariantCulture),
             Valor(soapDoc, "ImporteTotal"));
+        Assert.Equal(detalleRest.Moneda, Valor(soapDoc, "Moneda"));
         Assert.Equal(detalleRest.Estado, Valor(soapDoc, "Estado"));
     }
 
@@ -512,10 +508,10 @@ public sealed class SoapEndpointsTests
         var soapDoc = XDocument.Parse(await soapResponse.Content.ReadAsStringAsync());
 
         Assert.Equal(
-            ultimoRest!.UltimoNumero.ToString(CultureInfo.InvariantCulture),
+            ultimoRest!.Numero.ToString(CultureInfo.InvariantCulture),
             Valor(soapDoc, "UltimoNro"));
         Assert.Equal(
-            ultimoRest.PuntoVenta.ToString(CultureInfo.InvariantCulture),
+            ultimoRest.PuntoVenta!.Value.ToString(CultureInfo.InvariantCulture),
             Valor(soapDoc, "PtoVta"));
         Assert.Equal(
             ultimoRest.TipoComprobante.ToString(CultureInfo.InvariantCulture),
@@ -586,12 +582,14 @@ public sealed class SoapEndpointsTests
         {
             Id = Guid.NewGuid(),
             ContribuyenteId = contribuyenteId,
+            EmisorCuit = CuitEmisor,
+            EmisorRazonSocial = "Demo SRL",
             PuntoVenta = 1,
             TipoComprobante = TipoComprobante.FacturaC,
             Numero = numero,
             FechaEmision = new DateTime(2026, 11, 3, 0, 0, 0, DateTimeKind.Utc),
             Cae = "12345678901234",
-            FechaVencimientoCae = new DateTime(2026, 11, 13, 0, 0, 0, DateTimeKind.Utc),
+            CaeVencimiento = new DateTime(2026, 11, 13, 0, 0, 0, DateTimeKind.Utc),
             ReceptorDocumentoTipo = "CUIT",
             ReceptorDocumentoNumero = "20345678901",
             ReceptorRazonSocial = "Cliente Final",
@@ -610,7 +608,6 @@ public sealed class SoapEndpointsTests
             ImporteNeto = 100m,
             ImporteIva = 0m,
             ImporteTotal = 100m,
-            SaldoPendiente = 100m,
             Moneda = "ARS",
             Estado = EstadoComprobante.Emitido
         };

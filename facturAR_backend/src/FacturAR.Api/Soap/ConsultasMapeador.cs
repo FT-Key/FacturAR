@@ -10,8 +10,8 @@ public static class ConsultasMapeador
     private const string ResultadoAprobado = "A";
     private const string ResultadoRechazado = "R";
     private const string EstadoDummyOk = "OK";
-    private const string NombreServicio = "FacturAR SOAP";
-    private const string FormatoFechaVencimiento = "yyyyMMdd";
+    private const string NombreServicio = "FacturAR.Api";
+    private const string FormatoFechaComprobante = "yyyyMMdd";
     private const string FormatoFechaIsoUtc = "yyyy-MM-ddTHH:mm:ssZ";
 
     public static FECompUltimoAutorizadoResponse AUltimoAutorizadoAprobado(
@@ -31,8 +31,8 @@ public static class ConsultasMapeador
             TipoComprobante = ultimo.TipoComprobante,
             UltimoNro = ultimoNumero,
             Cae = tieneComprobante ? comprobante!.Cae : null,
-            FechaEmision = tieneComprobante ? FormatearFechaUtc(comprobante!.FechaEmision) : null,
-            FchVto = tieneComprobante ? FormatearVencimiento(comprobante!.CaeVencimiento) : null
+            FechaEmision = tieneComprobante ? FormatearFechaComprobante(comprobante!.FechaEmision) : null,
+            FchVto = tieneComprobante ? FormatearFechaComprobante(comprobante!.CaeVencimiento) : null
         };
     }
 
@@ -51,9 +51,9 @@ public static class ConsultasMapeador
             PtoVta = comprobante.PuntoVenta,
             TipoComprobante = comprobante.TipoComprobante,
             Numero = comprobante.Numero,
-            FechaEmision = FormatearFechaUtc(comprobante.FechaEmision),
+            FechaEmision = FormatearFechaComprobante(comprobante.FechaEmision),
             Cae = comprobante.Cae,
-            FchVto = FormatearVencimiento(comprobante.CaeVencimiento),
+            FchVto = FormatearFechaComprobante(comprobante.CaeVencimiento),
             DocTipo = comprobante.Receptor.DocumentoTipo,
             DocNro = comprobante.Receptor.DocumentoNumero,
             CondicionIVA = comprobante.Receptor.CondicionIva,
@@ -76,9 +76,9 @@ public static class ConsultasMapeador
             PtoVta = comprobante.PuntoVenta,
             TipoComprobante = comprobante.TipoComprobante,
             Numero = comprobante.Numero,
-            FechaEmision = FormatearFechaUtc(comprobante.FechaEmision),
+            FechaEmision = FormatearFechaComprobante(comprobante.FechaEmision),
             Cae = comprobante.Cae,
-            FchVto = FormatearVencimiento(comprobante.CaeVencimiento),
+            FchVto = FormatearFechaComprobante(comprobante.CaeVencimiento),
             DocTipo = comprobante.Receptor.DocumentoTipo,
             DocNro = comprobante.Receptor.DocumentoNumero,
             CondicionIVA = comprobante.Receptor.CondicionIva,
@@ -115,7 +115,7 @@ public static class ConsultasMapeador
         return utc.ToString(FormatoFechaIsoUtc, CultureInfo.InvariantCulture);
     }
 
-    private static string FormatearVencimiento(DateTime vencimiento)
-        => vencimiento.ToString(FormatoFechaVencimiento, CultureInfo.InvariantCulture);
+    private static string FormatearFechaComprobante(DateTime fecha)
+        => fecha.ToString(FormatoFechaComprobante, CultureInfo.InvariantCulture);
 }
 

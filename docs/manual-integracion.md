@@ -638,7 +638,7 @@ Respuesta `200`:
 
 ### 7.4 Consultar por SOAP (US-16)
 
-> **Parcial — US-16.** `FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy` están implementadas sobre el mismo endpoint `POST /soap` y expuestas en `GET /soap?wsdl`, delegando en `ObtenerUltimoAutorizadoService` y `ConsultarComprobanteService` (US-09). Están cubiertas por tests unitarios y de integración; falta la ejecución en un entorno con .NET 10 SDK y MongoDB real.
+> **Parcial — US-16.** `FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy` están implementadas sobre el mismo endpoint `POST /soap` y expuestas en `GET /soap?wsdl`, delegando en `ObtenerUltimoAutorizadoService` y `ConsultarComprobanteService` (US-09). Están cubiertas por tests unitarios y de integración sin Mongo (CP-16.01 a CP-16.12 aprobados); falta la verificación end-to-end con MongoDB real.
 
 Las tres operaciones exigen API key válida (header `X-Api-Key` o `Auth/Token` en el sobre), aislan los datos por el `ContribuyenteId` de la key y son estrictamente de solo lectura.
 
@@ -714,33 +714,21 @@ Respuesta aprobada (`Resultado = "R"` con `COMPROBANTE_NO_ENCONTRADO` y sin ning
   <s:Body>
     <FECompConsultarResponse xmlns="http://ar.gov.afip.dif.FEV1Service/">
       <Resultado>A</Resultado>
-      <Id>6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22</Id>
-      <TipoComprobante>11</TipoComprobante>
-      <TipoComprobanteDescripcion>Factura C</TipoComprobanteDescripcion>
+      <Cuit>20123456786</Cuit>
       <PtoVta>1</PtoVta>
+      <TipoComprobante>11</TipoComprobante>
       <Numero>42</Numero>
       <FechaEmision>20261103</FechaEmision>
       <Cae>12345678901234</Cae>
       <FchVto>20261113</FchVto>
       <DocTipo>99</DocTipo>
       <DocNro>0</DocNro>
-      <ReceptorRazonSocial>Consumidor Final</ReceptorRazonSocial>
       <CondicionIVA>5</CondicionIVA>
-      <ImporteNeto>100</ImporteNeto>
-      <ImporteIVA>0</ImporteIVA>
-      <ImporteTotal>100</ImporteTotal>
-      <SaldoPendiente>100</SaldoPendiente>
       <Moneda>ARS</Moneda>
+      <ImporteNeto>100</ImporteNeto>
+      <ImporteIva>0</ImporteIva>
+      <ImporteTotal>100</ImporteTotal>
       <Estado>Emitido</Estado>
-      <Items>
-        <Item>
-          <Descripcion>Servicio</Descripcion>
-          <Cantidad>1</Cantidad>
-          <PrecioUnitario>100</PrecioUnitario>
-          <AlicuotaIVA>0</AlicuotaIVA>
-          <Subtotal>100</Subtotal>
-        </Item>
-      </Items>
     </FECompConsultarResponse>
   </s:Body>
 </s:Envelope>

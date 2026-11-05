@@ -138,7 +138,7 @@ public sealed class ComprobanteEndpointsTests
         var response = await client.SendAsync(mensaje);
 
         var error = await AssertErrorAsync(response, HttpStatusCode.BadRequest, "VALIDACION");
-        Assert.Equal("Los Ã­tems del comprobante no son vÃ¡lidos.", error.Mensaje);
+        Assert.Equal("Los ítems del comprobante no son válidos.", error.Mensaje);
         Assert.Empty(factory.Eventos.Eventos);
     }
 
@@ -160,7 +160,7 @@ public sealed class ComprobanteEndpointsTests
         var response = await client.SendAsync(mensaje);
 
         var error = await AssertErrorAsync(response, HttpStatusCode.BadRequest, "VALIDACION");
-        Assert.Equal("El cuerpo de la solicitud no es vÃ¡lido.", error.Mensaje);
+        Assert.Equal("El cuerpo de la solicitud no es válido.", error.Mensaje);
         Assert.Empty(factory.Eventos.Eventos);
     }
 

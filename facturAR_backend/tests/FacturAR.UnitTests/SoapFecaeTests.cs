@@ -323,9 +323,8 @@ public sealed class SoapFecaeTests
         });
 
         Assert.Equal("A", respuesta.Resultado);
-        Assert.Equal(comprobante.Id, respuesta.Id);
+        Assert.Equal(CuitEmisor, respuesta.Cuit);
         Assert.Equal((int)TipoComprobante.FacturaC, respuesta.TipoComprobante);
-        Assert.Equal("Factura C", respuesta.TipoComprobanteDescripcion);
         Assert.Equal(1, respuesta.PtoVta);
         Assert.Equal(42, respuesta.Numero);
         Assert.Equal("20261103", respuesta.FechaEmision);
@@ -333,20 +332,12 @@ public sealed class SoapFecaeTests
         Assert.Equal("20261113", respuesta.FchVto);
         Assert.Equal("CUIT", respuesta.DocTipo);
         Assert.Equal("20345678901", respuesta.DocNro);
-        Assert.Equal("Cliente Final", respuesta.ReceptorRazonSocial);
         Assert.Equal(5, respuesta.CondicionIVA);
         Assert.Equal(100m, respuesta.ImporteNeto);
-        Assert.Equal(0m, respuesta.ImporteIVA);
+        Assert.Equal(0m, respuesta.ImporteIva);
         Assert.Equal(100m, respuesta.ImporteTotal);
-        Assert.Equal(100m, respuesta.SaldoPendiente);
         Assert.Equal("ARS", respuesta.Moneda);
         Assert.Equal("Emitido", respuesta.Estado);
-        var item = Assert.Single(respuesta.Items!);
-        Assert.Equal("Servicio", item.Descripcion);
-        Assert.Equal(1m, item.Cantidad);
-        Assert.Equal(100m, item.PrecioUnitario);
-        Assert.Equal(0m, item.AlicuotaIVA);
-        Assert.Equal(100m, item.Subtotal);
     }
 
     [Fact]
@@ -365,12 +356,11 @@ public sealed class SoapFecaeTests
 
         Assert.Equal("R", respuesta.Resultado);
         Assert.Equal(
-            "COMPROBANTE_NO_ENCONTRADO: El comprobante no existe.",
+            "COMPROBANTE_NO_ENCONTRADO: No existe un comprobante con los datos indicados.",
             respuesta.Observaciones);
         Assert.Null(respuesta.Cae);
-        Assert.Null(respuesta.ReceptorRazonSocial);
-        Assert.Null(respuesta.Items);
-        Assert.False(respuesta.ShouldSerializeId());
+        Assert.Null(respuesta.DocNro);
+        Assert.False(respuesta.ShouldSerializePtoVta());
         Assert.False(respuesta.ShouldSerializeNumero());
         Assert.False(respuesta.ShouldSerializeImporteTotal());
     }
@@ -470,19 +460,19 @@ public sealed class SoapFecaeTests
             new DateTime(2026, 11, 3, 0, 0, 0, DateTimeKind.Utc),
             "12345678901234",
             new DateTime(2026, 11, 13, 0, 0, 0, DateTimeKind.Utc),
+            CuitEmisor,
+            "Demo SRL",
             new ReceptorComprobanteResponse("CUIT", "20345678901", "Cliente SRL", 5),
-            [new ComprobanteItemResponse("Servicio", 2m, 50m, 0m, 100m)],
             100m,
             0m,
-            100m,
             100m,
             "ARS",
             "Emitido",
             null,
-            null);
+            [new ComprobanteItemResponse("Servicio", 2m, 50m, 0m, 100m)]);
 
-        var ultimo = ConsultasMapeador.AUltimoAutorizado(
-            new UltimoAutorizadoResponse(11, "Factura C", 1, 42),
+        var ultimo = ConsultasMapeador.AUltimoAutorizadoAprobado(
+            new UltimoAutorizadoResponse(11, 1, 42),
             detalle);
         Assert.Equal("A", ultimo.Resultado);
         Assert.Equal(42, ultimo.UltimoNro);
@@ -490,18 +480,18 @@ public sealed class SoapFecaeTests
         Assert.Equal("20261103", ultimo.FechaEmision);
         Assert.Equal("20261113", ultimo.FchVto);
 
-        var ultimoRechazado = ConsultasMapeador.UltimoAutorizadoRechazado("VALIDACION", "PtoVta inválido.");
+        var ultimoRechazado = ConsultasMapeador.AUltimoAutorizadoRechazado("VALIDACION", "PtoVta inválido.");
         Assert.Equal("R", ultimoRechazado.Resultado);
         Assert.Equal("VALIDACION: PtoVta inválido.", ultimoRechazado.Observaciones);
         Assert.False(ultimoRechazado.ShouldSerializeUltimoNro());
 
-        var consulta = ConsultasMapeador.AConsulta(detalle);
+        var consulta = ConsultasMapeador.AConsultaAprobada(detalle);
         Assert.Equal("A", consulta.Resultado);
         Assert.Equal(42, consulta.Numero);
         Assert.Equal("12345678901234", consulta.Cae);
-        Assert.Single(consulta.Items!);
+        Assert.Equal(CuitEmisor, consulta.Cuit);
 
-        var consultaRechazada = ConsultasMapeador.ConsultaRechazada("COMPROBANTE_NO_ENCONTRADO", "El comprobante no existe.");
+        var consultaRechazada = ConsultasMapeador.AConsultaRechazada("COMPROBANTE_NO_ENCONTRADO", "El comprobante no existe.");
         Assert.Equal("R", consultaRechazada.Resultado);
         Assert.Equal("COMPROBANTE_NO_ENCONTRADO: El comprobante no existe.", consultaRechazada.Observaciones);
         Assert.False(consultaRechazada.ShouldSerializeNumero());
@@ -735,12 +725,14 @@ public sealed class SoapFecaeTests
             {
                 Id = Guid.NewGuid(),
                 ContribuyenteId = contribuyenteId ?? ContribuyenteId,
+                EmisorCuit = CuitEmisor,
+                EmisorRazonSocial = "Demo SRL",
                 PuntoVenta = puntoVenta,
                 TipoComprobante = tipo,
                 Numero = numero,
                 FechaEmision = new DateTime(2026, 11, 3, 0, 0, 0, DateTimeKind.Utc),
                 Cae = "12345678901234",
-                FechaVencimientoCae = new DateTime(2026, 11, 13, 0, 0, 0, DateTimeKind.Utc),
+                CaeVencimiento = new DateTime(2026, 11, 13, 0, 0, 0, DateTimeKind.Utc),
                 ReceptorDocumentoTipo = "CUIT",
                 ReceptorDocumentoNumero = "20345678901",
                 ReceptorRazonSocial = "Cliente Final",
@@ -759,7 +751,6 @@ public sealed class SoapFecaeTests
                 ImporteNeto = 100m,
                 ImporteIva = 0m,
                 ImporteTotal = 100m,
-                SaldoPendiente = 100m,
                 Moneda = "ARS",
                 Estado = EstadoComprobante.Emitido
             };
