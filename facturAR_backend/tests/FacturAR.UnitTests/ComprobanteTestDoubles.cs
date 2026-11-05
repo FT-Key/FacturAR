@@ -29,11 +29,13 @@ internal sealed class ComprobanteContexto
             Activo = true
         });
 
+        Idempotencia = new IdempotenciaService(Comprobantes);
         Servicio = new EmitirComprobanteService(
             Contribuyentes,
             PuntosVenta,
             Secuencias,
             Comprobantes,
+            Idempotencia,
             Eventos,
             Transaccion,
             Parametros);
@@ -61,7 +63,20 @@ internal sealed class ComprobanteContexto
 
     public ComprobanteParametrosFake Parametros { get; } = new();
 
+    public IIdempotenciaService Idempotencia { get; }
+
     public EmitirComprobanteService Servicio { get; }
+
+    public EmitirComprobanteService CrearServicio(IComprobanteRepository comprobantes)
+        => new(
+            Contribuyentes,
+            PuntosVenta,
+            Secuencias,
+            comprobantes,
+            new IdempotenciaService(comprobantes),
+            Eventos,
+            Transaccion,
+            Parametros);
 
     public EmitirComprobanteRequest FacturaA(
         decimal? importeTotal = 12100m,
@@ -245,6 +260,12 @@ internal sealed class ComprobanteRepositorioFake : IComprobanteRepository
 
         return Task.FromResult<(IReadOnlyList<Comprobante>, long)>((items, coincidencias.Count));
     }
+    public Task<Comprobante?> GetByIdempotencyKeyAsync(
+        Guid contribuyenteId,
+        string clave,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(Comprobantes.FirstOrDefault(
+            c => c.ContribuyenteId == contribuyenteId && c.IdempotencyKey == clave));
 
     public Task AddAsync(Comprobante comprobante, CancellationToken cancellationToken = default)
     {

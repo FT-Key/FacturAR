@@ -1,3 +1,5 @@
+using FacturAR.Application.Abstractions;
+using FacturAR.Application.Comprobantes;
 using FacturAR.Contracts.Comprobantes;
 using FacturAR.Domain.Entities;
 using FacturAR.Domain.Enums;
@@ -15,29 +17,29 @@ public sealed class EmitirComprobanteServiceTests
         var contexto = new ComprobanteContexto();
         contexto.Secuencias.Numero = 42;
 
-        var respuesta = await contexto.Servicio.EmitirAsync(
+        var resultado = await contexto.Servicio.EmitirAsync(
             contexto.Emisor.Id,
             "Emisor",
             contexto.FacturaA() with { FechaEmision = FechaEmision },
             "idem-cp0501");
 
-        Assert.NotEqual(Guid.Empty, respuesta.Id);
-        Assert.Equal((int)TipoComprobante.FacturaA, respuesta.TipoComprobante);
-        Assert.Equal("Factura A", respuesta.TipoComprobanteDescripcion);
-        Assert.Equal(1, respuesta.PuntoVenta);
-        Assert.Equal(42, respuesta.Numero);
-        Assert.Equal(FechaEmision, respuesta.FechaEmision);
-        Assert.Matches("^[1-9][0-9]{13}$", respuesta.Cae);
-        Assert.Equal(FechaEmision.Date.AddDays(10), respuesta.CaeVencimiento);
-        Assert.Equal(10000m, respuesta.ImporteNeto);
-        Assert.Equal(2100m, respuesta.ImporteIva);
-        Assert.Equal(12100m, respuesta.ImporteTotal);
-        Assert.Equal("ARS", respuesta.Moneda);
-        Assert.Equal("Emitido", respuesta.Estado);
-        Assert.Equal("CUIT", respuesta.Receptor.DocumentoTipo);
-        Assert.Equal(ComprobanteContexto.CuitReceptor, respuesta.Receptor.DocumentoNumero);
-        Assert.Equal("Cliente S.A.", respuesta.Receptor.RazonSocial);
-        Assert.Equal((int)CondicionIva.ResponsableInscripto, respuesta.Receptor.CondicionIva);
+        Assert.NotEqual(Guid.Empty, resultado.Comprobante.Id);
+        Assert.Equal((int)TipoComprobante.FacturaA, resultado.Comprobante.TipoComprobante);
+        Assert.Equal("Factura A", resultado.Comprobante.TipoComprobanteDescripcion);
+        Assert.Equal(1, resultado.Comprobante.PuntoVenta);
+        Assert.Equal(42, resultado.Comprobante.Numero);
+        Assert.Equal(FechaEmision, resultado.Comprobante.FechaEmision);
+        Assert.Matches("^[1-9][0-9]{13}$", resultado.Comprobante.Cae);
+        Assert.Equal(FechaEmision.Date.AddDays(10), resultado.Comprobante.CaeVencimiento);
+        Assert.Equal(10000m, resultado.Comprobante.ImporteNeto);
+        Assert.Equal(2100m, resultado.Comprobante.ImporteIva);
+        Assert.Equal(12100m, resultado.Comprobante.ImporteTotal);
+        Assert.Equal("ARS", resultado.Comprobante.Moneda);
+        Assert.Equal("Emitido", resultado.Comprobante.Estado);
+        Assert.Equal("CUIT", resultado.Comprobante.Receptor.DocumentoTipo);
+        Assert.Equal(ComprobanteContexto.CuitReceptor, resultado.Comprobante.Receptor.DocumentoNumero);
+        Assert.Equal("Cliente S.A.", resultado.Comprobante.Receptor.RazonSocial);
+        Assert.Equal((int)CondicionIva.ResponsableInscripto, resultado.Comprobante.Receptor.CondicionIva);
         Assert.Equal((contexto.Emisor.Id, 1, TipoComprobante.FacturaA), contexto.Secuencias.UltimaClave);
         Assert.Equal(1, contexto.Transaccion.Ejecuciones);
     }
@@ -47,19 +49,19 @@ public sealed class EmitirComprobanteServiceTests
     {
         var contexto = new ComprobanteContexto();
 
-        var respuesta = await contexto.Servicio.EmitirAsync(
+        var resultado = await contexto.Servicio.EmitirAsync(
             contexto.Emisor.Id,
             "Emisor",
             contexto.FacturaC(),
             "idem-cp0502");
 
-        Assert.Equal((int)TipoComprobante.FacturaC, respuesta.TipoComprobante);
-        Assert.Equal("Factura C", respuesta.TipoComprobanteDescripcion);
-        Assert.Equal(10000m, respuesta.ImporteNeto);
-        Assert.Equal(0m, respuesta.ImporteIva);
-        Assert.Equal(10000m, respuesta.ImporteTotal);
-        Assert.Equal("Emitido", respuesta.Estado);
-        Assert.Matches("^[1-9][0-9]{13}$", respuesta.Cae);
+        Assert.Equal((int)TipoComprobante.FacturaC, resultado.Comprobante.TipoComprobante);
+        Assert.Equal("Factura C", resultado.Comprobante.TipoComprobanteDescripcion);
+        Assert.Equal(10000m, resultado.Comprobante.ImporteNeto);
+        Assert.Equal(0m, resultado.Comprobante.ImporteIva);
+        Assert.Equal(10000m, resultado.Comprobante.ImporteTotal);
+        Assert.Equal("Emitido", resultado.Comprobante.Estado);
+        Assert.Matches("^[1-9][0-9]{13}$", resultado.Comprobante.Cae);
     }
 
     [Fact]
@@ -67,17 +69,17 @@ public sealed class EmitirComprobanteServiceTests
     {
         var contexto = new ComprobanteContexto();
 
-        var respuesta = await contexto.Servicio.EmitirAsync(
+        var resultado = await contexto.Servicio.EmitirAsync(
             contexto.Emisor.Id,
             "Emisor",
             contexto.FacturaB(),
             "idem-cp0503");
 
-        Assert.Equal((int)TipoComprobante.FacturaB, respuesta.TipoComprobante);
-        Assert.Equal("Factura B", respuesta.TipoComprobanteDescripcion);
-        Assert.Equal(12100m, respuesta.ImporteNeto);
-        Assert.Equal(0m, respuesta.ImporteIva);
-        Assert.Equal(12100m, respuesta.ImporteTotal);
+        Assert.Equal((int)TipoComprobante.FacturaB, resultado.Comprobante.TipoComprobante);
+        Assert.Equal("Factura B", resultado.Comprobante.TipoComprobanteDescripcion);
+        Assert.Equal(12100m, resultado.Comprobante.ImporteNeto);
+        Assert.Equal(0m, resultado.Comprobante.ImporteIva);
+        Assert.Equal(12100m, resultado.Comprobante.ImporteTotal);
     }
 
     [Fact]
@@ -85,15 +87,15 @@ public sealed class EmitirComprobanteServiceTests
     {
         var contexto = new ComprobanteContexto();
 
-        var respuesta = await contexto.Servicio.EmitirAsync(
+        var resultado = await contexto.Servicio.EmitirAsync(
             contexto.Emisor.Id,
             "Emisor",
             contexto.FacturaC(alicuotaIva: 21m),
             "idem-cp0517");
 
-        Assert.Equal(10000m, respuesta.ImporteNeto);
-        Assert.Equal(0m, respuesta.ImporteIva);
-        Assert.Equal(10000m, respuesta.ImporteTotal);
+        Assert.Equal(10000m, resultado.Comprobante.ImporteNeto);
+        Assert.Equal(0m, resultado.Comprobante.ImporteIva);
+        Assert.Equal(10000m, resultado.Comprobante.ImporteTotal);
     }
 
     [Fact]
@@ -101,16 +103,16 @@ public sealed class EmitirComprobanteServiceTests
     {
         var contexto = new ComprobanteContexto();
 
-        var respuesta = await contexto.Servicio.EmitirAsync(
+        var resultado = await contexto.Servicio.EmitirAsync(
             contexto.Emisor.Id,
             "Emisor",
             contexto.FacturaA(),
             "idem-cp0520");
 
-        Assert.Equal(10000m, respuesta.ImporteNeto);
-        Assert.Equal(2100m, respuesta.ImporteIva);
-        Assert.Equal(12100m, respuesta.ImporteTotal);
-        Assert.Equal((int)CondicionIva.ResponsableInscripto, respuesta.Receptor.CondicionIva);
+        Assert.Equal(10000m, resultado.Comprobante.ImporteNeto);
+        Assert.Equal(2100m, resultado.Comprobante.ImporteIva);
+        Assert.Equal(12100m, resultado.Comprobante.ImporteTotal);
+        Assert.Equal((int)CondicionIva.ResponsableInscripto, resultado.Comprobante.Receptor.CondicionIva);
     }
 
     [Fact]
@@ -119,13 +121,13 @@ public sealed class EmitirComprobanteServiceTests
         var contexto = new ComprobanteContexto();
         contexto.Parametros.DiasVencimiento = 30;
 
-        var respuesta = await contexto.Servicio.EmitirAsync(
+        var resultado = await contexto.Servicio.EmitirAsync(
             contexto.Emisor.Id,
             "Emisor",
             contexto.FacturaA() with { FechaEmision = FechaEmision },
             "idem-vencimiento");
 
-        Assert.Equal(FechaEmision.Date.AddDays(30), respuesta.CaeVencimiento);
+        Assert.Equal(FechaEmision.Date.AddDays(30), resultado.Comprobante.CaeVencimiento);
     }
 
     [Fact]
@@ -134,13 +136,13 @@ public sealed class EmitirComprobanteServiceTests
         var contexto = new ComprobanteContexto();
         contexto.Parametros.Moneda = "USD";
 
-        var respuesta = await contexto.Servicio.EmitirAsync(
+        var resultado = await contexto.Servicio.EmitirAsync(
             contexto.Emisor.Id,
             "Emisor",
             contexto.FacturaC(),
             "idem-moneda");
 
-        Assert.Equal("USD", respuesta.Moneda);
+        Assert.Equal("USD", resultado.Comprobante.Moneda);
     }
 
     [Fact]
@@ -230,13 +232,13 @@ public sealed class EmitirComprobanteServiceTests
     {
         var contexto = new ComprobanteContexto();
 
-        var respuesta = await contexto.Servicio.EmitirAsync(
+        var resultado = await contexto.Servicio.EmitirAsync(
             contexto.Emisor.Id,
             null,
             contexto.FacturaC(),
             "idem-apikey");
 
-        Assert.Equal("Emitido", respuesta.Estado);
+        Assert.Equal("Emitido", resultado.Comprobante.Estado);
         Assert.Single(contexto.Comprobantes.Comprobantes);
     }
 
@@ -247,13 +249,13 @@ public sealed class EmitirComprobanteServiceTests
     {
         var contexto = new ComprobanteContexto();
 
-        var respuesta = await contexto.Servicio.EmitirAsync(
+        var resultado = await contexto.Servicio.EmitirAsync(
             contexto.Emisor.Id,
             rol,
             contexto.FacturaC(),
             $"idem-{rol}");
 
-        Assert.Equal("Emitido", respuesta.Estado);
+        Assert.Equal("Emitido", resultado.Comprobante.Estado);
     }
 
     [Fact]
@@ -312,22 +314,22 @@ public sealed class EmitirComprobanteServiceTests
     {
         var contexto = new ComprobanteContexto();
 
-        var respuesta = await contexto.Servicio.EmitirAsync(
+        var resultado = await contexto.Servicio.EmitirAsync(
             contexto.Emisor.Id,
             "Administrador",
             contexto.FacturaA(),
             "idem-persistencia");
 
         var guardado = Assert.Single(contexto.Comprobantes.Comprobantes);
-        Assert.Equal(respuesta.Id, guardado.Id);
+        Assert.Equal(resultado.Comprobante.Id, guardado.Id);
         Assert.Equal("idem-persistencia", guardado.IdempotencyKey);
         Assert.Equal(contexto.Emisor.Id, guardado.ContribuyenteId);
         Assert.Equal(contexto.Emisor.Cuit, guardado.EmisorCuit);
         Assert.Equal(contexto.Emisor.RazonSocial, guardado.EmisorRazonSocial);
         Assert.Equal(1, guardado.PuntoVenta);
         Assert.Equal(TipoComprobante.FacturaA, guardado.TipoComprobante);
-        Assert.Equal(respuesta.Numero, guardado.Numero);
-        Assert.Equal(respuesta.Cae, guardado.Cae);
+        Assert.Equal(resultado.Comprobante.Numero, guardado.Numero);
+        Assert.Equal(resultado.Comprobante.Cae, guardado.Cae);
         Assert.Equal(EstadoComprobante.Emitido, guardado.Estado);
         Assert.Equal(10000m, guardado.ImporteNeto);
         Assert.Equal(2100m, guardado.ImporteIva);
@@ -351,7 +353,7 @@ public sealed class EmitirComprobanteServiceTests
         Assert.Equal(contexto.Emisor.Id, evento.ContribuyenteId);
         Assert.Null(evento.UsuarioId);
         Assert.Equal("Empresa", evento.ActorTipo);
-        Assert.Contains(respuesta.Cae, evento.Datos ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains(resultado.Comprobante.Cae, evento.Datos ?? string.Empty, StringComparison.Ordinal);
         Assert.Contains("\"numero\":\"42\"", evento.Datos ?? string.Empty, StringComparison.Ordinal);
     }
 
@@ -431,5 +433,233 @@ public sealed class EmitirComprobanteServiceTests
         Assert.DoesNotContain("EmisorCuit", propiedades);
         Assert.DoesNotContain("Cae", propiedades);
         Assert.DoesNotContain("Numero", propiedades);
+    }
+
+    [Fact]
+    public async Task Emitir_ReplayConMismaClaveYPayload_NoRenumeraNiDuplica()
+    {
+        var contexto = new ComprobanteContexto();
+        var request = contexto.FacturaA() with { FechaEmision = FechaEmision };
+
+        var primero = await contexto.Servicio.EmitirAsync(
+            contexto.Emisor.Id,
+            "Emisor",
+            request,
+            "pedido-001");
+        var segundo = await contexto.Servicio.EmitirAsync(
+            contexto.Emisor.Id,
+            "Emisor",
+            request,
+            "pedido-001");
+
+        Assert.False(primero.EsRepeticion);
+        Assert.True(segundo.EsRepeticion);
+        Assert.Equal(primero.Comprobante.Id, segundo.Comprobante.Id);
+        Assert.Equal(primero.Comprobante.Numero, segundo.Comprobante.Numero);
+        Assert.Equal(primero.Comprobante.Cae, segundo.Comprobante.Cae);
+        Assert.Equal(1, contexto.Secuencias.Llamadas);
+        Assert.Equal(1, contexto.Transaccion.Ejecuciones);
+        Assert.Single(contexto.Comprobantes.Comprobantes);
+        Assert.Single(contexto.Eventos.Eventos);
+    }
+
+    [Fact]
+    public async Task Emitir_MismaClaveConPayloadDistinto_LanzaConflictoSinConsumirNumero()
+    {
+        var contexto = new ComprobanteContexto();
+        var original = contexto.FacturaA() with { FechaEmision = FechaEmision };
+        await contexto.Servicio.EmitirAsync(
+            contexto.Emisor.Id,
+            "Emisor",
+            original,
+            "pedido-001");
+
+        var distinto = original with
+        {
+            ImporteTotal = 24200m,
+            Items = [new ItemComprobanteRequest("Servicio", 2m, 10000m, 21m)]
+        };
+
+        await Assert.ThrowsAsync<IdempotenciaConflictoException>(
+            () => contexto.Servicio.EmitirAsync(
+                contexto.Emisor.Id,
+                "Emisor",
+                distinto,
+                "pedido-001"));
+
+        Assert.Equal(1, contexto.Secuencias.Llamadas);
+        Assert.Equal(1, contexto.Transaccion.Ejecuciones);
+        Assert.Single(contexto.Comprobantes.Comprobantes);
+        Assert.Single(contexto.Eventos.Eventos);
+    }
+
+    [Fact]
+    public async Task Emitir_CarreraConGanadorDisponible_DevuelveReplaySinDuplicar()
+    {
+        var contexto = new ComprobanteContexto();
+        var request = contexto.FacturaA() with { FechaEmision = FechaEmision };
+        var ganador = new Comprobante
+        {
+            ContribuyenteId = contexto.Emisor.Id,
+            EmisorCuit = contexto.Emisor.Cuit,
+            EmisorRazonSocial = contexto.Emisor.RazonSocial,
+            PuntoVenta = 1,
+            TipoComprobante = TipoComprobante.FacturaA,
+            Numero = 7,
+            FechaEmision = FechaEmision,
+            Cae = "12345678901234",
+            CaeVencimiento = FechaEmision.AddDays(10),
+            ImporteNeto = 10000m,
+            ImporteIva = 2100m,
+            ImporteTotal = 12100m,
+            IdempotencyKey = "pedido-001",
+            IdempotencyPayloadHash = PayloadHasher.Hash(request)
+        };
+        var repositorio = new ComprobanteRepositorioCarreraFake(ganador);
+        var servicio = contexto.CrearServicio(repositorio);
+
+        var resultado = await servicio.EmitirAsync(
+            contexto.Emisor.Id,
+            "Emisor",
+            request,
+            "pedido-001");
+
+        Assert.True(resultado.EsRepeticion);
+        Assert.Equal(ganador.Id, resultado.Comprobante.Id);
+        Assert.Equal(7, resultado.Comprobante.Numero);
+        Assert.Equal("12345678901234", resultado.Comprobante.Cae);
+        Assert.Equal(1, repositorio.Inserciones);
+        Assert.Empty(contexto.Comprobantes.Comprobantes);
+    }
+
+    [Fact]
+    public async Task Emitir_CarreraSinGanadorDisponible_LanzaConflicto()
+    {
+        var contexto = new ComprobanteContexto();
+        var request = contexto.FacturaA() with { FechaEmision = FechaEmision };
+        var repositorio = new ComprobanteRepositorioCarreraFake(null);
+        var servicio = contexto.CrearServicio(repositorio);
+
+        await Assert.ThrowsAsync<IdempotenciaConflictoException>(
+            () => servicio.EmitirAsync(
+                contexto.Emisor.Id,
+                "Emisor",
+                request,
+                "pedido-001"));
+
+        Assert.Equal(1, repositorio.Inserciones);
+        Assert.Empty(contexto.Comprobantes.Comprobantes);
+    }
+
+    [Fact]
+    public async Task Emitir_MismaClaveEnOtroContribuyente_EmiteUnComprobanteNuevo()
+    {
+        var contexto = new ComprobanteContexto();
+        var otro = new Contribuyente
+        {
+            RazonSocial = "Otra SRL",
+            Cuit = "20111111112",
+            CondicionIva = CondicionIva.ResponsableInscripto,
+            Activo = true
+        };
+        contexto.Contribuyentes.Agregar(otro);
+        contexto.PuntosVenta.Agregar(new PuntoVenta
+        {
+            ContribuyenteId = otro.Id,
+            Numero = 1,
+            Descripcion = "Principal",
+            Activo = true
+        });
+        var request = contexto.FacturaA() with { FechaEmision = FechaEmision };
+
+        var primero = await contexto.Servicio.EmitirAsync(
+            contexto.Emisor.Id,
+            "Emisor",
+            request,
+            "pedido-001");
+        var segundo = await contexto.Servicio.EmitirAsync(
+            otro.Id,
+            "Emisor",
+            request,
+            "pedido-001");
+
+        Assert.False(primero.EsRepeticion);
+        Assert.False(segundo.EsRepeticion);
+        Assert.NotEqual(primero.Comprobante.Id, segundo.Comprobante.Id);
+        Assert.Equal(2, contexto.Secuencias.Llamadas);
+        Assert.Equal(2, contexto.Comprobantes.Comprobantes.Count);
+        Assert.Equal(
+            2,
+            contexto.Comprobantes.Comprobantes
+                .Select(c => c.ContribuyenteId)
+                .Distinct()
+                .Count());
+    }
+
+    [Fact]
+    public async Task Emitir_PersisteLaClaveYElHashDelPayload()
+    {
+        var contexto = new ComprobanteContexto();
+        var request = contexto.FacturaA() with { FechaEmision = FechaEmision };
+
+        await contexto.Servicio.EmitirAsync(
+            contexto.Emisor.Id,
+            "Emisor",
+            request,
+            "pedido-001");
+
+        var guardado = Assert.Single(contexto.Comprobantes.Comprobantes);
+        Assert.Equal("pedido-001", guardado.IdempotencyKey);
+        Assert.Equal(PayloadHasher.Hash(request), guardado.IdempotencyPayloadHash);
+        Assert.Matches("^[0-9a-f]{64}$", guardado.IdempotencyPayloadHash);
+    }
+
+    private sealed class ComprobanteRepositorioCarreraFake(Comprobante? ganador) : IComprobanteRepository
+    {
+        private int _lecturas;
+
+        public Comprobante? Ganador { get; } = ganador;
+
+        public int Inserciones { get; private set; }
+
+        public Task<Comprobante?> GetByCaeAsync(string cae, CancellationToken ct = default)
+            => Task.FromResult<Comprobante?>(null);
+
+        public Task<Comprobante?> GetByIdAsync(
+            Guid contribuyenteId,
+            Guid id,
+            CancellationToken ct = default)
+            => Task.FromResult<Comprobante?>(null);
+
+        public Task<(IReadOnlyList<Comprobante> Items, long Total)> ListarAsync(
+            Guid contribuyenteId,
+            FiltroListadoComprobantes filtro,
+            int page,
+            int pageSize,
+            CancellationToken ct = default)
+            => Task.FromResult<(IReadOnlyList<Comprobante>, long)>(([], 0));
+
+        public Task<Comprobante?> GetByIdempotencyKeyAsync(
+            Guid contribuyenteId,
+            string clave,
+            CancellationToken ct = default)
+        {
+            _lecturas++;
+            return Task.FromResult(_lecturas == 1 ? null : Ganador);
+        }
+
+        public Task AddAsync(Comprobante comprobante, CancellationToken ct = default)
+        {
+            Inserciones++;
+            throw new IdempotenciaDuplicadaException();
+        }
+
+        public Task<bool> AjustarSaldoAsync(
+            Guid contribuyenteId,
+            Guid originalId,
+            decimal? saldoEsperado,
+            decimal saldoNuevo,
+            CancellationToken ct = default)
+            => Task.FromResult(false);
     }
 }

@@ -20,6 +20,8 @@ Sirve para dos cosas:
 | Documentación | OpenAPI en `/openapi/v1.json` en Development. |
 | Puerto local | API `5171`, portal `5116`. En Docker: API `8080`, portal `8081`. |
 
+> **Excepción SOAP.** La fachada de emisión por SOAP (US-15) usa SOAP 1.1 sobre XML en `/soap`; se documenta en §7.6. El resto de la API de negocio sigue siendo JSON.
+
 ## 2. Errores
 
 Toda respuesta de error usa el mismo cuerpo:
@@ -76,6 +78,7 @@ Los códigos `VALIDACION`, `SOLICITUD_PENDIENTE`, `CUIT_YA_REGISTRADO`, `RATE_LI
 - El `codigo` no cambia. Si se necesita más detalle, se agregan campos opcionales al DTO en una historia futura, no se altera el existente.
 - Los errores de validación **no** enumeran los campos que fallaron salvo que la historia lo pida explícitamente.
 - **Nunca** se devuelve un `500` por datos inválidos del cliente: es un `400` con código específico.
+- **SOAP:** los errores de negocio viajan en HTTP `200` con `Resultado = "R"`; los de autenticación o protocolo viajan como `SOAP Fault` con el HTTP del código. Los códigos son los mismos de §2.1. Ver §7.6.
 
 ## 3. Identidad, roles y aislamiento multiempresa
 
@@ -158,6 +161,7 @@ Formato exacto: `fak_` + `prefix` (12 caracteres hexadecimales) + `_` + `secret`
 - La comparación del hash usa tiempo constante (`CryptographicOperations.FixedTimeEquals`).
 - Un `GET /v1/api-keys` **nunca** devuelve `Hash` ni el valor de la key. Devuelve `prefix` con el formato `fak_<prefix>`.
 - `ApiKey.UltimoUso` se actualiza en cada autenticación exitosa, con una granularidad mínima de 1 minuto para no generar escrituras por petición.
+- La fachada SOAP de emisión (US-15) reutiliza la misma API key: por el header `X-Api-Key` o por `Auth/Token` dentro del sobre. `Auth/Sign` se ignora. Ver §7.6.
 
 ### 4.2 Cookie de sesión — para el portal (US-04)
 
@@ -178,7 +182,9 @@ Formato exacto: `fak_` + `prefix` (12 caracteres hexadecimales) + `_` + `secret`
 - Si la misma clave llega con **otro** payload, se responde `409 IDEMPOTENCIA_CONFLICTO`.
 - Si la misma clave llega con el **mismo** payload, se devuelve el comprobante original con `200` y **no** se renumera ni se vuelve a generar el CAE.
 - El reintento devuelve el mismo `id`, `numero` y `cae`.
+- Todas las respuestas de `POST /v1/comprobantes`, incluidas `401` y `403`, devuelven el header `Idempotency-Key` con la clave recibida.
 - No hay expiración de claves: es una nota de alcance explícita de US-06.
+- No hay límite de intentos ni ventana temporal de reintentos: un replay con la misma clave y el mismo payload siempre devuelve el comprobante original.
 - La clave no se usa para otras operaciones (notas, pagos, consultas).
 
 ## 6. Paginación (US-09, US-12)
@@ -273,6 +279,23 @@ Reglas de validación:
 - El saldo ajustable del original es `ImporteTotal - Σ importes de notas de crédito + Σ importes de notas de débito`.
 - Una **nota de crédito** no puede superar el saldo ajustable del original: si lo supera, `400 IMPORTE_EXCEDIDO` y **no** se consume número ni CAE. Una **nota de débito** aumenta el saldo y no está limitada por él.
 - Emitir una nota actualiza el `ImporteOriginalAjustado` del comprobante original dentro de la misma transacción.
+
+### 7.6 SOAP de emisión (US-15)
+
+La emisión también se expone por **SOAP 1.1 sobre XML** en `POST /soap`. El WSDL está en `GET /soap?wsdl` y el namespace es `http://ar.gov.afip.dif.FEV1Service/`. No es un camino paralelo: `FECAESolicitar` delega en el mismo `EmitirComprobanteService` de `POST /v1/comprobantes`.
+
+| Operación | Request | Response |
+| --- | --- | --- |
+| `FECAESolicitar` | `Auth` (`Token`, `Sign`), `Cuit`, `PtoVta`, `TipoComprobante`, `Concepto`, `DocTipo`, `DocNro`, `CondicionIVA`, `Items[]` (`Descripcion`, `Cantidad`, `PrecioUnitario`, `AlicuotaIVA`), `IdempotencyKey` opcional | `FeCabResp` con `Resultado` (`"A"`/`"R"`), `CodAutorizacion` (CAE de 14 dígitos), `FchVto` (`yyyyMMdd`) y `Observaciones` |
+| `FECAEGenerar` | Misma estructura que `FECAESolicitar` | `Respuesta` con `Resultado` (`"A"`/`"R"`), `Error` (código canónico) y `Observaciones` (mensaje) |
+
+- **Autenticación:** header `X-Api-Key` (canónica) o `Auth/Token` dentro del sobre. `Auth/Sign` es opcional e ignorado. Sin credencial: `401 API_KEY_AUSENTE`; credencial inválida o revocada: `401 API_KEY_INVALIDA`. La API key nunca aparece en el `Fault`, en `Observaciones` ni en el log.
+- **Tenant:** sale **solo** de la API key. El `Cuit` del request se compara con el CUIT del contribuyente autenticado; si difieren, se devuelve `Resultado = "R"` con código `VALIDACION` y no se crea el comprobante. El mensaje no revela si el CUIT existe en otra empresa.
+- **`FECAESolicitar` es la única operación que persiste.** `FECAEGenerar` ejecuta las mismas validaciones, no inserta comprobante, no consume número y no genera CAE.
+- **Errores de negocio:** HTTP `200` con `Resultado = "R"` y `Observaciones = "<CODIGO>: <mensaje>"`. **Errores de autenticación o protocolo:** `SOAP Fault` con `faultstring = "<CODIGO>: <mensaje>"`, `detail/codigo`, `detail/mensaje` y HTTP `401`/`400`; MongoDB no disponible `503`; error interno `500` sin detalle. Los códigos son los de §2.1.
+- **Idempotencia:** la extensión opcional `IdempotencyKey` se mapea al mecanismo de US-06. Si se omite, cada reintento es una emisión nueva. La fachada reconoce el replay y `IDEMPOTENCIA_CONFLICTO`; la verificación end-to-end con MongoDB replica set sigue pendiente.
+- **Alcance de tipos:** el contrato XML no transporta `RazonSocial` del receptor. Una Factura C se emite de punta a punta; las Facturas A y B requieren ese dato en el caso de uso y se rechazan por SOAP con `VALIDACION`.
+- **Configuración:** `Soap__Habilitado` (default `true`) y `Soap__Ruta` (default `/soap`). Con `Soap__Habilitado=false` la ruta responde `404`.
 
 ## 8. Verificación pública por CAE (US-11)
 
@@ -370,6 +393,7 @@ En Development, el valor completo de la API key demo se entrega **una sola vez**
 - Multi-moneda.
 - Webhooks (US-23, fuera de alcance).
 - Integración real con AFIP (US-24, fuera de alcance).
+- SOAP de consultas o WSAA real. El SOAP actual (US-15) solo expone `FECAESolicitar` y `FECAEGenerar` con API key; US-16 agrega las consultas.
 - Kubernetes: no se usa. Decisión de plataforma en [`docs/plan-implementacion.md`](plan-implementacion.md) §2.
 
 ## 16. Trazabilidad

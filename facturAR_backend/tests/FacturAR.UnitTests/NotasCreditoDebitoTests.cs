@@ -72,7 +72,7 @@ public sealed class NotasCreditoDebitoTests
         var factura = await EmitirFacturaAsync(ctx, ctx.FacturaA());
         ctx.Secuencias.Numero = 1;
 
-        var nota = await ctx.Servicio.EmitirAsync(ctx.Emisor.Id, "Emisor", NotaCreditoA(ctx, factura.Id), "idem-nc");
+        var nota = (await ctx.Servicio.EmitirAsync(ctx.Emisor.Id, "Emisor", NotaCreditoA(ctx, factura.Id), "idem-nc")).Comprobante;
 
         Assert.Equal((int)TipoComprobante.NotaCreditoA, nota.TipoComprobante);
         Assert.Equal("Nota de Crédito A", nota.TipoComprobanteDescripcion);
@@ -119,8 +119,8 @@ public sealed class NotasCreditoDebitoTests
         var facturaB = await EmitirFacturaAsync(ctx, ctx.FacturaB());
         var facturaC = await EmitirFacturaAsync(ctx, ctx.FacturaC());
 
-        var notaB = await ctx.Servicio.EmitirAsync(ctx.Emisor.Id, null, NotaSobre(ctx.FacturaB(), TipoComprobante.NotaCreditoB, facturaB.Id, 1210m), "idem-ncb");
-        var notaC = await ctx.Servicio.EmitirAsync(ctx.Emisor.Id, null, NotaSobre(ctx.FacturaC(), TipoComprobante.NotaCreditoC, facturaC.Id, 1000m), "idem-ncc");
+        var notaB = (await ctx.Servicio.EmitirAsync(ctx.Emisor.Id, null, NotaSobre(ctx.FacturaB(), TipoComprobante.NotaCreditoB, facturaB.Id, 1210m), "idem-ncb")).Comprobante;
+        var notaC = (await ctx.Servicio.EmitirAsync(ctx.Emisor.Id, null, NotaSobre(ctx.FacturaC(), TipoComprobante.NotaCreditoC, facturaC.Id, 1000m), "idem-ncc")).Comprobante;
 
         Assert.Equal(0m, notaB.ImporteIva);
         Assert.Equal(1210m, notaB.ImporteTotal);
@@ -227,7 +227,7 @@ public sealed class NotasCreditoDebitoTests
         Assert.Equal(12600m, Saldo(ctx, factura.Id));
 
         ctx.Comprobantes.Comprobantes.Single(c => c.Id == factura.Id).ImporteOriginalAjustado = 1000m;
-        var nota = await ctx.Servicio.EmitirAsync(ctx.Emisor.Id, null, NotaSobre(ctx.FacturaA(), TipoComprobante.NotaDebitoA, factura.Id, 50000m, 50000m, 0m), "idem-nd2");
+        var nota = (await ctx.Servicio.EmitirAsync(ctx.Emisor.Id, null, NotaSobre(ctx.FacturaA(), TipoComprobante.NotaDebitoA, factura.Id, 50000m, 50000m, 0m), "idem-nd2")).Comprobante;
 
         Assert.Equal("Nota de Débito A", nota.TipoComprobanteDescripcion);
         Assert.Equal(51000m, Saldo(ctx, factura.Id));
@@ -252,7 +252,7 @@ public sealed class NotasCreditoDebitoTests
     {
         var ctx = new ComprobanteContexto();
         var factura = await EmitirFacturaAsync(ctx, ctx.FacturaA());
-        var nota = await ctx.Servicio.EmitirAsync(ctx.Emisor.Id, null, NotaCreditoA(ctx, factura.Id), "idem-nota");
+        var nota = (await ctx.Servicio.EmitirAsync(ctx.Emisor.Id, null, NotaCreditoA(ctx, factura.Id), "idem-nota")).Comprobante;
 
         var ex = await Assert.ThrowsAsync<TipoNotaIncompatibleException>(
             () => ctx.Servicio.EmitirAsync(ctx.Emisor.Id, null, NotaCreditoA(ctx, nota.Id), "idem-nota-nota"));
@@ -314,7 +314,7 @@ public sealed class NotasCreditoDebitoTests
     private static async Task<ComprobanteResponse> EmitirFacturaAsync(ComprobanteContexto ctx, EmitirComprobanteRequest request)
     {
         ctx.Secuencias.Numero++;
-        return await ctx.Servicio.EmitirAsync(ctx.Emisor.Id, null, request, $"idem-{Guid.NewGuid():N}");
+        return (await ctx.Servicio.EmitirAsync(ctx.Emisor.Id, null, request, $"idem-{Guid.NewGuid():N}")).Comprobante;
     }
 
     private static EmitirComprobanteRequest NotaCreditoA(ComprobanteContexto ctx, Guid originalId)

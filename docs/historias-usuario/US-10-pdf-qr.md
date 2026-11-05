@@ -214,7 +214,7 @@ Fecha de verificación: 2026-11-05.
 | Comando | Resultado |
 | --- | --- |
 | `dotnet build FacturAR.slnx -c Release` | 0 errores, 0 advertencias. |
-| `dotnet test FacturAR.slnx -c Release --no-build --logger "console;verbosity=minimal"` | 474 unitarios y 109 de integración aprobados; 152 omitidos (`MongoFact` sin `MONGO_CONNECTION_STRING`); 0 fallos. |
+| `dotnet test FacturAR.slnx -c Release --no-build --logger "console;verbosity=minimal"` | 514 unitarios y 126 de integración aprobados; 156 omitidos (`MongoFact` sin `MONGO_CONNECTION_STRING`); 0 fallos. |
 | `dotnet format FacturAR.slnx --verify-no-changes` | Sin cambios pendientes. |
 
 Tests nuevos:

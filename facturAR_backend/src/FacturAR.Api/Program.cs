@@ -5,6 +5,7 @@ using FacturAR.Api.Comprobantes;
 using FacturAR.Api.Invitaciones;
 using FacturAR.Api.Security;
 using FacturAR.Api.Seed;
+using FacturAR.Api.Soap;
 using FacturAR.Api.Solicitudes;
 using FacturAR.Application.Abstractions;
 using FacturAR.Application.ApiKeys;
@@ -47,6 +48,10 @@ var authOptions = builder.Configuration
 var apiKeysOptions = builder.Configuration
     .GetSection(ApiKeysOptions.SectionName)
     .Get<ApiKeysOptions>() ?? new ApiKeysOptions();
+
+var soapOptions = builder.Configuration
+    .GetSection(SoapOptions.SectionName)
+    .Get<SoapOptions>() ?? new SoapOptions();
 
 var bootstrapAdminOptions = builder.Configuration
     .GetSection("BootstrapAdmin")
@@ -106,6 +111,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton(mongoOptions);
 builder.Services.AddSingleton(authOptions);
 builder.Services.AddSingleton(apiKeysOptions);
+builder.Services.AddSingleton(soapOptions);
 builder.Services.AddSingleton(bootstrapAdminOptions);
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<ParametrosFacturacion>>().Value);
 builder.Services.AddSingleton(seedOptions);
@@ -135,6 +141,7 @@ builder.Services.AddScoped<ListarComprobantesService>();
 builder.Services.AddScoped<ConsultarComprobanteService>();
 builder.Services.AddScoped<ObtenerUltimoAutorizadoService>();
 builder.Services.AddScoped<IEmitirComprobanteService, EmitirComprobanteService>();
+builder.Services.AddScoped<IIdempotenciaService, IdempotenciaService>();
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IAdministradorRepository, AdministradorRepository>();
 builder.Services.AddScoped<IContribuyenteRepository, ContribuyenteRepository>();
@@ -184,6 +191,7 @@ builder.Services.AddHostedService<SeedHostedService>();
 
 builder.Services.AddFacturarCookies(authOptions, builder.Environment.IsDevelopment());
 builder.Services.AddFacturarApiKeyAuthentication();
+builder.Services.AddFacturarSoap();
 builder.Services.AddComprobanteConsultaAuthorization();
 builder.Services.AddComprobantePdf(notificacionesOptions.PortalBaseUrl);
 
@@ -246,6 +254,28 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 
     await context.Response.WriteAsJsonAsync(error);
 }));
+app.UseFacturarSoap(soapOptions);
+app.Use(async (context, next) =>
+{
+    var request = context.Request;
+
+    if (HttpMethods.IsPost(request.Method)
+        && string.Equals(request.Path.Value?.TrimEnd('/'), "/v1/comprobantes", StringComparison.OrdinalIgnoreCase))
+    {
+        var idempotencyKey = request.Headers[ComprobanteEndpoints.HeaderIdempotencia].ToString();
+
+        if (!string.IsNullOrWhiteSpace(idempotencyKey) && !idempotencyKey.Any(char.IsControl))
+        {
+            context.Response.OnStarting(() =>
+            {
+                context.Response.Headers[ComprobanteEndpoints.HeaderIdempotencia] = idempotencyKey;
+                return Task.CompletedTask;
+            });
+        }
+    }
+
+    await next();
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseWhen(
