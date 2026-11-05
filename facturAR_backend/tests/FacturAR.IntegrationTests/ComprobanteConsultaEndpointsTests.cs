@@ -112,6 +112,110 @@ public sealed class ComprobanteConsultaEndpointsTests
     }
 
     [Fact]
+    public async Task Detalle_DeOtroContribuyente_Devuelve404SinRevelarElRecurso()
+    {
+        using var factory = new ComprobanteConsultaFactory();
+        var ajeno = NuevoComprobante();
+        ajeno.Id = Guid.NewGuid();
+        ajeno.ContribuyenteId = Guid.NewGuid();
+        factory.Comprobantes.Comprobantes.Add(ajeno);
+        using var client = factory.CreateClient();
+
+        var response = await EnviarConApiKeyAsync(client, $"/v1/comprobantes/{ajeno.Id}");
+
+        await AssertErrorAsync(response, HttpStatusCode.NotFound, "COMPROBANTE_NO_ENCONTRADO");
+        Assert.Equal(1, factory.Comprobantes.ConsultasDetalle);
+        Assert.Equal(ComprobanteConsultaFactory.ContribuyenteId, factory.Comprobantes.UltimoContribuyenteId);
+    }
+
+    [Fact]
+    public async Task Listar_NoIncluyeComprobantesDeOtroContribuyente()
+    {
+        using var factory = new ComprobanteConsultaFactory();
+        factory.Comprobantes.Comprobantes.Add(NuevoComprobante());
+        var ajeno = NuevoComprobante();
+        ajeno.Id = Guid.NewGuid();
+        ajeno.ContribuyenteId = Guid.NewGuid();
+        factory.Comprobantes.Comprobantes.Add(ajeno);
+        using var client = factory.CreateClient();
+
+        var response = await EnviarConApiKeyAsync(client, "/v1/comprobantes");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var pagina = await LeerAsync<PaginaResponse<ComprobanteResumenResponse>>(response);
+        Assert.Equal(1, pagina.Total);
+        Assert.Single(pagina.Items);
+        Assert.Equal(ComprobanteConsultaFactory.ContribuyenteId, factory.Comprobantes.UltimoContribuyenteId);
+    }
+
+    [Fact]
+    public async Task Listar_ConFiltroDeTipoYPageSize_MantieneElFiltroYPaginacion()
+    {
+        using var factory = new ComprobanteConsultaFactory();
+        factory.Comprobantes.Comprobantes.Add(NuevoComprobante());
+        var facturaA = NuevoComprobante();
+        facturaA.Id = Guid.NewGuid();
+        facturaA.TipoComprobante = TipoComprobante.FacturaA;
+        facturaA.Numero = 43;
+        factory.Comprobantes.Comprobantes.Add(facturaA);
+        using var client = factory.CreateClient();
+
+        var response = await EnviarConApiKeyAsync(
+            client,
+            "/v1/comprobantes?tipo=11&page=1&pageSize=10");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var pagina = await LeerAsync<PaginaResponse<ComprobanteResumenResponse>>(response);
+        Assert.Equal(1, pagina.Total);
+        Assert.Equal(1, pagina.Page);
+        Assert.Equal(10, pagina.PageSize);
+        var item = Assert.Single(pagina.Items);
+        Assert.Equal((int)TipoComprobante.FacturaC, item.TipoComprobante);
+    }
+
+    [Fact]
+    public async Task Listar_OrdenaPorFechaYNumeroDescendente()
+    {
+        using var factory = new ComprobanteConsultaFactory();
+        var viejo = NuevoComprobante();
+        viejo.FechaEmision = new DateTime(2026, 10, 1, 12, 0, 0, DateTimeKind.Utc);
+        viejo.Numero = 1;
+        var nuevo = NuevoComprobante();
+        nuevo.Id = Guid.NewGuid();
+        nuevo.FechaEmision = new DateTime(2026, 11, 1, 12, 0, 0, DateTimeKind.Utc);
+        nuevo.Numero = 2;
+        factory.Comprobantes.Comprobantes.Add(viejo);
+        factory.Comprobantes.Comprobantes.Add(nuevo);
+        using var client = factory.CreateClient();
+
+        var response = await EnviarConApiKeyAsync(client, "/v1/comprobantes");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var pagina = await LeerAsync<PaginaResponse<ComprobanteResumenResponse>>(response);
+        Assert.Equal([2L, 1L], pagina.Items.Select(i => i.Numero).ToArray());
+    }
+
+    [Fact]
+    public async Task Listar_ConIdempotencyKey_NoRepiteNiAfectaLaConsulta()
+    {
+        using var factory = new ComprobanteConsultaFactory();
+        factory.Comprobantes.Comprobantes.Add(NuevoComprobante());
+        using var client = factory.CreateClient();
+
+        using var mensaje = new HttpRequestMessage(HttpMethod.Get, "/v1/comprobantes");
+        mensaje.Headers.TryAddWithoutValidation("X-Api-Key", ApiKeyValida);
+        mensaje.Headers.TryAddWithoutValidation("Idempotency-Key", "clave-solo-para-emision");
+
+        var response = await client.SendAsync(mensaje);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var pagina = await LeerAsync<PaginaResponse<ComprobanteResumenResponse>>(response);
+        Assert.Equal(1, pagina.Total);
+        Assert.Equal(1, factory.Comprobantes.ConsultasListado);
+        Assert.Equal(0, factory.Comprobantes.ConsultasDetalle);
+    }
+
+    [Fact]
     public async Task Listar_ConApiKey_UsaElContribuyenteDelTokenYDevuelveElResumen()
     {
         using var factory = new ComprobanteConsultaFactory();
