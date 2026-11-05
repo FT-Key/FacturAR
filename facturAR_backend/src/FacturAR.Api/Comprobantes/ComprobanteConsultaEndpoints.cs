@@ -18,7 +18,7 @@ public static class ComprobanteConsultaEndpoints
     private const string RolEmisor = "Emisor";
     private const string RolConsulta = "Consulta";
     private const string MensajeMongoNoDisponible = "No hay conexión con la base de datos. Intentá de nuevo en unos minutos.";
-    private const string CategoriaLogger = "FacturAR.Api.Comprobantes";
+    internal const string CategoriaLogger = "FacturAR.Api.Comprobantes";
 
     public static IServiceCollection AddComprobanteConsultaAuthorization(this IServiceCollection services)
     {
@@ -168,7 +168,7 @@ public static class ComprobanteConsultaEndpoints
             "VALIDACION",
             "El identificador del comprobante no es válido.");
 
-    private static IResult? ValidarAcceso(
+    internal static IResult? ValidarAcceso(
         HttpContext httpContext,
         ITenantContext tenant,
         out Guid contribuyenteId)
@@ -201,7 +201,7 @@ public static class ComprobanteConsultaEndpoints
                 "El rol del usuario no autoriza la operación.");
     }
 
-    private static async Task<IResult> EjecutarAsync(
+    internal static async Task<IResult> EjecutarAsync(
         ILogger logger,
         Guid contribuyenteId,
         Func<Task<IResult>> operacion)
@@ -232,7 +232,7 @@ public static class ComprobanteConsultaEndpoints
         }
     }
 
-    private static RouteHandlerBuilder ConErroresComunes(this RouteHandlerBuilder builder)
+    internal static RouteHandlerBuilder ConErroresComunes(this RouteHandlerBuilder builder)
         => builder
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ErrorResponse>(StatusCodes.Status401Unauthorized)
@@ -240,6 +240,6 @@ public static class ComprobanteConsultaEndpoints
             .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError)
             .Produces<ErrorResponse>(StatusCodes.Status503ServiceUnavailable);
 
-    private static IResult Error(int statusCode, string codigo, string mensaje)
+    internal static IResult Error(int statusCode, string codigo, string mensaje)
         => Results.Json(new ErrorResponse(codigo, mensaje), statusCode: statusCode);
 }

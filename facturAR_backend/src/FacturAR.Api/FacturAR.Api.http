@@ -66,6 +66,13 @@ Accept: application/json
 
 ###
 
+# PDF (US-10): devuelve application/pdf con Content-Disposition: inline. No altera el comprobante.
+GET {{FacturAR_Api_HostAddress}}/v1/comprobantes/{{comprobanteId}}/pdf
+X-Api-Key: {{apiKey}}
+Accept: application/pdf
+
+###
+
 GET {{FacturAR_Api_HostAddress}}/v1/comprobantes/ultimo-autorizado?tipo=11&puntoVenta=1
 X-Api-Key: {{apiKey}}
 Accept: application/json
