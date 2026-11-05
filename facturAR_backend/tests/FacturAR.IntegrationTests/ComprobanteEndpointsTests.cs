@@ -715,6 +715,41 @@ public sealed class ComprobanteRepositorioEnMemoria : IComprobanteRepository
         }
     }
 
+    public Task<Comprobante?> GetByNumeracionAsync(
+        Guid contribuyenteId,
+        int puntoVenta,
+        TipoComprobante tipo,
+        long numero,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_gate)
+        {
+            return Task.FromResult(_comprobantes.FirstOrDefault(
+                c => c.ContribuyenteId == contribuyenteId
+                    && c.PuntoVenta == puntoVenta
+                    && c.TipoComprobante == tipo
+                    && c.Numero == numero));
+        }
+    }
+
+    public Task<Comprobante?> GetUltimoEmitidoAsync(
+        Guid contribuyenteId,
+        int puntoVenta,
+        TipoComprobante tipo,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_gate)
+        {
+            return Task.FromResult(_comprobantes
+                .Where(c => c.ContribuyenteId == contribuyenteId
+                    && c.PuntoVenta == puntoVenta
+                    && c.TipoComprobante == tipo
+                    && c.Estado == EstadoComprobante.Emitido)
+                .OrderByDescending(c => c.Numero)
+                .FirstOrDefault());
+        }
+    }
+
     public Task<(IReadOnlyList<Comprobante> Items, long Total)> ListarAsync(
         Guid contribuyenteId,
         FiltroListadoComprobantes filtro,

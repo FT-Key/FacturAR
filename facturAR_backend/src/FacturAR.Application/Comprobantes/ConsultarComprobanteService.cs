@@ -1,11 +1,16 @@
 using FacturAR.Application.Abstractions;
 using FacturAR.Contracts.Comprobantes;
 using FacturAR.Domain.Entities;
+using FacturAR.Domain.Enums;
+using FacturAR.Domain.Exceptions;
 
 namespace FacturAR.Application.Comprobantes;
 
 public sealed class ConsultarComprobanteService(IComprobanteRepository comprobantes)
 {
+    private const int PuntoVentaMinimo = 1;
+    private const int PuntoVentaMaximo = 9999;
+
     public Task<Comprobante?> ConsultarEntidadAsync(
         Guid contribuyenteId,
         Guid id,
@@ -20,6 +25,114 @@ public sealed class ConsultarComprobanteService(IComprobanteRepository comproban
         var comprobante = await ConsultarEntidadAsync(contribuyenteId, id, ct);
 
         return comprobante is null ? null : Mapear(comprobante);
+    }
+
+    public async Task<ComprobanteDetalleResponse?> ConsultarPorNumeroAsync(
+        Guid contribuyenteId,
+        int tipo,
+        int puntoVenta,
+        long numero,
+        CancellationToken ct = default)
+    {
+        ValidarTipoYPuntoVenta(tipo, puntoVenta);
+
+        if (numero < 1)
+        {
+            throw new ComprobanteValidationException("El número de comprobante debe ser mayor o igual a 1.");
+        }
+
+        var comprobante = await comprobantes.GetByNumeracionAsync(
+            contribuyenteId,
+            puntoVenta,
+            (TipoComprobante)tipo,
+            numero,
+            ct);
+
+        return comprobante is null ? null : Mapear(comprobante);
+    }
+
+    public async Task<ComprobanteDetalleResponse?> ConsultarUltimoEmitidoAsync(
+        Guid contribuyenteId,
+        int tipo,
+        int puntoVenta,
+        CancellationToken ct = default)
+    {
+        ValidarTipoYPuntoVenta(tipo, puntoVenta);
+
+        var comprobante = await comprobantes.GetUltimoEmitidoAsync(
+            contribuyenteId,
+            puntoVenta,
+            (TipoComprobante)tipo,
+            ct);
+
+        return comprobante is null ? null : Mapear(comprobante);
+    }
+
+    private static void ValidarTipoYPuntoVenta(int tipo, int puntoVenta)
+    {
+        if (!Enum.IsDefined(typeof(TipoComprobante), tipo))
+        {
+            throw new ComprobanteValidationException("El tipo de comprobante indicado no es válido.");
+        }
+
+        if (puntoVenta < 1)
+        {
+            throw new ComprobanteValidationException("puntoVenta debe ser mayor o igual a 1.");
+        }
+    }
+
+    public async Task<ComprobanteDetalleResponse?> ConsultarPorNumeroAsync(
+        Guid contribuyenteId,
+        int puntoVenta,
+        int tipoComprobante,
+        long numero,
+        CancellationToken ct = default)
+    {
+        ValidarTipoYPuntoVenta(tipoComprobante, puntoVenta);
+
+        if (numero <= 0)
+        {
+            throw new ComprobanteValidationException("El número de comprobante debe ser mayor a cero.");
+        }
+
+        var comprobante = await comprobantes.GetByNumeracionAsync(
+            contribuyenteId,
+            puntoVenta,
+            tipoComprobante,
+            numero,
+            ct);
+
+        return comprobante is null ? null : Mapear(comprobante);
+    }
+
+    public async Task<ComprobanteDetalleResponse?> ConsultarUltimoEmitidoAsync(
+        Guid contribuyenteId,
+        int puntoVenta,
+        int tipoComprobante,
+        CancellationToken ct = default)
+    {
+        ValidarTipoYPuntoVenta(tipoComprobante, puntoVenta);
+
+        var comprobante = await comprobantes.GetUltimoEmitidoAsync(
+            contribuyenteId,
+            puntoVenta,
+            tipoComprobante,
+            ct);
+
+        return comprobante is null ? null : Mapear(comprobante);
+    }
+
+    private static void ValidarTipoYPuntoVenta(int tipoComprobante, int puntoVenta)
+    {
+        if (!Enum.IsDefined(typeof(TipoComprobante), tipoComprobante))
+        {
+            throw new ComprobanteValidationException("El tipo de comprobante no es válido.");
+        }
+
+        if (puntoVenta is < PuntoVentaMinimo or > PuntoVentaMaximo)
+        {
+            throw new ComprobanteValidationException("El punto de venta debe estar entre 1 y 9999.");
+        }
     }
 
     private static ComprobanteDetalleResponse Mapear(Comprobante comprobante)

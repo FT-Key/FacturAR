@@ -33,6 +33,32 @@ public sealed class ComprobanteRepository : IComprobanteRepository
             .Find(Filtro.Eq(c => c.Id, id) & Filtro.Eq(c => c.ContribuyenteId, contribuyenteId))
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<Comprobante?> GetByNumeracionAsync(
+        Guid contribuyenteId,
+        int puntoVenta,
+        TipoComprobante tipo,
+        long numero,
+        CancellationToken cancellationToken = default)
+        => await _context.Comprobantes
+            .Find(Filtro.Eq(c => c.ContribuyenteId, contribuyenteId)
+                & Filtro.Eq(c => c.PuntoVenta, puntoVenta)
+                & Filtro.Eq(c => c.TipoComprobante, tipo)
+                & Filtro.Eq(c => c.Numero, numero))
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<Comprobante?> GetUltimoEmitidoAsync(
+        Guid contribuyenteId,
+        int puntoVenta,
+        TipoComprobante tipo,
+        CancellationToken cancellationToken = default)
+        => await _context.Comprobantes
+            .Find(Filtro.Eq(c => c.ContribuyenteId, contribuyenteId)
+                & Filtro.Eq(c => c.PuntoVenta, puntoVenta)
+                & Filtro.Eq(c => c.TipoComprobante, tipo)
+                & Filtro.Eq(c => c.Estado, EstadoComprobante.Emitido))
+            .Sort(Orden.Descending(c => c.Numero))
+            .FirstOrDefaultAsync(cancellationToken);
+
     public async Task<(IReadOnlyList<Comprobante> Items, long Total)> ListarAsync(
         Guid contribuyenteId,
         FiltroListadoComprobantes filtro,

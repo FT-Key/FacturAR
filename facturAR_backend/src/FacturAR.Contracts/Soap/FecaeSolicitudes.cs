@@ -73,3 +73,31 @@ public sealed class FECAEGenerarRequest
 
     public string? IdempotencyKey { get; set; }
 }
+
+[XmlType(Namespace = FecaeNamespaces.Fev1)]
+public sealed class FECompUltimoAutorizadoRequest
+{
+    public FECAEAuth? Auth { get; set; }
+
+    public int PtoVta { get; set; }
+
+    public int TipoComprobante { get; set; }
+}
+
+[XmlType(Namespace = FecaeNamespaces.Fev1)]
+public sealed class FECompConsultarRequest
+{
+    public FECAEAuth? Auth { get; set; }
+
+    public int TipoComprobante { get; set; }
+
+    public int PtoVta { get; set; }
+
+    public long Numero { get; set; }
+}
+
+[XmlType(Namespace = FecaeNamespaces.Fev1)]
+public sealed class FEDummyRequest
+{
+    public FECAEAuth? Auth { get; set; }
+}

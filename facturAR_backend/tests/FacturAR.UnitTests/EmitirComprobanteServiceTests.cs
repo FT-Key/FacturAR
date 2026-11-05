@@ -631,6 +631,21 @@ public sealed class EmitirComprobanteServiceTests
             CancellationToken ct = default)
             => Task.FromResult<Comprobante?>(null);
 
+        public Task<Comprobante?> GetByNumeracionAsync(
+            Guid contribuyenteId,
+            int puntoVenta,
+            TipoComprobante tipo,
+            long numero,
+            CancellationToken ct = default)
+            => Task.FromResult<Comprobante?>(null);
+
+        public Task<Comprobante?> GetUltimoEmitidoAsync(
+            Guid contribuyenteId,
+            int puntoVenta,
+            TipoComprobante tipo,
+            CancellationToken ct = default)
+            => Task.FromResult<Comprobante?>(null);
+
         public Task<(IReadOnlyList<Comprobante> Items, long Total)> ListarAsync(
             Guid contribuyenteId,
             FiltroListadoComprobantes filtro,

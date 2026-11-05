@@ -4,7 +4,7 @@ using FacturAR.Contracts.Soap;
 namespace FacturAR.Api.Soap;
 
 [ServiceContract(Namespace = FecaeNamespaces.Fev1)]
-public interface IContractFecae
+public interface IContractFecae : IContractConsultas
 {
     [OperationContract(Action = FecaeNamespaces.Fev1 + "FECAESolicitar")]
     Task<FECAESolicitarResponse> FECAESolicitar(FECAESolicitarRequest request);
