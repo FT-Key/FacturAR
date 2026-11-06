@@ -1,6 +1,8 @@
 using System.Text.Json;
 using FacturAR.Application.Abstractions;
+using FacturAR.Application.Auditoria;
 using FacturAR.Contracts.Invitaciones;
+using FacturAR.Domain;
 using FacturAR.Domain.Entities;
 using FacturAR.Domain.Exceptions;
 using FacturAR.Domain.Validation;
@@ -11,7 +13,7 @@ public sealed class AceptarInvitacionService
 {
     public const string MensajeCuentaActivada = "Cuenta activada. Ya podés iniciar sesión.";
     public const string MensajeConfirmacion = "Las contraseñas no coinciden.";
-    public const string AccionCuentaActivada = "cuenta.activada";
+    public const string AccionCuentaActivada = AccionesAuditoria.CuentaActivada;
 
     private readonly IInvitacionRepository _invitaciones;
     private readonly IContribuyenteRepository _contribuyentes;
@@ -99,11 +101,11 @@ public sealed class AceptarInvitacionService
                         new EventoAuditoria
                         {
                             Accion = AccionCuentaActivada,
-                            Entidad = nameof(Invitacion),
-                            EntidadId = invitacion.Id.ToString(),
+                            Entidad = EntidadesAuditoria.Usuario,
+                            EntidadId = usuario.Id.ToString(),
                             ContribuyenteId = invitacion.ContribuyenteId,
                             UsuarioId = usuario.Id,
-                            ActorTipo = "Empresa",
+                            ActorTipo = ActorTipos.Empresa,
                             Datos = JsonSerializer.Serialize(new Dictionary<string, string>
                             {
                                 ["rol"] = usuario.Rol.ToString(),

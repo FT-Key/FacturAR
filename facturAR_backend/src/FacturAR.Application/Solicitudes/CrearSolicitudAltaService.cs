@@ -1,7 +1,9 @@
 using System.Text.Json;
 using FacturAR.Application.Abstractions;
+using FacturAR.Application.Auditoria;
 using FacturAR.Application.Notificaciones;
 using FacturAR.Contracts.Solicitudes;
+using FacturAR.Domain;
 using FacturAR.Domain.Entities;
 using FacturAR.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
@@ -12,13 +14,13 @@ public sealed class CrearSolicitudAltaService
 {
     public const string CodigoSolicitudRecibida = "SOLICITUD_RECIBIDA";
     public const string MensajeSolicitudRecibida = "Recibimos tu solicitud. Revisamos los datos y te escribimos al email de contacto.";
-    public const string ActorSistema = "Sistema";
+    public const string ActorSistema = ActorTipos.Sistema;
 
-    private const string AccionSolicitudCreada = "solicitud.creada";
-    private const string AccionCuitRegistrado = "solicitud.cuit_registrado";
-    private const string AccionEmailEnviado = "email.enviado";
-    private const string AccionEmailFallido = "email.fallido";
-    private const string Entidad = "SolicitudAltaEmpresa";
+    private const string AccionSolicitudCreada = AccionesAuditoria.SolicitudCreada;
+    private const string AccionCuitRegistrado = AccionesAuditoria.SolicitudCuitRegistrado;
+    private const string AccionEmailEnviado = AccionesAuditoria.EmailEnviado;
+    private const string AccionEmailFallido = AccionesAuditoria.EmailFallido;
+    private const string Entidad = EntidadesAuditoria.SolicitudAltaEmpresa;
 
     private readonly ISolicitudAltaRepository _solicitudes;
     private readonly IContribuyenteRepository _contribuyentes;

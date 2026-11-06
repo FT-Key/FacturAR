@@ -136,7 +136,7 @@ El esquema `ApiKey` convive con los dos esquemas de cookie de US-04. **Cada grup
 #### Header y formato
 
 ```http
-X-Api-Key: fak_9f3a1c7b2e40_<secreto>
+X-Api-Key: fak_<prefijo>_<secreto>
 ```
 
 - El nombre del header es configurable con `ApiKeys__HeaderName` (default `X-Api-Key`).

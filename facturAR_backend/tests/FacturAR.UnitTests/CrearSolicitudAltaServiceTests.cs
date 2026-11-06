@@ -2,6 +2,7 @@ using FacturAR.Application.Abstractions;
 using FacturAR.Application.Notificaciones;
 using FacturAR.Application.Solicitudes;
 using FacturAR.Contracts.Solicitudes;
+using FacturAR.Domain;
 using FacturAR.Domain.Entities;
 using FacturAR.Domain.Enums;
 using FacturAR.Domain.Exceptions;
@@ -151,7 +152,7 @@ public sealed class CrearSolicitudAltaServiceTests
 
         var evento = Assert.Single(contexto.Eventos.Eventos);
         Assert.Equal("solicitud.cuit_registrado", evento.Accion);
-        Assert.Equal("Sistema", evento.ActorTipo);
+        Assert.Equal(ActorTipos.Sistema, evento.ActorTipo);
         Assert.Equal("SolicitudAltaEmpresa", evento.Entidad);
         Assert.Contains(CuitValido, evento.Datos);
     }

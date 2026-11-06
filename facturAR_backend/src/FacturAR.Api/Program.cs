@@ -13,6 +13,7 @@ using FacturAR.Application.Auth;
 using FacturAR.Application.Comprobantes;
 using FacturAR.Application.Invitaciones;
 using FacturAR.Application.Notificaciones;
+using FacturAR.Application.Outbox;
 using FacturAR.Application.Parametros;
 using FacturAR.Application.Seed;
 using FacturAR.Application.Solicitudes;
@@ -20,9 +21,11 @@ using FacturAR.Contracts.Comunes;
 using FacturAR.Contracts.Comprobantes;
 using FacturAR.Contracts.Sistema;
 using FacturAR.Domain.Validation;
+using FacturAR.Infrastructure.Auditoria;
 using FacturAR.Infrastructure.LoginIntent;
 using FacturAR.Infrastructure.Mongo;
 using FacturAR.Infrastructure.Notificaciones;
+using FacturAR.Infrastructure.Outbox;
 using FacturAR.Infrastructure.Password;
 using FacturAR.Infrastructure.Pdf;
 using FacturAR.Infrastructure.Repositories;
@@ -72,6 +75,10 @@ var seedOptions = builder.Configuration
     .GetSection(SeedOptions.SectionName)
     .Get<SeedOptions>() ?? new SeedOptions();
 
+var outboxOptions = builder.Configuration
+    .GetSection(OutboxOptions.SectionName)
+    .Get<OutboxOptions>() ?? new OutboxOptions();
+
 var buildInformation = new BuildInformation(
     builder.Configuration[BuildInformation.VersionKey] ?? BuildInformation.DefaultVersion,
     builder.Configuration[BuildInformation.CommitKey] ?? BuildInformation.UnknownCommit);
@@ -115,6 +122,7 @@ builder.Services.AddSingleton(soapOptions);
 builder.Services.AddSingleton(bootstrapAdminOptions);
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<ParametrosFacturacion>>().Value);
 builder.Services.AddSingleton(seedOptions);
+builder.Services.AddSingleton(outboxOptions);
 builder.Services.AddSingleton(buildInformation);
 builder.Services.AddSingleton(emailOptions);
 builder.Services.AddSingleton(notificacionesOptions);
@@ -148,6 +156,11 @@ builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IAdministradorRepository, AdministradorRepository>();
 builder.Services.AddScoped<IContribuyenteRepository, ContribuyenteRepository>();
 builder.Services.AddScoped<IEventoAuditoriaRepository, EventoAuditoriaRepository>();
+builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
+builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
+builder.Services.AddScoped<OutboxHandlerResolver>();
+builder.Services.AddSingleton<OutboxBackoff>();
+builder.Services.AddHostedService<OutboxWorker>();
 builder.Services.AddScoped<ISolicitudAltaRepository, SolicitudAltaRepository>();
 builder.Services.AddScoped<CrearSolicitudAltaService>();
 builder.Services.AddScoped<MongoSesionActual>();

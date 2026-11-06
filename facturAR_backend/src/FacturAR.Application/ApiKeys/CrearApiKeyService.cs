@@ -1,4 +1,5 @@
 using FacturAR.Application.Abstractions;
+using FacturAR.Application.Auditoria;
 using FacturAR.Contracts.ApiKeys;
 using FacturAR.Domain.Entities;
 using FacturAR.Domain.Exceptions;
@@ -8,7 +9,7 @@ namespace FacturAR.Application.ApiKeys;
 
 public sealed class CrearApiKeyService
 {
-    public const string AccionCreada = "apikey.creada";
+    public const string AccionCreada = AccionesAuditoria.ApiKeyCreada;
 
     private readonly IApiKeyRepository _apiKeys;
     private readonly IContribuyenteRepository _contribuyentes;

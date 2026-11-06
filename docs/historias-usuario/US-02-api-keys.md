@@ -184,7 +184,7 @@ fak_<prefix 12 hex>_<secret 43 base64url>
 Ejemplo de valor completo (solo ilustrativo, el secret es un placeholder):
 
 ```text
-fak_9f3a1c7b2e40_<secreto>
+fak_<prefijo>_<secreto>
 ```
 
 `ApiKey.Prefix` guarda **solo los 12 hex** (`9f3a1c7b2e40`), sin `fak_` y sin el separador. El valor visible al usuario y al soporte es `fak_<Prefix>`, y el valor completo se reconstruye como `fak_` + `Prefix` + `_` + `secret`.
@@ -231,7 +231,7 @@ Cuerpos de respuesta:
   "id": "5d4c3b2a-1908-7f6e-5d4c-3b2a19087f6e",
   "nombre": "Ecommerce",
   "prefix": "fak_9f3a1c7b2e40",
-  "valor": "fak_9f3a1c7b2e40_<secreto>",
+  "valor": "fak_<prefijo>_<secreto>",
   "createdAt": "2026-10-28T15:30:00Z"
 }
 ```

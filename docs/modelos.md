@@ -218,11 +218,13 @@ Cola transaccional para eventos y notificaciones.
 | `Id` | `Guid` | Sí | Clave primaria. |
 | `Tipo` | `string` | Sí | Tipo de evento. |
 | `Payload` | `string` | Sí | JSON serializado. |
-| `Estado` | `string` | Sí | `Pendiente`, `Procesado`, `Fallido`. |
+| `Estado` | `string` | Sí | `Pendiente`, `Procesando`, `Procesado`, `Fallido`. |
 | `Intentos` | `int` | Sí | Reintentos. |
 | `CreatedAt` | `DateTime` | Sí | UTC. |
 | `ProcesadoAt` | `DateTime?` | No | UTC. |
-| `Error` | `string?` | No | Último error. |
+| `Error` | `string?` | No | Último error, sin secretos ni stack traces. |
+
+`Procesando` es transitorio: el worker reclama el mensaje con una actualización condicional (`_id` + `Estado = Pendiente`) y luego lo pasa a `Procesado`, lo devuelve a `Pendiente` o, tras el máximo de intentos (`Outbox:MaxIntentos`, default 5), lo deja en `Fallido`.
 
 ### EmailMessage
 

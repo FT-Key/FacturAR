@@ -646,7 +646,7 @@ Respuesta `200`:
 
 ```http
 GET /v1/comprobantes/6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22/pdf
-X-Api-Key: fak_9f3a1c7b2e40_<secreto>
+X-Api-Key: fak_<prefijo>_<secreto>
 ```
 
 Acepta **API key** (`X-Api-Key`) o la **cookie de empresa** (`cookies.contribuyente`) con rol `Administrador`, `Emisor` o `Consulta`. El `ContribuyenteId` sale siempre de la credencial y el comprobante se busca por `(Id, ContribuyenteId)`: un comprobante de otra empresa responde `404 COMPROBANTE_NO_ENCONTRADO`, igual que uno inexistente, sin revelar que existe.

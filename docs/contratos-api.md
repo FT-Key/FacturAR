@@ -151,7 +151,7 @@ Hay dos mecanismos, según quién consume la API.
 Header:
 
 ```http
-X-Api-Key: fak_9f3a1c7b2e40_<secreto>
+X-Api-Key: fak_<prefijo>_<secreto>
 ```
 
 Formato exacto: `fak_` + `prefix` (12 caracteres hexadecimales) + `_` + `secret` (43 caracteres base64url, resultado de 32 bytes aleatorios). La expresión regular de validación es `^fak_[0-9a-f]{12}_[A-Za-z0-9_-]{43}$`.
@@ -374,7 +374,7 @@ En Development, el valor completo de la API key demo se entrega **una sola vez**
 - `EventoAuditoria` se escribe en la **misma** colección `eventos` con `Accion`, `Entidad`, `EntidadId` y `Datos` (JSON sin datos personales ni secretos).
 - `EventoAuditoria.ContribuyenteId` es `Guid?`: `null` para eventos de plataforma.
 - `OutboxMessage` es la cola de efectos externos (emails, webhooks). Se escribe **en la misma operación** que el cambio de estado de negocio, nunca después.
-- El `BackgroundService` de la outbox toma mensajes `Pendiente`, los marca `Procesando`, reintenta con backoff exponencial y termina en `Fallido` tras 5 intentos. `Estado`, `Intentos`, `ProcesadoAt` y `Error` quedan registrados.
+- El `BackgroundService` de la outbox toma mensajes `Pendiente`, los marca `Procesando`, reintenta con backoff exponencial y termina en `Fallido` tras el máximo configurado (`Outbox:MaxIntentos`, default 5). `Estado`, `Intentos`, `ProcesadoAt` y `Error` quedan registrados. Un mensaje `Procesado` no se vuelve a reclamar.
 
 ## 14. Convenciones de API para el cliente
 

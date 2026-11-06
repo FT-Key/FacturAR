@@ -1,6 +1,8 @@
 using System.Text.Json;
 using FacturAR.Application.Abstractions;
+using FacturAR.Application.Auditoria;
 using FacturAR.Application.Notificaciones;
+using FacturAR.Domain;
 using FacturAR.Domain.Entities;
 using Microsoft.Extensions.Logging;
 
@@ -8,11 +10,8 @@ namespace FacturAR.Application.Solicitudes;
 
 public sealed class NotificadorRevisionSolicitudes
 {
-    public const string Entidad = "SolicitudAltaEmpresa";
-    public const string ActorAdministrador = "Administrador";
-
-    private const string AccionEmailEnviado = "email.enviado";
-    private const string AccionEmailFallido = "email.fallido";
+    public const string Entidad = EntidadesAuditoria.SolicitudAltaEmpresa;
+    public const string ActorAdministrador = ActorTipos.Administrador;
 
     private readonly IEventoAuditoriaRepository _eventos;
     private readonly IInvitacionRepository _invitaciones;
@@ -99,7 +98,7 @@ public sealed class NotificadorRevisionSolicitudes
                 ct);
         }
 
-        var accion = resultado.Exitoso ? AccionEmailEnviado : AccionEmailFallido;
+        var accion = resultado.Exitoso ? AccionesAuditoria.EmailEnviado : AccionesAuditoria.EmailFallido;
         await BestEffortAsync(
             accion,
             solicitud.Id,

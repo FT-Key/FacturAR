@@ -252,6 +252,25 @@ El manual online explica:
 - Las acciones de onboarding generan auditoría.
 - Los secretos, tokens y contraseñas no se loguean.
 
+## Auditoría del onboarding
+
+Cada paso del alta deja un evento en la colección `eventos` con actor, acción, entidad, `EntidadId`, fecha UTC y datos de contexto. Los eventos de administradores globales llevan `ContribuyenteId = null` y `AdministradorId`; los de empresa llevan `ContribuyenteId` y `UsuarioId`; los automáticos usan `ActorTipo = Sistema`.
+
+| Paso | Acción | Entidad | Actor |
+| --- | --- | --- | --- |
+| Solicitud recibida | `SolicitudCreada` | `SolicitudAltaEmpresa` | `Sistema` |
+| Aprobación | `SolicitudAprobada` e `InvitacionEnviada` | `SolicitudAltaEmpresa` e `Invitacion` | `Administrador` |
+| Rechazo | `SolicitudRechazada` | `SolicitudAltaEmpresa` | `Administrador` |
+| Reenvío de invitación | `InvitacionReenviada` | `Invitacion` | `Administrador` |
+| Activación de cuenta | `CuentaActivada` | `Usuario` | `Empresa` |
+| Login y logout | `LoginExitoso`, `LoginFallido`, `Logout` | `Usuario` | `Empresa`; `LoginFallido` usa `Sistema` porque no hay actor identificado |
+| API keys | `ApiKeyCreada`, `ApiKeyRevocada`, `ApiKeyRegenerada` | `ApiKey` | `Empresa` |
+| Emisión | `ComprobanteEmitido`, `NotaEmitida` | `Comprobante` | `Empresa` con usuario autenticado; `Sistema` cuando la emisión llega por API key o SOAP |
+
+El campo `Datos` es un JSON con lista blanca por acción. Nunca incluye tokens de invitación (ni su prefijo), API keys (ni prefijo ni hash), contraseñas, emails completos, cookies ni secretos de configuración. Para una API key solo se audita su `Id` interno y su nombre.
+
+La cola `outbox` guarda los efectos externos pendientes con `Tipo`, `Payload`, `Estado`, `Intentos`, `CreatedAt`, `ProcesadoAt` y `Error`. El worker los reclama de forma atómica y los procesa con reintentos y backoff exponencial; el máximo de intentos y los intervalos se configuran con `Outbox:*`. Para soporte, el estado de un mensaje se consulta por `Id` o por `Estado` + `CreatedAt` (índice `ix_outbox_estado_fecha`), sin exponer el payload en logs.
+
 ## Emails
 
 | Plantilla | Destinatario | Cuándo |

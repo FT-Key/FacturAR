@@ -213,10 +213,10 @@ public sealed class AuthEndpointsTests : IAsyncLifetime
             .Project(e => e.Accion)
             .ToListAsync();
 
-        Assert.Contains("LoginEmpresa", acciones);
+        Assert.Contains("LoginExitoso", acciones);
         Assert.Contains("LoginFallido", acciones);
         Assert.Contains("AccesoDenegado", acciones);
-        Assert.Contains("LogoutEmpresa", acciones);
+        Assert.Contains("Logout", acciones);
     }
 
     [MongoFact]

@@ -68,6 +68,7 @@ internal sealed class EmailProviderWebApplicationFactory(
     {
         builder.UseEnvironment(environment);
         builder.UseSetting("Mongo:InitializeIndexes", "false");
+        builder.UseSetting("Outbox:Habilitado", "false");
 
         foreach (var (clave, valor) in settings)
         {

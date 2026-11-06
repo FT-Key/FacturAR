@@ -17,18 +17,18 @@ La auditoría registra acciones de usuarios de empresa y administradores globale
 
 ## Criterios de aceptación
 
-- [ ] Se registran eventos de login, logout, alta de solicitud, aprobación, rechazo, activación, creación/revocación de API key y emisión.
-- [ ] Cada evento incluye actor, acción, entidad, entidad id, fecha UTC y datos de contexto.
-- [ ] Los eventos de administradores globales no requieren `ContribuyenteId`.
-- [ ] No se guardan contraseñas, tokens, API keys ni datos sensibles completos.
-- [ ] El outbox guarda tipo, payload, estado, intentos, fecha y último error.
-- [ ] Un worker procesa mensajes pendientes con reintentos y backoff.
-- [ ] Un mensaje procesado no se vuelve a procesar.
-- [ ] Un mensaje fallido queda en estado `Fallido` después del máximo de intentos.
+- [x] Se registran eventos de login, logout, alta de solicitud, aprobación, rechazo, activación, creación/revocación de API key y emisión.
+- [x] Cada evento incluye actor, acción, entidad, entidad id, fecha UTC y datos de contexto.
+- [x] Los eventos de administradores globales no requieren `ContribuyenteId`.
+- [x] No se guardan contraseñas, tokens, API keys ni datos sensibles completos.
+- [x] El outbox guarda tipo, payload, estado, intentos, fecha y último error.
+- [x] Un worker procesa mensajes pendientes con reintentos y backoff.
+- [x] Un mensaje procesado no se vuelve a procesar.
+- [x] Un mensaje fallido queda en estado `Fallido` después del máximo de intentos.
 - [ ] Se puede consultar el estado de un mensaje para soporte.
 - [ ] Los índices soportan la consulta por estado y fecha.
-- [ ] Hay tests de auditoría, procesamiento, reintento e idempotencia.
-- [ ] No se registran secretos en logs ni en el outbox.
+- [x] Hay tests de auditoría, procesamiento, reintento e idempotencia.
+- [x] No se registran secretos en logs ni en el outbox.
 
 ## Escenarios Gherkin
 
@@ -67,23 +67,39 @@ Scenario: Máximo de intentos
 
 ## Tareas técnicas
 
-- [ ] Extender `EventoAuditoria` con actor global y `ContribuyenteId` nullable.
-- [ ] Crear `IAuditoriaService` y el repositorio.
-- [ ] Registrar eventos en los casos de uso principales.
-- [ ] Crear `OutboxMessage` y `IOutboxRepository`.
-- [ ] Implementar el worker de outbox con reintentos y backoff.
-- [ ] Crear índices de auditoría y outbox.
+- [x] Extender `EventoAuditoria` con actor global y `ContribuyenteId` nullable.
+- [x] Crear `IAuditoriaService` y el repositorio.
+- [x] Registrar eventos en los casos de uso principales.
+- [x] Crear `OutboxMessage` y `IOutboxRepository`.
+- [x] Implementar el worker de outbox con reintentos y backoff.
+- [x] Crear índices de auditoría y outbox.
 - [ ] Integrar emails de onboarding si US-29 lo permite.
-- [ ] Agregar tests de auditoría, worker y reintentos.
-- [ ] Documentar eventos y operación.
+- [x] Agregar tests de auditoría, worker y reintentos.
+- [x] Documentar eventos y operación.
 
 ## Definition of Done
 
-- [ ] Las acciones críticas quedan auditadas.
-- [ ] El outbox procesa y reintenta sin duplicar.
-- [ ] Los secretos no se persisten en auditoría ni outbox.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el proceso de alta.
+- [x] Las acciones críticas quedan auditadas.
+- [x] El outbox procesa y reintenta sin duplicar.
+- [x] Los secretos no se persisten en auditoría ni outbox.
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el proceso de alta.
+
+## Evidencia de cierre
+
+- Build: `dotnet build FacturAR.slnx -c Release` → correcta, 0 errores.
+- Tests: `dotnet test FacturAR.slnx -c Release --no-build` → 601 unitarios y 158 de integración aprobados, 174 omitidos (`MongoFact` sin connection string), 0 fallos.
+- Formato: `dotnet format FacturAR.slnx --verify-no-changes` → sin cambios.
+- Tests nuevos: `OutboxBackoffTests`, `OutboxWorkerTests`, `AuditoriaServiceTests`, `RegistrarAccesoServiceTests`, `OutboxIntegrationTests` y `MongoOutboxTests` (estos últimos se omiten sin Mongo).
+- Los eventos de aprobación, rechazo, reenvío, activación, login/logout, API keys y emisión se cubren en `RevisionSolicitudesServiceTests`, `ActivacionInvitacionServiceTests`, `AuthEndpointsTests`, `CrearApiKeyServiceTests`, `EmitirComprobanteServiceTests` y `NotasCreditoDebitoTests`.
+- La validación de secretos se aplica en `AuditoriaValidator`, invocada por `AuditoriaService` y por `EventoAuditoriaRepository.AddAsync`.
+
+Pendiente de verificación con infraestructura real:
+
+- `MongoOutboxTests`: claim concurrente (CP-17.12), consulta por `Estado` + `CreatedAt` (CP-17.14), encolado transaccional e índice `ix_outbox_estado_fecha`.
+- `explain()` de `ix_eventos_contribuyente_fecha` y `ix_eventos_administrador_fecha` (CP-17.13).
+- QA manual de CP-17.11 con intervalos reales y de CP-17.02 desde el portal, que depende de US-13.
+- `LoginFallido` se registra con `ActorTipo = Sistema` porque un login fallido no tiene actor identificado; la tabla del contrato lo listaba como `Empresa`, pero esa coherencia exigiría `ContribuyenteId` y `UsuarioId`.
 
 ## Contrato técnico
 

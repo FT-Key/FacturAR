@@ -35,6 +35,7 @@ public sealed class MongoApiTests : IAsyncLifetime
                 builder.UseSetting("Mongo:ConnectionString", MongoTestSettings.GetConnectionStringWithTimeout());
                 builder.UseSetting("Mongo:DatabaseName", _databaseName);
                 builder.UseSetting("Mongo:InitializeIndexes", "true");
+                builder.UseSetting("Outbox:Habilitado", "false");
             });
 
         _client = _factory.CreateClient();

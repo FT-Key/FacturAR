@@ -1,11 +1,12 @@
 using FacturAR.Application.Abstractions;
+using FacturAR.Application.Auditoria;
 using FacturAR.Domain.Exceptions;
 
 namespace FacturAR.Application.ApiKeys;
 
 public sealed class RevocarApiKeyService
 {
-    public const string AccionRevocada = "apikey.revocada";
+    public const string AccionRevocada = AccionesAuditoria.ApiKeyRevocada;
 
     private readonly IApiKeyRepository _apiKeys;
     private readonly IEventoAuditoriaRepository _eventos;

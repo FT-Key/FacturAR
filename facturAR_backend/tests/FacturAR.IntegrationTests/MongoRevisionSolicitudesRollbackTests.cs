@@ -47,6 +47,7 @@ public sealed class MongoRevisionSolicitudesRollbackTests : IAsyncLifetime
                 builder.UseSetting("Mongo:ConnectionString", MongoTestSettings.GetConnectionStringWithTimeout());
                 builder.UseSetting("Mongo:DatabaseName", _databaseName);
                 builder.UseSetting("Mongo:InitializeIndexes", "true");
+                builder.UseSetting("Outbox:Habilitado", "false");
                 builder.UseSetting("Auth:Login:RateLimitPorIp", "1000");
                 builder.UseSetting("BootstrapAdmin:Email", string.Empty);
                 builder.UseSetting("Admin:NotificationEmail", string.Empty);
@@ -178,7 +179,7 @@ public sealed class MongoRevisionSolicitudesRollbackTests : IAsyncLifetime
     {
         public Task AddAsync(EventoAuditoria evento, CancellationToken ct = default)
         {
-            if (evento.Accion == "solicitud.aprobada")
+            if (evento.Accion == "SolicitudAprobada")
             {
                 throw new InvalidOperationException("Falla forzada de auditoría.");
             }

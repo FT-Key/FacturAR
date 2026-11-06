@@ -1,4 +1,5 @@
 using FacturAR.Application.Abstractions;
+using FacturAR.Application.Auditoria;
 using FacturAR.Contracts.ApiKeys;
 using FacturAR.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
@@ -7,7 +8,7 @@ namespace FacturAR.Application.ApiKeys;
 
 public sealed class RegenerarApiKeyService
 {
-    public const string AccionRegenerada = "apikey.regenerada";
+    public const string AccionRegenerada = AccionesAuditoria.ApiKeyRegenerada;
 
     private readonly IApiKeyRepository _apiKeys;
     private readonly IApiKeyGenerator _generator;

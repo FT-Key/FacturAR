@@ -1,4 +1,5 @@
 using FacturAR.Application.Abstractions;
+using FacturAR.Application.Auditoria;
 using FacturAR.Application.Notificaciones;
 using FacturAR.Contracts.Solicitudes;
 using FacturAR.Domain.Entities;
@@ -11,7 +12,7 @@ namespace FacturAR.Application.Solicitudes;
 public sealed class ReenviarInvitacionService
 {
     public const string AdvertenciaEmail = "No se pudo enviar el email. Podés reenviar la invitación.";
-    public const string AccionReenviada = "invitacion.reenviada";
+    public const string AccionReenviada = AccionesAuditoria.InvitacionReenviada;
 
     private readonly ISolicitudAltaRepository _solicitudes;
     private readonly IInvitacionRepository _invitaciones;

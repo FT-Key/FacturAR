@@ -1,4 +1,6 @@
 using System.Text.Json;
+using FacturAR.Application.Auditoria;
+using FacturAR.Domain;
 using FacturAR.Domain.Entities;
 
 namespace FacturAR.Application.ApiKeys;
@@ -12,15 +14,14 @@ internal static class ApiKeyEventos
         => new()
         {
             Accion = accion,
-            Entidad = nameof(ApiKey),
+            Entidad = EntidadesAuditoria.ApiKey,
             EntidadId = apiKey.Id.ToString(),
             ContribuyenteId = apiKey.ContribuyenteId,
             UsuarioId = usuarioId,
-            ActorTipo = "Empresa",
+            ActorTipo = ActorTipos.Empresa,
             Datos = JsonSerializer.Serialize(new Dictionary<string, string>
             {
-                ["nombre"] = apiKey.Nombre,
-                ["prefix"] = apiKey.Prefix
+                ["nombre"] = apiKey.Nombre
             }),
             CreatedAt = ahora
         };
