@@ -21,7 +21,8 @@
 }
 
 .navbar-brand {
-    font-size: 1.1rem;
+    font-family: var(--font-display);
+    font-size: 1.25rem;
     color: var(--color-code-text);
 }
 
@@ -77,13 +78,14 @@
     }
 
 .nav-item ::deep a.active {
-    background-color: rgba(255,255,255,0.37);
-    color: white;
+    background-color: var(--color-primary);
+    color: var(--color-on-primary);
+    box-shadow: 3px 3px 0 var(--color-primary-strong);
 }
 
 .nav-item ::deep .nav-link:hover {
-    background-color: rgba(255,255,255,0.1);
-    color: white;
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--color-primary);
 }
 
 .nav-scrollable {

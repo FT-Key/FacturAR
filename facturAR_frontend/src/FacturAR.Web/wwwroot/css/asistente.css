@@ -14,11 +14,11 @@
     align-items: center;
     gap: var(--space-2);
     padding: 10px 18px;
-    border: var(--border);
+    border: 1px solid var(--color-primary);
     border-radius: var(--radius-pill);
-    background: var(--color-surface);
-    color: var(--color-text);
-    box-shadow: 2px 2px 0 var(--color-border-strong);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    box-shadow: 0 4px 0 var(--color-primary-strong);
     cursor: pointer;
     font-size: var(--text-sm);
     font-weight: 600;
@@ -27,8 +27,13 @@
 }
 
 .asistente__toggle:hover {
-    transform: translate(-1px, -1px);
-    box-shadow: 3px 3px 0 var(--color-border-strong);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 var(--color-primary-strong);
+}
+
+.asistente__toggle:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 var(--color-primary-strong);
 }
 
 .asistente__toggle-icono {
@@ -38,8 +43,8 @@
     width: 26px;
     height: 26px;
     border-radius: 50%;
-    background: var(--color-accent);
-    color: var(--color-on-accent);
+    background: var(--color-on-primary);
+    color: var(--color-primary);
     font-weight: 700;
 }
 
@@ -53,10 +58,11 @@
     height: 620px;
     max-height: calc(100vh - 140px);
     overflow: hidden;
-    border: var(--border);
+    border: 1px solid var(--color-border-strong);
+    border-top: 4px solid var(--color-primary);
     border-radius: var(--radius-md);
     background: var(--color-surface);
-    box-shadow: 2px 2px 0 var(--color-border-strong);
+    box-shadow: var(--elevation-3), var(--shadow-lift);
 }
 
 .asistente__panel[hidden] {
@@ -77,6 +83,7 @@
     margin: 0;
     font-family: var(--font-display);
     font-size: var(--text-lg);
+    font-weight: 500;
     line-height: var(--line-height-title);
 }
 
@@ -165,11 +172,13 @@
     cursor: pointer;
     font-size: var(--text-xs);
     text-align: left;
+    transition: border-color var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease), background-color var(--duration-fast) var(--ease);
 }
 
 .asistente__sugerencia:hover {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
+    border-color: var(--color-primary);
+    background: var(--color-primary-soft);
+    color: var(--color-text);
 }
 
 .asistente__error {
@@ -250,10 +259,11 @@
 
 .asistente__enviar {
     padding: 6px 14px;
-    border: none;
+    border: 1px solid var(--color-primary);
     border-radius: var(--radius-sm);
-    background: var(--color-accent);
-    color: var(--color-on-accent);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    box-shadow: 0 3px 0 var(--color-primary-strong);
     cursor: pointer;
     font-size: var(--text-sm);
     font-weight: 600;
@@ -310,6 +320,7 @@
         height: auto;
         max-height: none;
         border: none;
+        border-top: 4px solid var(--color-primary);
         border-radius: 0;
     }
 }

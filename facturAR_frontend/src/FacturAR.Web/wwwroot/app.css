@@ -32,24 +32,36 @@ a,
     color: var(--color-on-primary);
     background-color: var(--color-primary);
     border-color: var(--color-primary);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 3px 0 var(--color-primary-strong);
 }
 
 .btn-primary:hover,
 .btn-primary:focus {
-    color: var(--color-on-accent);
-    background-color: var(--color-accent);
-    border-color: var(--color-accent);
+    color: var(--color-on-primary);
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    box-shadow: 0 5px 0 var(--color-primary-strong);
+    transform: translateY(-1px);
+}
+
+.btn-primary:active {
+    box-shadow: 0 1px 0 var(--color-primary-strong);
+    transform: translateY(2px);
 }
 
 .btn-outline-primary {
     color: var(--color-text);
     border-color: var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 3px 0 var(--color-border-strong);
 }
 
 .btn-outline-primary:hover {
     color: var(--color-on-primary);
     background-color: var(--color-primary);
     border-color: var(--color-primary);
+    box-shadow: 0 3px 0 var(--color-primary-strong);
 }
 
 .btn:focus-visible,
@@ -66,6 +78,8 @@ a,
     color: var(--color-text);
     background-color: var(--color-surface);
     border-color: var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--elevation-1);
 }
 
 .table {
@@ -118,8 +132,8 @@ a,
 }
 
 .theme-option[aria-pressed="true"] {
-    color: var(--color-bg);
-    background: var(--color-text);
+    color: var(--color-on-primary);
+    background: var(--color-primary);
 }
 
 .content {
@@ -166,11 +180,12 @@ h1:focus {
 }
 
 .api-key-dialogo {
-    border: 1px solid var(--color-border);
-    border-radius: 0.75rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
     max-width: 32rem;
     width: calc(100% - 2rem);
     padding: 0;
+    box-shadow: var(--elevation-3), var(--shadow-lift);
 }
 
 .api-key-dialogo::backdrop {
@@ -198,5 +213,10 @@ h1:focus {
         animation-duration: 0.001ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.001ms !important;
+    }
+
+    .btn-primary:hover,
+    .btn-primary:active {
+        transform: none;
     }
 }
