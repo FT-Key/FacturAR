@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\FacturAR.Api\FacturAR.Api.csproj" />
+    <ProjectReference Include="..\..\..\facturAR_frontend\src\FacturAR.Web\FacturAR.Web.csproj" Aliases="WebProgram" />
   </ItemGroup>
 
 </Project>
