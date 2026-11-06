@@ -31,7 +31,7 @@ El CUIT es un dato público: no se usa como prueba de titularidad. La solicitud 
 - [x] La respuesta no expone datos de otras solicitudes ni confirma la existencia de un contribuyente.
 - [x] Se envía o encola un email de confirmación al solicitante.
 - [x] El endpoint público tiene rate limit por IP y por email.
-- [ ] La página muestra un mensaje de éxito con el próximo paso y un mensaje claro ante errores.
+- [x] La página muestra un mensaje de éxito con el próximo paso y un mensaje claro ante errores.
 - [x] La solicitud puede auditarse sin guardar datos sensibles innecesarios.
 
 ## Escenarios Gherkin
@@ -92,14 +92,14 @@ Scenario: Rate limit
 - [x] Crear la página de solicitud en el portal y el cliente HTTP.
 - [x] Enviar el email de confirmación mediante US-29.
 - [x] Agregar tests unitarios de validación y duplicados.
-- [ ] Agregar tests de integración del endpoint y de los índices.
+- [x] Agregar tests de integración del endpoint y de los índices.
 - [x] Documentar el endpoint en OpenAPI y Postman.
 
 ## Definition of Done
 
-- [ ] Una solicitud válida queda persistida y visible para el administrador global.
+- [x] Una solicitud válida queda persistida y visible para el administrador global.
 - [x] Los duplicados y errores no crean registros parciales.
-- [ ] El email de confirmación se genera en desarrollo.
+- [x] El email de confirmación se genera en desarrollo.
 - [x] El formulario funciona en desktop y mobile.
 - [x] `dotnet test FacturAR.slnx` pasa.
 - [x] La historia está enlazada desde el índice y el proceso de alta.
