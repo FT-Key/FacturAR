@@ -85,7 +85,7 @@ Reglas que la landing y el asistente deben comunicar sin ambigüedad:
 ### Sistema de diseño y temas
 
 - [x] Existen tokens semánticos de color, tipografía, espaciado, radios, bordes, foco y movimiento.
-- [ ] El tema claro, oscuro y system funciona en landing, login, alta, activación, verificación y shell del portal.
+- [x] El tema claro, oscuro y system funciona en landing, login, alta, activación, verificación y shell del portal.
 - [x] El tema se persiste en `localStorage` y respeta `prefers-color-scheme` cuando está en `system`.
 - [x] No hay flash de tema incorrecto (FOUC) al cargar: el tema se aplica antes del primer paint.
 - [x] El toggle de tema es accesible: rol, nombre, estado y foco visible.
@@ -124,7 +124,7 @@ Reglas que la landing y el asistente deben comunicar sin ambigüedad:
 - [x] El asistente responde solo sobre alta, aprobación, activación, API keys, autenticación y uso básico de la API.
 - [x] El asistente rechaza pedidos fuera de alcance, datos de otros clientes, secretos, configuración interna, ejecución de código o acciones sobre el sistema.
 - [x] El asistente no crea cuentas, no aprueba solicitudes, no emite API keys y no modifica datos.
-- [ ] La API key de Groq vive solo en el servidor y nunca se envía al navegador ni a logs.
+- [x] La API key de Groq vive solo en el servidor y nunca se envía al navegador ni a logs.
 - [x] Si `Asistente:Habilitado=false`, el widget no se muestra y el endpoint responde `404`.
 - [x] Si Groq falla, responde lento o agota el presupuesto, el asistente muestra un mensaje amable y una salida de ayuda estática.
 - [x] El asistente no persiste conversaciones ni datos personales en MongoDB.
@@ -140,7 +140,7 @@ Reglas que la landing y el asistente deben comunicar sin ambigüedad:
 - [x] Se actualizan `README.md`, el índice de historias, `docs/requisitos-funcionales.md` y este archivo.
 - [x] `dotnet build`, `dotnet test` y `dotnet format --verify-no-changes` pasan.
 - [x] El PR incluye capturas de la landing en claro y oscuro, desktop y móvil.
-- [ ] El PR incluye el reporte de Lighthouse y el resultado de axe.
+- [x] El PR incluye el reporte de Lighthouse y el resultado de axe.
 
 ## Escenarios Gherkin
 

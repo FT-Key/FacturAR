@@ -26,14 +26,14 @@ La emisión usa el `ContribuyenteId` autenticado. El número y el CAE se asignan
 - [x] Una factura B se emite a consumidor final, monotributista o exento; el IVA se incluye y no se discrimina.
 - [x] Una factura C se emite a consumidor final y no discrimina IVA.
 - [x] El total se calcula como neto + IVA y no se acepta un total inconsistente.
-- [ ] La emisión asigna número y CAE dentro de una transacción.
+- [x] La emisión asigna número y CAE dentro de una transacción.
 - [x] El CAE tiene 14 dígitos, es único y vence a los 10 días.
 - [x] La respuesta `201` incluye id, número, CAE, vencimiento, importes y estado.
 - [ ] Un error de validación devuelve `400` con `ErrorResponse` y detalles por campo.
 - [x] Un punto de venta ajeno o inexistente devuelve `404`.
-- [ ] Un contribuyente inactivo devuelve `403`.
+- [x] Un contribuyente inactivo devuelve `403`.
 - [x] La emisión registra un evento de auditoría.
-- [ ] El comprobante queda disponible para consulta y verificación por CAE.
+- [x] El comprobante queda disponible para consulta y verificación por CAE.
 
 ## Escenarios Gherkin
 
@@ -88,7 +88,7 @@ Scenario: CAE único
 - [x] Implementar el cálculo de neto, IVA y total por tipo.
 - [x] Integrar la asignación atómica de número de US-07.
 - [x] Generar el CAE con `CaeGenerator` y calcular el vencimiento.
-- [ ] Persistir el comprobante y sus ítems en una transacción.
+- [x] Persistir el comprobante y sus ítems en una transacción.
 - [x] Crear `POST /v1/comprobantes` con autenticación por API key.
 - [x] Registrar auditoría.
 - [x] Agregar tests de factura A, B, C, validaciones y aislamiento.
@@ -96,8 +96,8 @@ Scenario: CAE único
 
 ## Definition of Done
 
-- [ ] Se emiten facturas A, B y C con numeración y CAE correctos.
-- [ ] El comprobante se recupera por CAE.
+- [x] Se emiten facturas A, B y C con numeración y CAE correctos.
+- [x] El comprobante se recupera por CAE.
 - [x] No se consumen números ni se persisten comprobantes ante errores.
 - [x] El aislamiento por empresa está cubierto por tests.
 - [x] `dotnet test FacturAR.slnx` pasa.
