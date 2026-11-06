@@ -6,7 +6,7 @@
 **Requisito:** RF-28  
 **Depende de:** US-01, US-02, US-03, US-04, US-14, US-29  
 **Habilita:** US-21, US-30  
-**Estado:** Pendiente
+**Estado:** Parcial
 
 ## Historia
 
@@ -58,87 +58,87 @@ Reglas que la landing y el asistente deben comunicar sin ambigüedad:
 
 ### Rutas y navegación
 
-- [ ] `GET /` responde `200` sin sesión y renderiza la landing pública.
-- [ ] Un visitante anónimo en `/` no es redirigido a `/login`.
-- [ ] El dashboard autenticado responde en `/dashboard`.
-- [ ] `GET /inicio` responde `301` a `/`.
-- [ ] Después de un login de empresa exitoso se redirige a `/dashboard`.
-- [ ] Después de un login de administrador global exitoso se redirige a `/admin`.
-- [ ] Todos los enlaces internos que apuntaban a `/` como dashboard apuntan a `/dashboard`.
-- [ ] La navbar pública enlaza a `/`, `/#como-funciona`, `/#api`, `/#seguridad`, `/verificar`, `/login` y `/solicitar-alta`.
-- [ ] La navbar autenticada conserva dashboard, comprobantes, emisión, API keys y logout.
-- [ ] `/logout` sigue cerrando la sesión y redirigiendo a `/login`.
+- [x] `GET /` responde `200` sin sesión y renderiza la landing pública.
+- [x] Un visitante anónimo en `/` no es redirigido a `/login`.
+- [x] El dashboard autenticado responde en `/dashboard`.
+- [x] `GET /inicio` responde `301` a `/`.
+- [x] Después de un login de empresa exitoso se redirige a `/dashboard`.
+- [x] Después de un login de administrador global exitoso se redirige a `/admin`.
+- [x] Todos los enlaces internos que apuntaban a `/` como dashboard apuntan a `/dashboard`.
+- [x] La navbar pública enlaza a `/`, `/#como-funciona`, `/#api`, `/#seguridad`, `/verificar`, `/login` y `/solicitar-alta`.
+- [x] La navbar autenticada conserva dashboard, comprobantes, emisión, API keys y logout.
+- [x] `/logout` sigue cerrando la sesión y redirigiendo a `/login`.
 
 ### Landing
 
-- [ ] La landing tiene navbar, hero, qué es, cómo funciona, para integradores, seguridad, FAQ, CTA final y footer.
-- [ ] La sección “Cómo funciona” explica los 5 pasos de la tabla anterior y aclara que no hay registro libre.
-- [ ] La landing distingue con claridad “Solicitar alta” de “Ingresar”.
-- [ ] La landing muestra un bloque de código de ejemplo con `X-Api-Key` e `Idempotency-Key`, usando una key de marcador de posición.
-- [ ] La landing aclara que el CAE es simulado y no válido fiscalmente.
-- [ ] La landing deja un slot visible para la guía de integración, con estado “Próximamente” mientras US-30 no esté implementada.
-- [ ] La landing es navegable con teclado y tiene enlace “Saltar al contenido”.
-- [ ] La landing se ve correctamente en 375, 768, 1280 y 1440 px, sin scroll horizontal.
-- [ ] La landing no usa imágenes de stock ni templates genéricos; la identidad es original (“Papel y sello”).
-- [ ] La landing no depende de JavaScript para mostrar el contenido principal.
+- [x] La landing tiene navbar, hero, qué es, cómo funciona, para integradores, seguridad, FAQ, CTA final y footer.
+- [x] La sección “Cómo funciona” explica los 5 pasos de la tabla anterior y aclara que no hay registro libre.
+- [x] La landing distingue con claridad “Solicitar alta” de “Ingresar”.
+- [x] La landing muestra un bloque de código de ejemplo con `X-Api-Key` e `Idempotency-Key`, usando una key de marcador de posición.
+- [x] La landing aclara que el CAE es simulado y no válido fiscalmente.
+- [x] La landing deja un slot visible para la guía de integración, con estado “Próximamente” mientras US-30 no esté implementada.
+- [x] La landing es navegable con teclado y tiene enlace “Saltar al contenido”.
+- [x] La landing se ve correctamente en 375, 768, 1280 y 1440 px, sin scroll horizontal.
+- [x] La landing no usa imágenes de stock ni templates genéricos; la identidad es original (“Papel y sello”).
+- [x] La landing no depende de JavaScript para mostrar el contenido principal.
 
 ### Sistema de diseño y temas
 
-- [ ] Existen tokens semánticos de color, tipografía, espaciado, radios, bordes, foco y movimiento.
+- [x] Existen tokens semánticos de color, tipografía, espaciado, radios, bordes, foco y movimiento.
 - [ ] El tema claro, oscuro y system funciona en landing, login, alta, activación, verificación y shell del portal.
-- [ ] El tema se persiste en `localStorage` y respeta `prefers-color-scheme` cuando está en `system`.
-- [ ] No hay flash de tema incorrecto (FOUC) al cargar: el tema se aplica antes del primer paint.
-- [ ] El toggle de tema es accesible: rol, nombre, estado y foco visible.
-- [ ] Si el usuario cambia el tema del sistema con la app abierta y está en `system`, la UI se actualiza.
+- [x] El tema se persiste en `localStorage` y respeta `prefers-color-scheme` cuando está en `system`.
+- [x] No hay flash de tema incorrecto (FOUC) al cargar: el tema se aplica antes del primer paint.
+- [x] El toggle de tema es accesible: rol, nombre, estado y foco visible.
+- [x] Si el usuario cambia el tema del sistema con la app abierta y está en `system`, la UI se actualiza.
 - [ ] El contraste cumple WCAG 2.2 AA en ambos temas.
-- [ ] El movimiento respeta `prefers-reduced-motion`.
+- [x] El movimiento respeta `prefers-reduced-motion`.
 - [ ] No se agrega un framework CSS ni JS nuevo; se usan CSS custom properties y JavaScript mínimo.
 
 ### SEO
 
-- [ ] `/` tiene `<title>`, meta description, canonical, Open Graph, Twitter Card y `lang="es-AR"`.
-- [ ] `/` tiene un único `<h1>` y jerarquía de encabezados correcta.
-- [ ] `/` incluye JSON-LD de `Organization`, `WebSite` y `FAQPage`.
-- [ ] `robots.txt` permite las páginas públicas y bloquea las privadas.
-- [ ] `sitemap.xml` lista solo URLs públicas indexables.
-- [ ] `/login`, `/activar` y `/admin/*` tienen `noindex`.
-- [ ] Los enlaces internos son reales (`<a href>`), no `onclick`.
-- [ ] Las imágenes tienen `alt` y las decorativas `aria-hidden="true"`.
-- [ ] La URL canónica se arma desde `Portal:BaseUrl` y no desde el host del request.
+- [x] `/` tiene `<title>`, meta description, canonical, Open Graph, Twitter Card y `lang="es-AR"`.
+- [x] `/` tiene un único `<h1>` y jerarquía de encabezados correcta.
+- [x] `/` incluye JSON-LD de `Organization`, `WebSite` y `FAQPage`.
+- [x] `robots.txt` permite las páginas públicas y bloquea las privadas.
+- [x] `sitemap.xml` lista solo URLs públicas indexables.
+- [x] `/login`, `/activar` y `/admin/*` tienen `noindex`.
+- [x] Los enlaces internos son reales (`<a href>`), no `onclick`.
+- [x] Las imágenes tienen `alt` y las decorativas `aria-hidden="true"`.
+- [x] La URL canónica se arma desde `Portal:BaseUrl` y no desde el host del request.
 
 ### Performance
 
 - [ ] Lighthouse móvil: Performance, Accessibility, Best Practices y SEO ≥ 90.
 - [ ] LCP < 2.5 s, CLS < 0.1 e INP < 200 ms en la landing.
-- [ ] Las fuentes se sirven self-hosted en `woff2`, sin CDN externo, con `font-display: swap`.
-- [ ] La landing no abre un circuito de Blazor Server.
-- [ ] El CSS de la landing no supera 60 KB gzip y el JS propio no supera 30 KB gzip.
+- [x] Las fuentes se sirven self-hosted en `woff2`, sin CDN externo, con `font-display: swap`.
+- [x] La landing no abre un circuito de Blazor Server.
+- [x] El CSS de la landing no supera 60 KB gzip y el JS propio no supera 30 KB gzip.
 - [ ] Las imágenes se sirven con dimensiones explícitas y `loading="lazy"` salvo el hero.
 
 ### Asistente de alta
 
-- [ ] El asistente aparece en `/solicitar-alta`, abajo a la izquierda, con botón flotante y panel plegable.
-- [ ] El panel se puede abrir y cerrar con mouse, teclado y `Escape`; el foco vuelve al botón.
-- [ ] En móvil el panel ocupa la pantalla completa y atrapa el foco; en escritorio es un panel no modal.
-- [ ] El asistente tiene historial de mensajes, indicador de “escribiendo”, quick replies y un disclaimer visible.
-- [ ] El asistente responde solo sobre alta, aprobación, activación, API keys, autenticación y uso básico de la API.
-- [ ] El asistente rechaza pedidos fuera de alcance, datos de otros clientes, secretos, configuración interna, ejecución de código o acciones sobre el sistema.
-- [ ] El asistente no crea cuentas, no aprueba solicitudes, no emite API keys y no modifica datos.
+- [x] El asistente aparece en `/solicitar-alta`, abajo a la izquierda, con botón flotante y panel plegable.
+- [x] El panel se puede abrir y cerrar con mouse, teclado y `Escape`; el foco vuelve al botón.
+- [x] En móvil el panel ocupa la pantalla completa y atrapa el foco; en escritorio es un panel no modal.
+- [x] El asistente tiene historial de mensajes, indicador de “escribiendo”, quick replies y un disclaimer visible.
+- [x] El asistente responde solo sobre alta, aprobación, activación, API keys, autenticación y uso básico de la API.
+- [x] El asistente rechaza pedidos fuera de alcance, datos de otros clientes, secretos, configuración interna, ejecución de código o acciones sobre el sistema.
+- [x] El asistente no crea cuentas, no aprueba solicitudes, no emite API keys y no modifica datos.
 - [ ] La API key de Groq vive solo en el servidor y nunca se envía al navegador ni a logs.
-- [ ] Si `Asistente:Habilitado=false`, el widget no se muestra y el endpoint responde `404`.
-- [ ] Si Groq falla, responde lento o agota el presupuesto, el asistente muestra un mensaje amable y una salida de ayuda estática.
-- [ ] El asistente no persiste conversaciones ni datos personales en MongoDB.
-- [ ] El asistente aplica límites por IP, por sesión y por presupuesto diario.
-- [ ] El contenido del asistente se renderiza como texto, nunca como HTML crudo.
-- [ ] El asistente funciona sin exponer errores internos ni stack traces.
+- [x] Si `Asistente:Habilitado=false`, el widget no se muestra y el endpoint responde `404`.
+- [x] Si Groq falla, responde lento o agota el presupuesto, el asistente muestra un mensaje amable y una salida de ayuda estática.
+- [x] El asistente no persiste conversaciones ni datos personales en MongoDB.
+- [x] El asistente aplica límites por IP, por sesión y por presupuesto diario.
+- [x] El contenido del asistente se renderiza como texto, nunca como HTML crudo.
+- [x] El asistente funciona sin exponer errores internos ni stack traces.
 
 ### Calidad y documentación
 
-- [ ] Hay tests de integración para rutas, SEO, sitemap, robots y endpoint del asistente.
-- [ ] Hay tests unitarios para la política de alcance, entrada y salida del asistente.
-- [ ] Los tests del asistente usan un proveedor falso; no llaman a Groq en CI.
-- [ ] Se actualizan `README.md`, el índice de historias, `docs/requisitos-funcionales.md` y este archivo.
-- [ ] `dotnet build`, `dotnet test` y `dotnet format --verify-no-changes` pasan.
+- [x] Hay tests de integración para rutas, SEO, sitemap, robots y endpoint del asistente.
+- [x] Hay tests unitarios para la política de alcance, entrada y salida del asistente.
+- [x] Los tests del asistente usan un proveedor falso; no llaman a Groq en CI.
+- [x] Se actualizan `README.md`, el índice de historias, `docs/requisitos-funcionales.md` y este archivo.
+- [x] `dotnet build`, `dotnet test` y `dotnet format --verify-no-changes` pasan.
 - [ ] El PR incluye capturas de la landing en claro y oscuro, desktop y móvil.
 - [ ] El PR incluye el reporte de Lighthouse y el resultado de axe.
 
@@ -780,21 +780,21 @@ Enlaces a revisar: `Dashboard.razor`, `NavMenu.razor`, `Login.cshtml.cs`, `Compr
 ## Definition of Done
 
 - [ ] Todos los criterios de aceptación están implementados y verificados con evidencia.
-- [ ] `/` es la landing pública y `/dashboard` es el dashboard autenticado.
-- [ ] `/inicio` responde `301` a `/` y no hay enlaces internos rotos.
-- [ ] La landing funciona en claro, oscuro y system, sin flash y con persistencia.
-- [ ] La landing cumple SEO técnico, JSON-LD, sitemap, robots y canonical.
+- [x] `/` es la landing pública y `/dashboard` es el dashboard autenticado.
+- [x] `/inicio` responde `301` a `/` y no hay enlaces internos rotos.
+- [x] La landing funciona en claro, oscuro y system, sin flash y con persistencia.
+- [x] La landing cumple SEO técnico, JSON-LD, sitemap, robots y canonical.
 - [ ] Lighthouse móvil ≥ 90 en las cuatro categorías, con captura adjunta.
 - [ ] axe no reporta errores críticos ni serios en landing, login, alta y chat.
-- [ ] El asistente está en `/solicitar-alta`, es plegable, accesible y responsive.
-- [ ] El asistente responde solo sobre el alcance permitido y rechaza el resto.
+- [x] El asistente está en `/solicitar-alta`, es plegable, accesible y responsive.
+- [x] El asistente responde solo sobre el alcance permitido y rechaza el resto.
 - [ ] La API key de Groq nunca aparece en el navegador, el repositorio ni los logs.
-- [ ] Rate limits, presupuesto y circuit breaker funcionan y están testeados.
+- [x] Rate limits, presupuesto y circuit breaker funcionan y están testeados.
 - [ ] Las 18 pruebas de red team tienen resultado esperado.
-- [ ] El asistente no persiste datos y no accede a MongoDB.
-- [ ] Los tests automáticos pasan sin llamar a Groq.
-- [ ] `dotnet build`, `dotnet test` y `dotnet format --verify-no-changes` pasan.
-- [ ] `README.md`, el índice de historias, `docs/requisitos-funcionales.md` y este archivo están actualizados.
+- [x] El asistente no persiste datos y no accede a MongoDB.
+- [x] Los tests automáticos pasan sin llamar a Groq.
+- [x] `dotnet build`, `dotnet test` y `dotnet format --verify-no-changes` pasan.
+- [x] `README.md`, el índice de historias, `docs/requisitos-funcionales.md` y este archivo están actualizados.
 - [ ] El PR contra `development` incluye capturas, reporte de Lighthouse y nota de seguridad.
 - [ ] Un revisor externo entiende el producto y el proceso de alta solo con la landing.
 
@@ -806,3 +806,36 @@ Enlaces a revisar: `Dashboard.razor`, `NavMenu.razor`, `Login.cshtml.cs`, `Compr
 - **Rutas:** el cambio de `/` a `/dashboard` puede romper enlaces externos. El `301` de `/inicio` cubre la ruta vieja de la landing; para la ruta vieja del dashboard no hay alias porque `/` ahora es pública.
 - **Diseño:** el sistema de tokens se aplica a las pantallas públicas y al shell; las pantallas privadas conservan su estructura para no convertir esta historia en un rediseño total del portal.
 - **Accesibilidad:** el contraste se valida con medición, no a ojo. Cualquier conflicto entre estética y accesibilidad se resuelve a favor de accesibilidad.
+
+## Estado de implementación (2026-11-06)
+
+**Estado:** Parcial. La landing, el cambio de rutas, el sistema de temas, el SEO técnico y el asistente con proveedor configurable están implementados y cubiertos por tests y QA. Quedan pendientes Lighthouse, axe, la respuesta real de Groq y los assets de marca.
+
+### Evidencia
+
+- `dotnet build FacturAR.slnx -c Release` → 0 errores, 0 advertencias.
+- `dotnet test FacturAR.slnx -c Release --no-build` → UnitTests 685 aprobados / 0 fallidos / 0 omitidos; IntegrationTests 196 aprobados / 174 omitidos (`MongoFact` sin connection string) / 0 fallidos.
+- `dotnet format FacturAR.slnx --verify-no-changes` → exit 0.
+- Tests nuevos: `PortalLandingTests` (11), `AsistenteEndpointTests` (12), `AsistentePoliticaTests` (13 Fact + 6 Theory), `AsistenteAltasServiceTests` (5), `AsistenteLimitesTests` (8) y `AsistenteOptionsTests` (2 Fact + 1 Theory). Total: 70 casos unitarios y 23 de integración.
+- `PortalLandingTests` cubre `GET /` sin sesión, hero/H1/CTA, `lang="es-AR"`, title/description/canonical/OG/Twitter/JSON-LD (`Organization`, `WebSite`, `FAQPage`), un solo `h1`, `/inicio` 301, `/dashboard` 302 a `/login`, `noindex` en login/admin/activar, `robots.txt` y `sitemap.xml`.
+- `AsistenteEndpointTests` cubre 404 deshabilitado, 400 sin antiforgery, 403 por `Origin` ausente o distinto, 400 por mensaje vacío, campo desconocido, rol `system` o body > 8 KB, 200 con proveedor falso, 503 amable sin stack trace, 429 al séptimo mensaje con `Retry-After` y no filtración de la key ni del `Origin`.
+- `AsistentePoliticaTests` cubre RT-32.01 a RT-32.10 y RT-32.13, incluida la inyección en base64 y con caracteres invisibles; `AsistenteLimitesTests` cubre rate limits, presupuesto diario, requests diarios y circuit breaker; `AsistenteOptionsTests` valida el arranque con `Asistente:Habilitado=true` sin key.
+- QA Playwright contra el portal en `http://localhost:5116` con el asistente habilitado y un proveedor inalcanzable a propósito: CP-32.01, CP-32.02, CP-32.03 (302), CP-32.05, CP-32.06, CP-32.07 (oscuro + recarga sin flash + `aria-pressed`), CP-32.08 (system con `emulateMedia`), CP-32.09 (375 px sin scroll horizontal, menú con teclado y Escape), CP-32.10 (skip link como primer foco; `main` con `tabindex="-1"`), CP-32.12 (abre, foco en input, Escape cierra y devuelve foco), CP-32.20 (XSS como texto, 0 `<img>`), CP-32.23 (wordmark textual, sin imagen rota) y CP-32.24 (`noindex` en login/admin/activar).
+- QA responsive en 375, 768, 1280 y 1440 px sin scroll horizontal. Asistente: quick replies visibles, disclaimer, contador, envío con Enter, 503 amable con “Reintentar” y enlaces a FAQ/formulario, sin stack trace; el tema claro/oscuro/sistema persiste en `localStorage`.
+- Capturas en `docs/capturas/us-32/`: `landing-claro-desktop.png`, `landing-oscuro-desktop.png`, `landing-claro-movil.png`, `landing-oscuro-movil.png`, `asistente-desktop.png` y `asistente-movil.png` (las 6 existen y pesan más de 0 bytes).
+- Verificación de tamaño: CSS de la landing 4,6 KB gzip (`tokens.css` + `public.css`); JS propio 5,7 KB gzip (`theme.js` + `asistente.js`), por debajo de los límites de la historia.
+- Persistencia: el asistente no accede a MongoDB ni escribe el texto de los mensajes; solo metadatos y categoría.
+
+### Pendientes
+
+- Lighthouse móvil ≥ 90 y métricas LCP/CLS/INP: no hay CLI de Lighthouse disponible.
+- axe: no hay herramienta de auditoría de accesibilidad disponible.
+- Respuesta real de Groq: no hay API key; solo se probó con proveedor falso y fallback 503.
+- QA manual contra Groq real de CP-32.11, CP-32.13/14/15/16/17/18 y CP-32.21 (revisión de logs en runtime); CP-32.22 ya está cubierto por test automático.
+- Contraste WCAG medido con herramienta en ambos temas.
+- Tema claro/oscuro/system en login, alta, activación, verificación y shell del portal (el QA se hizo en la landing).
+- Assets de marca `wwwroot/brand/*.png` y `og-image.png`: los sube el usuario; el código degrada a wordmark textual y las metas referencian la ruta.
+- Imágenes con dimensiones explícitas y `loading="lazy"`: depende de los assets de marca.
+- Confirmación en el PR de que no se agregaron frameworks CSS/JS nuevos.
+- RT-32.16 (timeout de Groq) con simulación dedicada de timeout.
+- Capturas, reporte de Lighthouse y nota de seguridad adjuntos al PR contra `development`.
