@@ -18,6 +18,7 @@ public static class ComprobanteValidator
     private const int ObservacionesMaximas = 500;
     private const string DocumentoConsumidorFinal = "99";
     private const string DocumentoTipoCuit = "CUIT";
+    private const string DocumentoTipoDni = "DNI";
     private const string MensajeCondicionInadmisible =
         "La condición frente al IVA del receptor no es admisible para este tipo de comprobante.";
 
@@ -173,6 +174,14 @@ public static class ComprobanteValidator
         {
             documentoNumeroNormalizado = CuitValidator.Normalize(documentoNumero);
             if (!EsDocumentoConsumidorFinalValido(documentoNumeroNormalizado))
+            {
+                throw new CuitInvalidoException("El documento del receptor no es válido.");
+            }
+        }
+        else if (string.Equals(documentoTipo, DocumentoTipoDni, StringComparison.OrdinalIgnoreCase))
+        {
+            documentoNumeroNormalizado = CuitValidator.Normalize(documentoNumero);
+            if (documentoNumeroNormalizado.Length is not (7 or 8))
             {
                 throw new CuitInvalidoException("El documento del receptor no es válido.");
             }

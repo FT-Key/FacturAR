@@ -1,5 +1,5 @@
 using FacturAR.Application.Abstractions;
-using FacturAR.Api.Auth;
+using FacturAR.Application.Auth;
 using FacturAR.Contracts.Comprobantes;
 using FacturAR.Contracts.Comunes;
 using FacturAR.Domain.Exceptions;
@@ -21,7 +21,7 @@ public static class ComprobanteEndpoints
         app.MapPost("/v1/comprobantes", EmitirAsync)
             .WithName("EmitirComprobante")
             .WithTags("Comprobantes")
-            .RequireApiKey()
+            .RequireAuthorization("ComprobantesEmision")
             .Produces<ComprobanteResponse>(StatusCodes.Status200OK)
             .Produces<ComprobanteResponse>(StatusCodes.Status201Created)
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
@@ -41,6 +41,7 @@ public static class ComprobanteEndpoints
         HttpContext httpContext,
         ITenantContext tenant,
         IEmitirComprobanteService service,
+        RegistrarAccesoService auditoria,
         ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
@@ -111,6 +112,7 @@ public static class ComprobanteEndpoints
         }
         catch (SinPermisosException ex)
         {
+            await AuditarAccesoDenegadoAsync(auditoria, tenant, cancellationToken);
             return Error(StatusCodes.Status403Forbidden, "SIN_PERMISOS", ex.Message);
         }
         catch (CuentaInactivaException)
@@ -143,6 +145,25 @@ public static class ComprobanteEndpoints
                 StatusCodes.Status500InternalServerError,
                 "ERROR_INTERNO",
                 "Ocurrió un error inesperado.");
+        }
+    }
+
+    private static async Task AuditarAccesoDenegadoAsync(
+        RegistrarAccesoService auditoria,
+        ITenantContext tenant,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await auditoria.RegistrarAccesoDenegadoAsync(
+                tenant.UsuarioId,
+                tenant.ContribuyenteId,
+                tenant.AdministradorId,
+                cancellationToken);
+        }
+        catch
+        {
+            // La auditoría nunca debe cambiar el resultado de la autorización.
         }
     }
 
