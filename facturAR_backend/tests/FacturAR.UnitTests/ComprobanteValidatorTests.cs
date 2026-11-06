@@ -156,6 +156,32 @@ public sealed class ComprobanteValidatorTests
     }
 
     [Fact]
+    public void ValidarReceptor_FacturaBConTipoDni_DevuelveElDniNormalizado()
+    {
+        var receptor = ComprobanteValidator.ValidarReceptor(
+            TipoComprobante.FacturaB,
+            "DNI",
+            "30-123-456",
+            "Cliente S.A.",
+            (int)CondicionIva.ConsumidorFinal);
+
+        Assert.Equal("DNI", receptor.DocumentoTipo);
+        Assert.Equal("30123456", receptor.DocumentoNumero);
+        Assert.Equal(CondicionIva.ConsumidorFinal, receptor.CondicionIva);
+    }
+
+    [Fact]
+    public void ValidarReceptor_FacturaBConTipoDniInvalido_LanzaCuitInvalidoException()
+    {
+        Assert.Throws<CuitInvalidoException>(() => ComprobanteValidator.ValidarReceptor(
+            TipoComprobante.FacturaB,
+            "DNI",
+            "123",
+            "Cliente S.A.",
+            (int)CondicionIva.ConsumidorFinal));
+    }
+
+    [Fact]
     public void ValidarReceptor_FacturaBConConsumidorFinalYDocumentoInvalido_LanzaCuitInvalidoException()
     {
         var ex = Assert.Throws<CuitInvalidoException>(() => ComprobanteValidator.ValidarReceptor(
