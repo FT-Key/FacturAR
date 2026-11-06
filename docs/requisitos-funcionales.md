@@ -48,6 +48,7 @@ Definir el comportamiento funcional de FacturAR, un simulador de facturación el
 | RF-25 | Invitación y activación | Activar la cuenta del solicitante con un token de un solo uso. | Alta | US-28 |
 | RF-26 | Emails transaccionales | Enviar confirmación, aprobación, rechazo e invitación por email. | Alta | US-29 |
 | RF-27 | Manual de integración | Publicar una guía online para usar la API y las API keys. | Media | US-30 |
+| RF-28 | Landing pública y asistente de alta | Publicar una landing pública en `/` con SEO, sistema de diseño claro/oscuro/system y un asistente informativo para el alta de empresas. | Alta | US-32 |
 
 ## Reglas de negocio
 
@@ -133,6 +134,20 @@ Definir el comportamiento funcional de FacturAR, un simulador de facturación el
 - Explica solicitud, activación, API keys, autenticación, emisión, consultas, idempotencia, errores y seguridad.
 - Los ejemplos usan marcadores de posición, nunca API keys reales.
 - El manual aclara que el CAE es simulado y no tiene validez fiscal.
+
+### Landing pública y asistente de alta
+
+- La landing pública vive en `/` y no requiere sesión. El dashboard autenticado vive en `/dashboard`.
+- `/inicio` redirige de forma permanente a `/`.
+- La landing explica qué es FacturAR, cómo se obtiene acceso y que el CAE es simulado.
+- No hay registro libre: la cuenta se crea recién en la activación de la invitación.
+- El asistente de alta es informativo y solo guía el alta, la activación y el uso de API keys.
+- El asistente no crea cuentas, no aprueba solicitudes, no emite API keys, no emite comprobantes y no accede a datos.
+- La API key de Groq vive solo en el servidor; nunca se expone al navegador ni se registra en logs.
+- El asistente no persiste conversaciones ni datos personales.
+- El asistente tiene límites por IP, por sesión y un presupuesto diario de tokens.
+- La landing y las pantallas públicas cumplen WCAG 2.2 AA y tienen modo claro, oscuro y system.
+- La landing incluye SEO técnico: canonical, Open Graph, JSON-LD, `sitemap.xml` y `robots.txt`.
 
 ## Fuera de alcance obligatorio
 
