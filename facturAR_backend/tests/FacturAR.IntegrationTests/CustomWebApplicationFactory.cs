@@ -8,5 +8,6 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Mongo:InitializeIndexes", "false");
+        builder.UseSetting("Outbox:Habilitado", "false");
     }
 }

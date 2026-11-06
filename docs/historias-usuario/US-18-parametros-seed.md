@@ -5,7 +5,8 @@
 **Estimación:** 1 día  
 **Requisito:** RF-18  
 **Depende de:** US-02, US-04, US-07  
-**Habilita:** US-11, US-21
+**Habilita:** US-11, US-21  
+**Estado:** Parcial
 
 ## Historia
 
@@ -17,19 +18,19 @@ Los parámetros incluyen alícuotas de IVA, días de vencimiento del CAE, moneda
 
 ## Criterios de aceptación
 
-- [ ] Existe una fuente de parámetros para alícuotas, vencimiento de CAE, moneda y límites.
-- [ ] Los valores por defecto coinciden con las reglas del MVP.
-- [ ] Los parámetros se pueden sobrescribir por configuración sin recompilar.
+- [x] Existe una fuente de parámetros para alícuotas, vencimiento de CAE, moneda y límites.
+- [x] Los valores por defecto coinciden con las reglas del MVP.
+- [x] Los parámetros se pueden sobrescribir por configuración sin recompilar.
 - [ ] El seed es idempotente: ejecutarlo dos veces no duplica datos.
 - [ ] El seed crea un contribuyente demo con CUIT válido y punto de venta 1.
 - [ ] El seed crea usuarios demo `Administrador`, `Emisor` y `Consulta`.
 - [ ] El seed crea secuencias iniciales si corresponde.
 - [ ] El seed puede crear una API key demo solo en Development y muestra el valor una vez.
-- [ ] El seed no se ejecuta en Production sin una bandera explícita.
-- [ ] Las contraseñas demo se toman de configuración y se hashean.
-- [ ] Los datos demo están rotulados como simulados.
-- [ ] Hay tests de idempotencia y de parámetros.
-- [ ] El README documenta cómo ejecutar el seed.
+- [x] El seed no se ejecuta en Production sin una bandera explícita.
+- [x] Las contraseñas demo se toman de configuración y se hashean.
+- [x] Los datos demo están rotulados como simulados.
+- [x] Hay tests de idempotencia y de parámetros.
+- [x] El README documenta cómo ejecutar el seed.
 
 ## Escenarios Gherkin
 
@@ -64,22 +65,22 @@ Scenario: Parámetro de vencimiento
 
 ## Tareas técnicas
 
-- [ ] Crear `ParametrosFacturacion` y su lectura desde configuración.
-- [ ] Crear `SeedService` idempotente.
-- [ ] Crear los datos demo de empresa, usuarios, punto de venta y secuencias.
-- [ ] Crear la API key demo solo en Development si está configurada.
-- [ ] Agregar la bandera `Seed__Enabled`.
-- [ ] Integrar el seed al arranque o a un comando documentado.
-- [ ] Agregar tests de idempotencia y parámetros.
-- [ ] Documentar datos demo y credenciales de desarrollo sin secretos reales.
+- [x] Crear `ParametrosFacturacion` y su lectura desde configuración.
+- [x] Crear `SeedService` idempotente.
+- [x] Crear los datos demo de empresa, usuarios, punto de venta y secuencias.
+- [x] Crear la API key demo solo en Development si está configurada.
+- [x] Agregar la bandera `Seed__Enabled`.
+- [x] Integrar el seed al arranque o a un comando documentado.
+- [x] Agregar tests de idempotencia y parámetros.
+- [x] Documentar datos demo y credenciales de desarrollo sin secretos reales.
 
 ## Definition of Done
 
 - [ ] Un entorno nuevo se puede demoar con el seed.
 - [ ] El seed no duplica datos.
-- [ ] Production no carga datos demo por accidente.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el README.
+- [x] Production no carga datos demo por accidente.
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el README.
 
 ## Contrato técnico
 
@@ -125,6 +126,9 @@ El seed escribe con *upsert* sobre las colecciones existentes, sin crear colecci
 | `puntosVenta` | `ContribuyenteId` + `Numero` | `ux_puntos_venta_contribuyente_numero` |
 | `secuencias` | `ContribuyenteId` + `PuntoVenta` + `TipoComprobante` | `ux_secuencias_contribuyente_punto_tipo` |
 | `parametros` | `ContribuyenteId` + `Clave` | `ux_parametros_contribuyente_clave` |
+| `apiKeys` | `ContribuyenteId` + `Nombre` fijo `API key demo (simulada)` | Sin índice único para esa clave; `ux_api_keys_prefix` respalda la unicidad del `Prefix` |
+
+La idempotencia de `apiKeys` **no** se apoya en el `Prefix`: el prefijo es aleatorio en cada corrida. El seed usa un upsert lógico por `ContribuyenteId` + `Nombre` fijo (`API key demo (simulada)`). El índice `ux_api_keys_prefix` sigue existiendo para garantizar la unicidad de la clave generada, pero no es la clave de idempotencia del seed.
 
 Los índices de `administradores` los crea US-27; hasta entonces el seed de US-18 debe ejecutarse después de US-27 o crear ese índice. La dependencia está declarada más abajo.
 
@@ -162,8 +166,8 @@ Consecuencia: cambiar `Facturacion__DiasVencimientoCae` a un valor distinto de `
 | `Seed__Enabled` | `bool` | `false` | Habilita la carga de datos demo |
 | `Seed__Cuit` | `string` | `20123456786` | CUIT de la empresa demo |
 | `Seed__RazonSocial` | `string` | `Empresa Demo (simulada)` | Razón social de la empresa demo |
-| `Seed__Email` | `string` | `admin@demo.facturar.local` | Email de los usuarios demo de la empresa |
-| `Seed__Nombre` | `string` | `Administrador Demo` | Nombre visible de los usuarios demo |
+| `Seed__Email` | `string` | `admin@demo.facturar.local` | Email que identifica al usuario `Administrador` de la empresa; los emails de `Emisor`, `Consulta` y `SuperAdmin` se derivan con `+emisor`, `+consulta` y `+superadmin` |
+| `Seed__Nombre` | `string` | `Administrador Demo` | Nombre visible del `SuperAdmin` (`AdministradorFacturar`). La entidad `Usuario` no tiene campo `Nombre`, así que no aplica a los usuarios de empresa |
 | `Seed__Password` | `string` | — | Contraseña de las cuentas demo. Se hashea antes de persistir |
 | `Seed__ApiKeyDemo` | `bool` | `false` | Crea la API key demo. Solo se honra en Development |
 
@@ -181,7 +185,7 @@ El seed corre **al arrancar la API**, antes de atender requests, y es idempotent
 | `puntosVenta` | Punto de venta `1` (`Casa Central`) activo para la empresa demo | `ContribuyenteId` + `Numero` |
 | `secuencias` | Secuencias `FacturaA`, `FacturaB` y `FacturaC` en `PuntoVenta` 1, con `UltimoNumero` = `0` | `ContribuyenteId` + `PuntoVenta` + `TipoComprobante` |
 | `parametros` | Los valores por defecto de la sección `Facturacion`, con `ContribuyenteId` = `null` | `ContribuyenteId` + `Clave` |
-| `apiKeys` | 1 API key demo para la empresa demo, **solo en Development y solo con `Seed__ApiKeyDemo=true`** | `Prefix` |
+| `apiKeys` | 1 API key demo para la empresa demo, **solo en Development y solo con `Seed__ApiKeyDemo=true`** | `ContribuyenteId` + `Nombre` (`API key demo (simulada)`) |
 
 Reglas de idempotencia:
 
@@ -269,3 +273,46 @@ En Development sin `Seed__ApiKeyDemo=true`, el seed no crea ninguna API key. Par
 - No implementa migraciones de datos.
 - No crea datos reales de AFIP.
 - No commitear contraseñas ni API keys demo reales.
+
+## Estado de cierre
+
+**Estado:** `Parcial`. La implementación de parámetros y seed está en código y cubierta por tests unitarios y de integración que no requieren Mongo. La historia **no** se mueve a `historias-usuario-terminadas/` porque no hay evidencia real de persistencia/idempotencia contra MongoDB, falta el QA manual del seed y CP-18.04/18.05 dependen de US-05.
+
+### Implementado
+
+- `ParametrosFacturacion` y binding `IOptions` de la sección `Facturacion`, con defaults del MVP.
+- `IParametrosResolver`, `ParametrosService`, `IParametrosRepository` y `ParametrosRepository` con orden override por contribuyente → configuración → default.
+- `Parametro` y colección `parametros`, con índice único `ux_parametros_contribuyente_clave`.
+- `SeedService`, `SeedOptions`, `SeedRepository` y `SeedHostedService`: empresa demo, tres usuarios, `SuperAdmin`, punto de venta, tres secuencias y parámetros globales; upserts idempotentes y secuencias que no se reinician.
+- API key demo solo en Development, con valor entregado una vez en `seed/api-key-demo.txt`.
+- `Seed__Enabled` como única bandera; `Seed__Password` obligatoria, validada y hasheada.
+- Documentación sincronizada: `README.md`, `docs/contratos-api.md` §10/§11, `docs/modelos.md`, `.env.example` y `.env.production.example`.
+
+### Evidencia ejecutada
+
+| Comando o prueba | Resultado |
+| --- | --- |
+| `dotnet build FacturAR.slnx -c Release` | 0 advertencias, 0 errores |
+| `dotnet test FacturAR.slnx -c Release --no-build` | UnitTests 294 superados, 0 fallos; IntegrationTests 74 superados, 103 omitidos (`[MongoFact]`), 0 fallos |
+| `dotnet format FacturAR.slnx --verify-no-changes` | exit 0 |
+| QA: API sin Mongo con `Seed__Enabled=false` | `/health/live` 200, `/` 200, `/health` 503 esperado; el seed no escribe artefactos; `seed/api-key-demo.txt` no existe |
+| Unit `SeedServiceTests` | CP-18.06, CP-18.10, CP-18.12 y CP-18.13; segunda ejecución sin duplicar en el servicio; secuencia existente conserva `UltimoNumero`; parámetros con `UpdatedAt` UTC |
+| Unit `ParametrosServiceTests` | CP-18.01, CP-18.02, CP-18.03 y resolución de CP-18.05 |
+| Integration `ParametrosConfigurationTests` y `SeedConfigurationTests` | binding de `Facturacion__*`, default de `Seed__Enabled=false` y override por configuración |
+| Integration `SeedApiKeyDemoFileTests` | escritura del archivo local de la API key demo |
+
+### Sin verificar
+
+- CP-18.06, CP-18.07, CP-18.08, CP-18.11, CP-18.13, CP-18.14 y CP-18.15: sus tests `[MongoFact]` se omiten sin `MONGO_CONNECTION_STRING`. No hay evidencia de que los upserts reales no dupliquen datos, de que las secuencias no se reinicien en Mongo ni de la persistencia hasheada/UTC.
+- El índice único `ux_parametros_contribuyente_clave` no se verificó contra una instancia real de MongoDB.
+- CP-18.04 y CP-18.05 de punta a punta: dependen de `EmitirComprobanteService` (US-05), que no existe en esta rama. Solo está verificado el cálculo/resolución del parámetro, no la emisión.
+- QA manual del seed con MongoDB real: pendiente. Playwright/UI no aplica porque US-18 no agrega pantallas.
+- Las variantes `[MongoFact]` de CP-18.09 y CP-18.10 también se omiten; su comportamiento sin escrituras está cubierto a nivel servicio por `SeedServiceTests`.
+
+### Decisiones relevantes
+
+- La idempotencia de `apiKeys` en el seed es lógica por `ContribuyenteId` + `Nombre` fijo; el `Prefix` es aleatorio por corrida. `ux_api_keys_prefix` existe para la unicidad de la key, no como clave de idempotencia del seed.
+- `Seed__Nombre` aplica solo al `SuperAdmin`; `Usuario` no tiene campo `Nombre`.
+- `Seed__Email` identifica al `Administrador`; `+emisor`, `+consulta` y `+superadmin` se derivan antes de la `@`.
+- Los documentos globales de `parametros` (`ContribuyenteId = null`) son informativos y no se consultan en la resolución.
+- `Seed__Enabled` es la única autorización, incluso en Production; con `true` la carga ocurre y la API registra una advertencia sin secretos.

@@ -1,0 +1,39 @@
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment Entorno
+@using System.IO
+@{
+    var clase = ViewData["Clase"] as string;
+    var sufijoClase = string.IsNullOrWhiteSpace(clase) ? string.Empty : $" {clase}";
+    var baseMarca = System.IO.Path.Combine(Entorno.WebRootPath ?? string.Empty, "brand");
+    var tieneClaro = File.Exists(System.IO.Path.Combine(baseMarca, "logo-horizontal-light.png"));
+    var tieneClaro2x = File.Exists(System.IO.Path.Combine(baseMarca, "logo-horizontal-light@2x.png"));
+    var tieneOscuro = File.Exists(System.IO.Path.Combine(baseMarca, "logo-horizontal-dark.png"));
+    var tieneOscuro2x = File.Exists(System.IO.Path.Combine(baseMarca, "logo-horizontal-dark@2x.png"));
+    var srcsetClaro = tieneClaro2x
+        ? "~/brand/logo-horizontal-light.png 1x, ~/brand/logo-horizontal-light@2x.png 2x"
+        : null;
+    var srcsetOscuro = tieneOscuro2x
+        ? "~/brand/logo-horizontal-dark.png 1x, ~/brand/logo-horizontal-dark@2x.png 2x"
+        : null;
+}
+@if (tieneClaro && tieneOscuro)
+{
+    <img class="brand-logo brand-logo--claro@(sufijoClase)"
+         src="~/brand/logo-horizontal-light.png"
+         srcset="@srcsetClaro"
+         alt="FacturAR"
+         width="480"
+         height="120"
+         decoding="async" />
+    <img class="brand-logo brand-logo--oscuro@(sufijoClase)"
+         src="~/brand/logo-horizontal-dark.png"
+         srcset="@srcsetOscuro"
+         alt=""
+         aria-hidden="true"
+         width="480"
+         height="120"
+         decoding="async" />
+}
+else
+{
+    <span class="brand-wordmark@(sufijoClase)">FacturAR</span>
+}

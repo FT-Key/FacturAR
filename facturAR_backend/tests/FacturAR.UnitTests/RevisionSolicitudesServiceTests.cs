@@ -68,7 +68,7 @@ public sealed class RevisionSolicitudesServiceTests
         Assert.Equal(invitacion.TokenHash, TokenInvitacion.CalcularHash(token));
         Assert.StartsWith(invitacion.TokenPrefix, token);
 
-        var aprobada = Assert.Single(ctx.Eventos.Eventos, e => e.Accion == "solicitud.aprobada");
+        var aprobada = Assert.Single(ctx.Eventos.Eventos, e => e.Accion == "SolicitudAprobada");
         Assert.Equal(AdministradorId, aprobada.AdministradorId);
         Assert.Equal("Administrador", aprobada.ActorTipo);
         Assert.Null(aprobada.ContribuyenteId);
@@ -77,6 +77,13 @@ public sealed class RevisionSolicitudesServiceTests
         Assert.Equal(CuitValido, Datos(aprobada)["cuit"]);
         Assert.Contains(ctx.Eventos.Eventos, e => e.Accion == "email.enviado");
         Assert.DoesNotContain(ctx.Eventos.Eventos, e => (e.Datos ?? string.Empty).Contains(token, StringComparison.Ordinal));
+        Assert.DoesNotContain(ctx.Eventos.Eventos, e => (e.Datos ?? string.Empty).Contains(EmailSolicitante, StringComparison.OrdinalIgnoreCase));
+        var invitacionEnviada = Assert.Single(ctx.Eventos.Eventos, e => e.Accion == "InvitacionEnviada");
+        Assert.Equal("Invitacion", invitacionEnviada.Entidad);
+        Assert.Equal(invitacion.Id.ToString(), invitacionEnviada.EntidadId);
+        Assert.Equal(AdministradorId, invitacionEnviada.AdministradorId);
+        Assert.DoesNotContain(token, invitacionEnviada.Datos ?? string.Empty, StringComparison.Ordinal);
+        Assert.DoesNotContain(EmailSolicitante, invitacionEnviada.Datos ?? string.Empty, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(1, ctx.Transaccion.Ejecuciones);
     }
 
@@ -171,7 +178,7 @@ public sealed class RevisionSolicitudesServiceTests
         Assert.Empty(ctx.PuntosVenta.Insertados);
         Assert.Empty(ctx.Invitaciones.Todas);
 
-        var evento = Assert.Single(ctx.Eventos.Eventos, e => e.Accion == "solicitud.rechazada");
+        var evento = Assert.Single(ctx.Eventos.Eventos, e => e.Accion == "SolicitudRechazada");
         Assert.Equal(AdministradorId, evento.AdministradorId);
         Assert.Equal("Datos fiscales incompletos", Datos(evento)["motivo"]);
     }
@@ -233,7 +240,7 @@ public sealed class RevisionSolicitudesServiceTests
         var email = Assert.Single(ctx.Emails.Enviados);
         Assert.Equal(PlantillasEmail.NombreInvitacionReenviada, email.Plantilla);
         Assert.Equal(nueva.TokenHash, TokenInvitacion.CalcularHash(TokenEnLink(email.CuerpoTexto)));
-        Assert.Contains(ctx.Eventos.Eventos, e => e.Accion == "invitacion.reenviada" && e.AdministradorId == soporte);
+        Assert.Contains(ctx.Eventos.Eventos, e => e.Accion == "InvitacionReenviada" && e.AdministradorId == soporte);
     }
 
     [Fact]
@@ -387,7 +394,7 @@ public sealed class RevisionSolicitudesServiceTests
         Assert.NotNull(detalle.Invitacion);
         Assert.Equal("Pendiente", detalle.Invitacion.Estado);
         Assert.True(detalle.Invitacion.PuedeReenviarse);
-        Assert.Contains(detalle.Historial, e => e.Accion == "solicitud.aprobada");
+        Assert.Contains(detalle.Historial, e => e.Accion == "SolicitudAprobada");
     }
 
     [Fact]
@@ -608,6 +615,15 @@ public sealed class RevisionSolicitudesServiceTests
             Insertados.Add(puntoVenta);
             return Task.CompletedTask;
         }
+
+        public Task<PuntoVenta?> ObtenerPorNumeroAsync(Guid contribuyenteId, int numero, CancellationToken ct = default)
+            => Task.FromResult(Insertados.FirstOrDefault(p => p.ContribuyenteId == contribuyenteId && p.Numero == numero));
+
+        public Task<IReadOnlyList<PuntoVenta>> ListarPorContribuyenteAsync(
+            Guid contribuyenteId,
+            CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<PuntoVenta>>(
+                [.. Insertados.Where(p => p.ContribuyenteId == contribuyenteId)]);
     }
 
     private sealed class FakeInvitaciones : IInvitacionRepository

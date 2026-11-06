@@ -27,6 +27,7 @@ public sealed class SolicitudAltaWebApplicationFactory : WebApplicationFactory<P
     {
         builder.UseEnvironment("Development");
         builder.UseSetting("Mongo:InitializeIndexes", "false");
+        builder.UseSetting("Outbox:Habilitado", "false");
         builder.UseSetting("Admin:NotificationEmail", AdminNotificationEmail);
         builder.UseSetting("RateLimit:SolicitudAlta:ConfiarEnProxy", ConfiarEnProxy.ToString());
 

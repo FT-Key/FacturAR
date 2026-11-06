@@ -22,6 +22,7 @@ public static class AuthEndpoints
 
         empresa.MapPost("/login", LoginEmpresaAsync)
             .WithName("LoginEmpresa")
+            .AllowAnonymous()
             .RequireRateLimiting("login")
             .Produces<SesionEmpresaResponse>()
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
@@ -43,6 +44,7 @@ public static class AuthEndpoints
 
         admin.MapPost("/login", LoginAdminGlobalAsync)
             .WithName("LoginAdminGlobal")
+            .AllowAnonymous()
             .RequireRateLimiting("login")
             .Produces<SesionAdminResponse>()
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
@@ -78,7 +80,7 @@ public static class AuthEndpoints
         var sesion = await service.AutenticarAsync(request.Email, request.Password, cancellationToken);
         if (sesion is null)
         {
-            await auditoria.RegistrarLoginFallidoAsync(request.Email, cancellationToken);
+            await auditoria.RegistrarLoginFallidoAsync(cancellationToken);
             return CredencialesInvalidas;
         }
 
@@ -159,7 +161,7 @@ public static class AuthEndpoints
         var sesion = await service.AutenticarAsync(request.Email, request.Password, cancellationToken);
         if (sesion is null)
         {
-            await auditoria.RegistrarLoginFallidoAsync(request.Email, cancellationToken);
+            await auditoria.RegistrarLoginFallidoAsync(cancellationToken);
             return CredencialesInvalidas;
         }
 

@@ -1,25 +1,38 @@
 using System.Threading.RateLimiting;
+using FacturAR.Api.ApiKeys;
 using FacturAR.Api.Auth;
+using FacturAR.Api.Comprobantes;
 using FacturAR.Api.Invitaciones;
+using FacturAR.Api.PuntosVenta;
 using FacturAR.Api.Security;
+using FacturAR.Api.Seed;
+using FacturAR.Api.Soap;
 using FacturAR.Api.Solicitudes;
 using FacturAR.Application.Abstractions;
+using FacturAR.Application.ApiKeys;
 using FacturAR.Application.Auth;
 using FacturAR.Application.Comprobantes;
 using FacturAR.Application.Invitaciones;
 using FacturAR.Application.Notificaciones;
+using FacturAR.Application.Outbox;
+using FacturAR.Application.Parametros;
+using FacturAR.Application.Seed;
 using FacturAR.Application.Solicitudes;
 using FacturAR.Contracts.Comunes;
 using FacturAR.Contracts.Comprobantes;
 using FacturAR.Contracts.Sistema;
 using FacturAR.Domain.Validation;
+using FacturAR.Infrastructure.Auditoria;
 using FacturAR.Infrastructure.LoginIntent;
 using FacturAR.Infrastructure.Mongo;
 using FacturAR.Infrastructure.Notificaciones;
+using FacturAR.Infrastructure.Outbox;
 using FacturAR.Infrastructure.Password;
+using FacturAR.Infrastructure.Pdf;
 using FacturAR.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -36,9 +49,36 @@ var authOptions = builder.Configuration
     .GetSection("Auth")
     .Get<AuthOptions>() ?? new AuthOptions();
 
+var apiKeysOptions = builder.Configuration
+    .GetSection(ApiKeysOptions.SectionName)
+    .Get<ApiKeysOptions>() ?? new ApiKeysOptions();
+
+var soapOptions = builder.Configuration
+    .GetSection(SoapOptions.SectionName)
+    .Get<SoapOptions>() ?? new SoapOptions();
+
 var bootstrapAdminOptions = builder.Configuration
     .GetSection("BootstrapAdmin")
     .Get<BootstrapAdminOptions>() ?? new BootstrapAdminOptions();
+
+builder.Services.AddOptions<ParametrosFacturacion>()
+    .Configure(options => options.AlicuotasPermitidas = [])
+    .Bind(builder.Configuration.GetSection(ParametrosFacturacion.SectionName))
+    .PostConfigure(options =>
+    {
+        if (options.AlicuotasPermitidas is null || options.AlicuotasPermitidas.Length == 0)
+        {
+            options.AlicuotasPermitidas = [.. ParametrosFacturacion.AlicuotasPredeterminadas];
+        }
+    });
+
+var seedOptions = builder.Configuration
+    .GetSection(SeedOptions.SectionName)
+    .Get<SeedOptions>() ?? new SeedOptions();
+
+var outboxOptions = builder.Configuration
+    .GetSection(OutboxOptions.SectionName)
+    .Get<OutboxOptions>() ?? new OutboxOptions();
 
 var buildInformation = new BuildInformation(
     builder.Configuration[BuildInformation.VersionKey] ?? BuildInformation.DefaultVersion,
@@ -78,7 +118,12 @@ MongoSerialization.Configure();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton(mongoOptions);
 builder.Services.AddSingleton(authOptions);
+builder.Services.AddSingleton(apiKeysOptions);
+builder.Services.AddSingleton(soapOptions);
 builder.Services.AddSingleton(bootstrapAdminOptions);
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<ParametrosFacturacion>>().Value);
+builder.Services.AddSingleton(seedOptions);
+builder.Services.AddSingleton(outboxOptions);
 builder.Services.AddSingleton(buildInformation);
 builder.Services.AddSingleton(emailOptions);
 builder.Services.AddSingleton(notificacionesOptions);
@@ -101,16 +146,46 @@ builder.Services.AddSingleton<MongoDbContext>();
 
 builder.Services.AddScoped<IComprobanteRepository, ComprobanteRepository>();
 builder.Services.AddScoped<VerificarComprobanteService>();
+builder.Services.AddScoped<ListarComprobantesService>();
+builder.Services.AddScoped<ConsultarComprobanteService>();
+builder.Services.AddScoped<ObtenerUltimoAutorizadoService>();
+builder.Services.AddScoped<ObtenerDashboardService>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<IEmitirComprobanteService, EmitirComprobanteService>();
+builder.Services.AddScoped<CalcularPresupuestoService>();
+builder.Services.AddScoped<IIdempotenciaService, IdempotenciaService>();
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IAdministradorRepository, AdministradorRepository>();
 builder.Services.AddScoped<IContribuyenteRepository, ContribuyenteRepository>();
 builder.Services.AddScoped<IEventoAuditoriaRepository, EventoAuditoriaRepository>();
+builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
+builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
+builder.Services.AddScoped<OutboxHandlerResolver>();
+builder.Services.AddSingleton<OutboxBackoff>();
+builder.Services.AddHostedService<OutboxWorker>();
 builder.Services.AddScoped<ISolicitudAltaRepository, SolicitudAltaRepository>();
 builder.Services.AddScoped<CrearSolicitudAltaService>();
 builder.Services.AddScoped<MongoSesionActual>();
 builder.Services.AddScoped<ITransaccionMongo, TransaccionMongo>();
 builder.Services.AddScoped<IInvitacionRepository, InvitacionRepository>();
 builder.Services.AddScoped<IPuntoVentaRepository, PuntoVentaRepository>();
+builder.Services.AddScoped<ISecuenciaRepository, SecuenciaRepository>();
+builder.Services.AddScoped<ISecuenciaService, SecuenciaService>();
+builder.Services.AddScoped<IParametrosRepository, ParametrosRepository>();
+builder.Services.AddScoped<ParametrosService>();
+builder.Services.AddScoped<IParametrosResolver>(sp => sp.GetRequiredService<ParametrosService>());
+builder.Services.AddScoped<ISeedRepository, SeedRepository>();
+builder.Services.AddScoped<SeedService>();
+builder.Services.AddSingleton<SeedApiKeyDemoFile>();
+builder.Services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
+builder.Services.AddScoped<IApiKeyGenerator, ApiKeyGenerator>();
+builder.Services.AddScoped<IApiKeyHasher, ApiKeyHasher>();
+builder.Services.AddScoped<IApiKeyAuthenticator, ApiKeyAuthenticator>();
+builder.Services.AddSingleton<ApiKeyUsageRegistrar>();
+builder.Services.AddScoped<CrearApiKeyService>();
+builder.Services.AddScoped<ListarApiKeysService>();
+builder.Services.AddScoped<RevocarApiKeyService>();
+builder.Services.AddScoped<RegenerarApiKeyService>();
 builder.Services.AddScoped<NotificadorRevisionSolicitudes>();
 builder.Services.AddScoped<ListarSolicitudesService>();
 builder.Services.AddScoped<ObtenerSolicitudService>();
@@ -129,8 +204,13 @@ builder.Services.AddScoped<AutenticarAdminGlobalService>();
 builder.Services.AddScoped<RegistrarAccesoService>();
 builder.Services.AddScoped<AdminGlobalBootstrapService>();
 builder.Services.AddHostedService<AdminGlobalBootstrapHostedService>();
+builder.Services.AddHostedService<SeedHostedService>();
 
 builder.Services.AddFacturarCookies(authOptions, builder.Environment.IsDevelopment());
+builder.Services.AddFacturarApiKeyAuthentication();
+builder.Services.AddFacturarSoap();
+builder.Services.AddComprobanteConsultaAuthorization();
+builder.Services.AddComprobantePdf(notificacionesOptions.PortalBaseUrl);
 
 var solicitudAltaPolicy = new SolicitudAltaRateLimitPolicy(solicitudAltaRateLimitOptions);
 
@@ -191,6 +271,28 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 
     await context.Response.WriteAsJsonAsync(error);
 }));
+app.UseFacturarSoap(soapOptions);
+app.Use(async (context, next) =>
+{
+    var request = context.Request;
+
+    if (HttpMethods.IsPost(request.Method)
+        && string.Equals(request.Path.Value?.TrimEnd('/'), "/v1/comprobantes", StringComparison.OrdinalIgnoreCase))
+    {
+        var idempotencyKey = request.Headers[ComprobanteEndpoints.HeaderIdempotencia].ToString();
+
+        if (!string.IsNullOrWhiteSpace(idempotencyKey) && !idempotencyKey.Any(char.IsControl))
+        {
+            context.Response.OnStarting(() =>
+            {
+                context.Response.Headers[ComprobanteEndpoints.HeaderIdempotencia] = idempotencyKey;
+                return Task.CompletedTask;
+            });
+        }
+    }
+
+    await next();
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseWhen(
@@ -230,6 +332,7 @@ app.MapGet("/", (BuildInformation build) => Results.Ok(new
     commit = build.Commit,
     documentacion = "/openapi/v1.json"
 }))
+.AllowAnonymous()
 .WithTags("Sistema");
 
 app.MapGet("/health", async (
@@ -262,6 +365,7 @@ app.MapGet("/health", async (
             statusCode: StatusCodes.Status503ServiceUnavailable);
     }
 })
+.AllowAnonymous()
 .WithTags("Sistema")
 .Produces<EstadoSaludResponse>()
 .Produces<EstadoSaludResponse>(StatusCodes.Status503ServiceUnavailable);
@@ -270,6 +374,7 @@ app.MapGet("/health/live", (BuildInformation build) => Results.Ok(new EstadoVivo
     "ok",
     build.Version,
     build.Commit)))
+.AllowAnonymous()
 .WithTags("Sistema")
 .Produces<EstadoVivoResponse>();
 
@@ -295,6 +400,7 @@ app.MapGet("/v1/comprobantes/verificar/{cae}", async (
         : Results.Ok(comprobante);
 })
 .WithName("VerificarComprobante")
+.AllowAnonymous()
 .WithTags("Comprobantes")
 .Produces<VerificacionResponse>()
 .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
@@ -304,6 +410,13 @@ app.MapAuthEndpoints();
 app.MapSolicitudAltaEndpoints();
 app.MapSolicitudesAdminEndpoints();
 app.MapInvitacionEndpoints();
+app.MapApiKeyEndpoints();
+app.MapComprobanteEndpoints();
+app.MapPresupuestoEndpoint();
+app.MapPuntoVentaEndpoints();
+app.MapComprobanteConsultaEndpoints();
+app.MapComprobanteDashboardEndpoint();
+app.MapComprobantePdfEndpoint();
 
 app.Run();
 

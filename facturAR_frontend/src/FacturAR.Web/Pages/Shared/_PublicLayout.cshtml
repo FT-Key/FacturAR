@@ -1,0 +1,100 @@
+@{
+    var titulo = ViewData["Title"] as string ?? "FacturAR";
+    var descripcion = ViewData["Description"] as string
+        ?? "Simulador de facturación electrónica argentina con API REST y SOAP.";
+}
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <partial name="_ThemeBoot" />
+    <link rel="preload" href="~/fonts/poppins-latin-400.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="~/fonts/poppins-latin-600.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="~/fonts/oswald-latin-var.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <title>@titulo</title>
+    <meta name="description" content="@descripcion" />
+    <link rel="stylesheet" href="~/css/tokens.css" />
+    <link rel="stylesheet" href="~/css/public.css" />
+    <link rel="icon" type="image/png" href="~/favicon.png" />
+    @await RenderSectionAsync("Head", required: false)
+</head>
+<body>
+    <a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+    <header class="site-header" data-site-header>
+        <div class="container site-header__inner">
+            <a class="brand" href="/" aria-label="FacturAR, ir al inicio">
+                <partial name="_BrandLogo" />
+            </a>
+
+            <button type="button" class="nav-toggle" data-nav-toggle aria-expanded="false" aria-controls="menu-publico">
+                <span class="visually-hidden">Abrir menú de navegación</span>
+                <span class="nav-toggle__bars" aria-hidden="true"></span>
+            </button>
+
+            <nav class="site-nav" id="menu-publico" aria-label="Navegación principal">
+                <ul class="site-nav__links">
+                    <li><a href="/#como-funciona">Cómo funciona</a></li>
+                    <li><a href="/#api">Para integradores</a></li>
+                    <li><a href="/#seguridad">Seguridad</a></li>
+                    <li><a href="/verificar">Verificar comprobante</a></li>
+                </ul>
+                <div class="site-nav__actions">
+                    <partial name="_ThemeToggle" />
+                    <a class="btn btn--ghost" href="/login">Ingresar</a>
+                    <a class="btn btn--primary" href="/solicitar-alta">Solicitar alta</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main id="contenido" class="site-main" tabindex="-1">
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a class="brand" href="/" aria-label="FacturAR, ir al inicio">
+                        <partial name="_BrandLogo" />
+                    </a>
+                    <p>FacturAR es un simulador. El CAE es simulado y no tiene validez fiscal.</p>
+                </div>
+                <div class="footer-col">
+                    <h2 class="footer-col__title">Producto</h2>
+                    <ul>
+                        <li><a href="/#como-funciona">Cómo funciona</a></li>
+                        <li><a href="/solicitar-alta">Solicitar alta</a></li>
+                        <li><a href="/verificar">Verificar comprobante</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h2 class="footer-col__title">Desarrolladores</h2>
+                    <ul>
+                        <li><a href="/#api">Para integradores</a></li>
+                        <li><a href="/health">Estado del servicio</a></li>
+                        <li><span aria-disabled="true">Guía de integración — Próximamente</span></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h2 class="footer-col__title">Legal</h2>
+                    <ul>
+                        <li><span>Simulación sin validez fiscal</span></li>
+                        <li><a href="/login">Acceso de empresa</a></li>
+                        <li><a href="/admin/login">Consola global</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-meta">
+                <span>© @DateTime.UtcNow.Year FacturAR. Proyecto demostrativo.</span>
+                <a class="footer-status" href="/health">Estado del servicio</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="~/js/theme.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

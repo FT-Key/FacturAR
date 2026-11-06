@@ -17,15 +17,15 @@ La sección API keys consume los endpoints de US-02. El valor completo se muestr
 
 ## Criterios de aceptación
 
-- [ ] Solo un usuario `Administrador` puede acceder a la sección.
-- [ ] La sección lista keys con nombre, prefijo, estado, creación y último uso.
-- [ ] Se puede crear una key con nombre.
-- [ ] Al crear, se muestra el valor completo una única vez con una advertencia.
-- [ ] Se puede copiar el valor al portapapeles.
-- [ ] Al cerrar el modal, el valor deja de mostrarse y no se puede recuperar.
-- [ ] Se puede revocar una key con confirmación.
-- [ ] Se puede regenerar una key con confirmación y se muestra el nuevo valor una vez.
-- [ ] La lista se actualiza después de crear, revocar o regenerar.
+- [x] Solo un usuario `Administrador` puede acceder a la sección.
+- [x] La sección lista keys con nombre, prefijo, estado, creación y último uso.
+- [x] Se puede crear una key con nombre.
+- [x] Al crear, se muestra el valor completo una única vez con una advertencia.
+- [x] Se puede copiar el valor al portapapeles.
+- [x] Al cerrar el modal, el valor deja de mostrarse y no se puede recuperar.
+- [x] Se puede revocar una key con confirmación.
+- [x] Se puede regenerar una key con confirmación y se muestra el nuevo valor una vez.
+- [x] La lista se actualiza después de crear, revocar o regenerar.
 - [ ] Un usuario de otra empresa no puede ver ni modificar keys ajenas.
 - [ ] La UI muestra estados de carga, vacío y error.
 - [ ] La sección es responsive y accesible por teclado.
@@ -74,22 +74,22 @@ Scenario: Usuario Consulta
 
 ## Tareas técnicas
 
-- [ ] Crear la página de API keys en el portal.
-- [ ] Integrar listado, creación, revocación y regeneración.
-- [ ] Crear el modal de valor único con botón de copiar.
-- [ ] Agregar confirmaciones de revocación y regeneración.
-- [ ] Aplicar autorización por rol.
+- [x] Crear la página de API keys en el portal.
+- [x] Integrar listado, creación, revocación y regeneración.
+- [x] Crear el modal de valor único con botón de copiar.
+- [x] Agregar confirmaciones de revocación y regeneración.
+- [x] Aplicar autorización por rol.
 - [ ] Agregar estados de carga, vacío y error.
 - [ ] Agregar prueba manual y, si es posible, test de integración del endpoint.
-- [ ] Enlazar el manual de integración.
+- [x] Enlazar el manual de integración.
 
 ## Definition of Done
 
-- [ ] El flujo crear → copiar → revocar funciona desde el portal.
-- [ ] El valor completo no se puede recuperar después del alta.
+- [x] El flujo crear → copiar → revocar funciona desde el portal.
+- [x] El valor completo no se puede recuperar después del alta.
 - [ ] La sección está aislada por empresa y rol.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el manual.
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el manual.
 
 ## Contrato técnico
 
@@ -230,3 +230,43 @@ Antes de empezar US-14 tiene que existir:
 - No implementa scopes ni permisos por key.
 - No implementa historial de uso detallado.
 - No implementa envío de keys por email.
+
+## Evidencia de implementación
+
+**Estado: Parcial.** La pantalla `/api-keys`, el modal de valor único y las acciones de crear, copiar, revocar y regenerar funcionan contra un stub de la API; falta la corrida con MongoDB real y las verificaciones manuales que dependen de ella.
+
+Comandos ejecutados (2026-11-01, SDK .NET 10):
+
+```powershell
+dotnet build FacturAR.slnx -c Release
+dotnet test FacturAR.slnx -c Release --no-build
+dotnet format FacturAR.slnx --verify-no-changes
+```
+
+Resultado: build con 0 errores y 0 warnings; UnitTests 294/294 OK, IntegrationTests 74 OK y 103 omitidos por requerir `MONGO_CONNECTION_STRING`; `dotnet format` sin cambios (exit 0).
+
+Verificación en navegador (2026-11-01): portal real en `http://localhost:5199` con la API reemplazada por un stub, Chrome headless vía Puppeteer con viewport 1440×900.
+
+| Caso | Resultado observado |
+| --- | --- |
+| CP-01 | Estado vacío con «Todavía no tenés API keys» y botón «Crear API key». |
+| CP-02 | Alta de «Ecommerce QA»: se abre `<dialog id="api-key-valor" open>` con un valor `fak_<12 hex>_<43 base64url>`, una sola ocurrencia en el DOM, aviso de única vez y la key en el listado. |
+| CP-03 | Clic real en «Copiar»: aparece «Copiado» y `navigator.clipboard.readText()` devuelve el valor. |
+| CP-04 | `Esc` cierra el modal, el valor desaparece del DOM y el listado no lo contiene. |
+| CP-05 | `localStorage` y `sessionStorage` vacíos y cookie sin el valor; el frontend no persiste el valor ni lo expone en atributos `data-*`. |
+| CP-06 | Revocación confirmada: `200`, fila «Revocada» y sin acciones disponibles. |
+| CP-07 | Regeneración confirmada: `200` y valor nuevo mostrado una sola vez. |
+| CP-08 | Cancelar la confirmación de revocación no dispara ningún `POST` y la key sigue activa. |
+| CP-09 | Rol `Consulta`: «Acceso denegado» y `403 SIN_PERMISOS`, sin tabla. |
+| CP-11 | API en `503`: `MONGO_NO_DISPONIBLE` y enlace «Reintentar», sin listado vacío. |
+| CP-12 | El listado se actualiza después de crear. |
+| CP-13 | El HTML del listado no contiene `hash`, `secret` ni valores completos. |
+| CP-15 | Escritorio: foco inicial en «Copiar», `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, foco atrapado, `Esc` cierra y el foco vuelve a `#crear-api-key`. |
+
+Pendientes manuales:
+
+- CP-10 y aislamiento por empresa: requieren MongoDB real (Docker no disponible en el entorno de la corrida).
+- CP-06 y CP-07: falta comprobar contra la API real que la key revocada o regenerada deja de autenticar en `GET /v1/comprobantes`.
+- CP-14: contexto no seguro en un host distinto de `localhost`.
+- CP-05 y CP-13 contra la API real: la corrida usó un stub.
+- Responsive en móvil y foco visible (`:focus-visible`) en un navegador real. El estado de carga no es observable con el stub porque las respuestas son instantáneas: por eso el criterio de estados de carga, vacío y error queda sin marcar.

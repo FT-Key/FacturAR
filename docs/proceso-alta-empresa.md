@@ -21,7 +21,7 @@ Base URL local: `http://localhost:5171`. En Docker: `http://localhost:8080`.
 | `GET` | `/v1/comprobantes/verificar/{cae}` | Verificación pública de un comprobante por CAE. No requiere autenticación. |
 | `POST` | `/v1/solicitudes-alta` | Solicitud pública de alta de empresa, con rate limit. No requiere autenticación. |
 
-Ningún otro endpoint del onboarding existe hoy: `/v1/admin/solicitudes/**`, `/v1/invitaciones/**`, `/v1/auth/**` y `/v1/api-keys/**` responden `404` hasta que su historia se complete.
+Ningún otro endpoint del onboarding existe hoy: `/v1/admin/solicitudes/**`, `/v1/invitaciones/**` y `/v1/auth/**` responden `404` hasta que su historia se complete.
 
 ### Reglas que no cambian con el estado de implementación
 
@@ -34,7 +34,8 @@ Ningún otro endpoint del onboarding existe hoy: `/v1/admin/solicitudes/**`, `/v
 | --- | --- | --- |
 | US-01 | §1 Solicitud pública de alta | Parcial |
 | US-04 | §4 Login de empresa y sesión | Base implementada |
-| US-02 | §4 Gestión de API keys desde el portal | Pendiente |
+| US-02 | §4 Gestión de API keys desde el portal | Parcial |
+| US-14 | §4 Gestión de API keys desde el portal (pantalla `/api-keys`) | Parcial |
 | US-27 | §2 Revisión y aprobación del administrador global | Completada |
 | US-28 | §3 Invitación y activación de la cuenta | Completada |
 | US-29 | Emails transaccionales del onboarding | Parcial |
@@ -185,7 +186,7 @@ Errores del flujo: `404 INVITACION_NO_ENCONTRADA`, `410 INVITACION_VENCIDA`, `40
 
 ### 4. Login y API key
 
-> **US-04 y US-02.** El login de empresa y global, `POST /v1/auth/login`, `POST /v1/auth/logout`, `GET /v1/auth/me` y sus equivalentes en `/v1/admin/auth` **están implementados**. Los endpoints de `/v1/api-keys` **todavía no**.
+> **US-04, US-02 y US-14.** El login de empresa y global, `POST /v1/auth/login`, `POST /v1/auth/logout`, `GET /v1/auth/me` y sus equivalentes en `/v1/admin/auth` **están implementados**. Los cuatro endpoints de `/v1/api-keys` **también están implementados** (US-02) y el portal los consume en `/api-keys` (US-14); queda pendiente la verificación con MongoDB real.
 
 El usuario de empresa inicia sesión en `/login`. La sesión usa cookie `HttpOnly`, `Secure` en producción y `SameSite=Lax`, con expiración absoluta de 8 horas. Las acciones que modifican datos requieren antiforgery.
 
@@ -251,6 +252,25 @@ El manual online explica:
 - Las acciones de onboarding generan auditoría.
 - Los secretos, tokens y contraseñas no se loguean.
 
+## Auditoría del onboarding
+
+Cada paso del alta deja un evento en la colección `eventos` con actor, acción, entidad, `EntidadId`, fecha UTC y datos de contexto. Los eventos de administradores globales llevan `ContribuyenteId = null` y `AdministradorId`; los de empresa llevan `ContribuyenteId` y `UsuarioId`; los automáticos usan `ActorTipo = Sistema`.
+
+| Paso | Acción | Entidad | Actor |
+| --- | --- | --- | --- |
+| Solicitud recibida | `SolicitudCreada` | `SolicitudAltaEmpresa` | `Sistema` |
+| Aprobación | `SolicitudAprobada` e `InvitacionEnviada` | `SolicitudAltaEmpresa` e `Invitacion` | `Administrador` |
+| Rechazo | `SolicitudRechazada` | `SolicitudAltaEmpresa` | `Administrador` |
+| Reenvío de invitación | `InvitacionReenviada` | `Invitacion` | `Administrador` |
+| Activación de cuenta | `CuentaActivada` | `Usuario` | `Empresa` |
+| Login y logout | `LoginExitoso`, `LoginFallido`, `Logout` | `Usuario` | `Empresa`; `LoginFallido` usa `Sistema` porque no hay actor identificado |
+| API keys | `ApiKeyCreada`, `ApiKeyRevocada`, `ApiKeyRegenerada` | `ApiKey` | `Empresa` |
+| Emisión | `ComprobanteEmitido`, `NotaEmitida` | `Comprobante` | `Empresa` con usuario autenticado; `Sistema` cuando la emisión llega por API key o SOAP |
+
+El campo `Datos` es un JSON con lista blanca por acción. Nunca incluye tokens de invitación (ni su prefijo), API keys (ni prefijo ni hash), contraseñas, emails completos, cookies ni secretos de configuración. Para una API key solo se audita su `Id` interno y su nombre.
+
+La cola `outbox` guarda los efectos externos pendientes con `Tipo`, `Payload`, `Estado`, `Intentos`, `CreatedAt`, `ProcesadoAt` y `Error`. El worker los reclama de forma atómica y los procesa con reintentos y backoff exponencial; el máximo de intentos y los intervalos se configuran con `Outbox:*`. Para soporte, el estado de un mensaje se consulta por `Id` o por `Estado` + `CreatedAt` (índice `ix_outbox_estado_fecha`), sin exponer el payload en logs.
+
 ## Emails
 
 | Plantilla | Destinatario | Cuándo |
@@ -285,10 +305,10 @@ Todos los endpoints de esta tabla están **especificados**. La columna Estado in
 | `POST` | `/v1/auth/login` | Público con rate limit. | US-04 | Implementado |
 | `POST` | `/v1/auth/logout` | Usuario autenticado. | US-04 | Implementado |
 | `GET` | `/v1/auth/me` | Usuario autenticado. | US-04 | Implementado |
-| `POST` | `/v1/api-keys` | Administrador de empresa. | US-02 | No implementado |
-| `GET` | `/v1/api-keys` | Administrador de empresa. | US-02 | No implementado |
-| `DELETE` | `/v1/api-keys/{id}` | Administrador de empresa. | US-02 | No implementado |
-| `POST` | `/v1/api-keys/{id}/regenerar` | Administrador de empresa. | US-02 | No implementado |
+| `POST` | `/v1/api-keys` | Administrador de empresa. | US-02 | Implementado |
+| `GET` | `/v1/api-keys` | Administrador de empresa. | US-02 | Implementado |
+| `DELETE` | `/v1/api-keys/{id}` | Administrador de empresa. | US-02 | Implementado |
+| `POST` | `/v1/api-keys/{id}/regenerar` | Administrador de empresa. | US-02 | Implementado |
 
 Estos endpoints se implementan en US-01, US-02, US-03, US-04, US-27, US-28 y US-29. `POST /v1/solicitudes-alta` ya está implementado; el resto de los que figuran como no implementados responden `404` hasta que su historia se complete, y el manual y las historias siguen siendo la referencia de contrato.
 

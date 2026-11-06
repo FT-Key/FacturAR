@@ -52,6 +52,7 @@ public sealed class MongoRevisionSolicitudesTests : IAsyncLifetime
                 builder.UseSetting("Mongo:ConnectionString", MongoTestSettings.GetConnectionStringWithTimeout());
                 builder.UseSetting("Mongo:DatabaseName", _databaseName);
                 builder.UseSetting("Mongo:InitializeIndexes", "true");
+                builder.UseSetting("Outbox:Habilitado", "false");
                 builder.UseSetting("Auth:Login:RateLimitPorIp", "1000");
                 builder.UseSetting("BootstrapAdmin:Email", string.Empty);
                 builder.UseSetting("Admin:NotificationEmail", string.Empty);
@@ -129,7 +130,7 @@ public sealed class MongoRevisionSolicitudesTests : IAsyncLifetime
         Assert.Contains("https://portal.test/activar?token=", email.CuerpoTexto);
 
         var eventos = await EventosDeAsync(solicitud.Id);
-        var aprobada = Assert.Single(eventos, e => e.Accion == "solicitud.aprobada");
+        var aprobada = Assert.Single(eventos, e => e.Accion == "SolicitudAprobada");
         Assert.Equal(_superAdminId, aprobada.AdministradorId);
         Assert.Equal("Administrador", aprobada.ActorTipo);
         Assert.Null(aprobada.ContribuyenteId);
@@ -180,7 +181,7 @@ public sealed class MongoRevisionSolicitudesTests : IAsyncLifetime
         Assert.Equal(1, await ContarAsync<PuntoVenta>(MongoCollections.PuntosVenta));
         Assert.Equal(1, await ContarAsync<Invitacion>(MongoCollections.Invitaciones));
         Assert.Single(_emails.Enviados);
-        Assert.Single(await EventosDeAsync(solicitud.Id), e => e.Accion == "solicitud.aprobada");
+        Assert.Single(await EventosDeAsync(solicitud.Id), e => e.Accion == "SolicitudAprobada");
     }
 
     [MongoFact]
@@ -254,7 +255,7 @@ public sealed class MongoRevisionSolicitudesTests : IAsyncLifetime
         var email = Assert.Single(_emails.Enviados);
         Assert.Equal(PlantillasEmail.NombreSolicitudRechazada, email.Plantilla);
         Assert.Contains("Datos fiscales incompletos", email.CuerpoTexto);
-        Assert.Contains(await EventosDeAsync(solicitud.Id), e => e.Accion == "solicitud.rechazada" && e.AdministradorId == _superAdminId);
+        Assert.Contains(await EventosDeAsync(solicitud.Id), e => e.Accion == "SolicitudRechazada" && e.AdministradorId == _superAdminId);
     }
 
     [MongoFact]
@@ -335,7 +336,7 @@ public sealed class MongoRevisionSolicitudesTests : IAsyncLifetime
         Assert.Equal(PlantillasEmail.NombreInvitacionReenviada, email.Plantilla);
         var token = email.CuerpoTexto.Split("token=")[1].Split('\n')[0].Trim();
         Assert.Equal(nueva.TokenHash, TokenInvitacion.CalcularHash(Uri.UnescapeDataString(token)));
-        Assert.Contains(await EventosDeAsync(solicitud.Id), e => e.Accion == "invitacion.reenviada" && e.AdministradorId == _soporteId);
+        Assert.Contains(await EventosDeAsync(solicitud.Id), e => e.Accion == "InvitacionReenviada" && e.AdministradorId == _soporteId);
     }
 
     [MongoFact]
@@ -447,7 +448,7 @@ public sealed class MongoRevisionSolicitudesTests : IAsyncLifetime
         Assert.Equal("Ana Pérez", detalle.NombreSolicitante);
         Assert.NotNull(detalle.Invitacion);
         Assert.Equal(8, detalle.Invitacion.TokenPrefix.Length);
-        Assert.Contains(detalle.Historial, e => e.Accion == "solicitud.aprobada");
+        Assert.Contains(detalle.Historial, e => e.Accion == "SolicitudAprobada");
         Assert.DoesNotContain("tokenHash", await response.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
     }
 

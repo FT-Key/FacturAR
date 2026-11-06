@@ -18,8 +18,26 @@ services:
       Email__DirectorioSalida: ${EMAIL_DIRECTORIO_SALIDA:-emails}
       Portal__BaseUrl: ${PORTAL_BASEURL:-http://localhost:8081}
       Admin__NotificationEmail: ${ADMIN_NOTIFICATION_EMAIL:-}
+      Facturacion__DiasVencimientoCae: ${FACTURACION_DIAS_VENCIMIENTO_CAE:-10}
+      Facturacion__AlicuotasPermitidas__0: ${FACTURACION_ALICUOTA_0:-0}
+      Facturacion__AlicuotasPermitidas__1: ${FACTURACION_ALICUOTA_1:-5}
+      Facturacion__AlicuotasPermitidas__2: ${FACTURACION_ALICUOTA_2:-10.5}
+      Facturacion__AlicuotasPermitidas__3: ${FACTURACION_ALICUOTA_3:-21}
+      Facturacion__AlicuotasPermitidas__4: ${FACTURACION_ALICUOTA_4:-27}
+      Facturacion__PuntoVentaPorDefecto: ${FACTURACION_PUNTO_VENTA_POR_DEFECTO:-1}
+      Facturacion__Moneda: ${FACTURACION_MONEDA:-ARS}
+      Facturacion__PaginaPorDefecto: ${FACTURACION_PAGINA_POR_DEFECTO:-20}
+      Facturacion__PaginaMaxima: ${FACTURACION_PAGINA_MAXIMA:-100}
+      Seed__Enabled: ${SEED_ENABLED:-false}
+      Seed__Cuit: ${SEED_CUIT:-20123456786}
+      Seed__RazonSocial: "${SEED_RAZON_SOCIAL:-Empresa Demo (simulada)}"
+      Seed__Email: ${SEED_EMAIL:-admin@demo.facturar.local}
+      Seed__Nombre: ${SEED_NOMBRE:-Administrador Demo}
+      Seed__Password: ${SEED_PASSWORD:-}
+      Seed__ApiKeyDemo: ${SEED_API_KEY_DEMO:-false}
     volumes:
       - emails-dev:/app/emails
+      - seed-dev:/app/seed
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
@@ -34,6 +52,22 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       Api__BaseUrl: http://api:8080
+      Portal__BaseUrl: ${PORTAL_BASEURL:-http://localhost:8081}
+      Asistente__Habilitado: ${ASISTENTE_HABILITADO:-false}
+      Asistente__GroqApiKey: ${GROQ_API_KEY:-}
+      Asistente__BaseUrl: ${ASISTENTE_BASE_URL:-https://api.groq.com/openai/v1}
+      Asistente__Modelo: ${ASISTENTE_MODELO:-llama-3.3-70b-versatile}
+      Asistente__TimeoutSegundos: ${ASISTENTE_TIMEOUT_SEGUNDOS:-10}
+      Asistente__MaxTokensRespuesta: ${ASISTENTE_MAX_TOKENS:-350}
+      Asistente__MaxCaracteresMensaje: ${ASISTENTE_MAX_CARACTERES_MENSAJE:-600}
+      Asistente__MaxTurnosHistorial: ${ASISTENTE_MAX_TURNOS:-8}
+      Asistente__RatePorMinutoPorIp: ${ASISTENTE_RATE_MINUTO:-6}
+      Asistente__RatePorHoraPorIp: ${ASISTENTE_RATE_HORA:-30}
+      Asistente__RatePorDiaPorIp: ${ASISTENTE_RATE_DIA:-100}
+      Asistente__RatePorHoraPorSesion: ${ASISTENTE_RATE_SESION:-20}
+      Asistente__PresupuestoDiarioTokens: ${ASISTENTE_PRESUPUESTO_TOKENS:-150000}
+      Asistente__MaxRequestsPorDia: ${ASISTENTE_MAX_REQUESTS_DIA:-500}
+      Asistente__OrigenPermitido: ${ASISTENTE_ORIGEN:-}
     ports:
       - "8081:8080"
     depends_on:
@@ -55,4 +89,5 @@ services:
 
 volumes:
   emails-dev:
+  seed-dev:
   mongo-dev:

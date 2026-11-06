@@ -17,3 +17,6 @@ appsettings.*.local.json
 
 *.log
 emails/
+/seed/
+**/seed/api-key-demo.txt
+.playwright-mcp/

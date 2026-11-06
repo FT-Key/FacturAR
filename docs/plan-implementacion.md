@@ -181,11 +181,14 @@ Objetivo: interoperabilidad con el contrato de AFIP, trazabilidad interna y entr
 | 18 | US-15 — SOAP de emisión | US-03, US-05 | US-16, US-17, US-30 |
 | 19 | US-16 — SOAP de consultas | US-03, US-09 | US-15, US-17, US-30 |
 | 20 | US-17 — Auditoría y outbox | US-05, US-27, US-28 | US-15, US-16, US-30 |
-| 21 | US-30 — Manual online de integración | US-02, US-03, US-05 | US-15, US-16, US-17 |
-| 22 | US-21 — Tests, Postman y documentación | Todas las implementadas | US-11 |
+| 21 | US-30 — Manual online de integración | US-02, US-03, US-05 | US-15, US-16, US-17, US-32 |
+| 22 | US-21 — Tests, Postman y documentación | Todas las implementadas | US-11, US-32 |
 | 23 | US-11 — Verificación pública por CAE (cierre) | US-05, US-18 | — |
+| 24 | US-32 — Landing pública, sistema de diseño y asistente de alta | US-01, US-02, US-03, US-04, US-14, US-29 | US-15, US-16, US-17, US-30 |
 
 **Salida de bloque:** la API habla REST y SOAP, todo queda auditado, el manual está publicado y un tercero puede integrar sin ayuda.
+
+US-32 puede ejecutarse en paralelo con US-15, US-16, US-17 y US-30 porque toca el portal público y no cambia el contrato de negocio. Su prerrequisito funcional es el onboarding (US-01, US-27 y US-28) y la API key del portal (US-14); el enlace a la guía de integración se activa cuando US-30 exista.
 
 US-21 y US-11 van al final: US-21 cierra la cobertura de tests y la documentación de todo lo demás, y US-11 necesita un comprobante real emitido por US-05 para completar la prueba manual que le queda.
 

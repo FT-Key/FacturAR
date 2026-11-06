@@ -17,6 +17,6 @@ public static class CaeGenerator
         return new string(digitos);
     }
 
-    public static DateTime CalcularVencimiento(DateTime fechaEmision)
-        => fechaEmision.Date.AddDays(10);
+    public static DateTime CalcularVencimiento(DateTime fechaEmision, int diasVencimiento)
+        => fechaEmision.Date.AddDays(diasVencimiento);
 }

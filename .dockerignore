@@ -5,6 +5,8 @@
 **/.idea
 **/TestResults
 **/emails
+/seed/
+**/seed/api-key-demo.txt
 **/*.user
 **/*.suo
 **/.git

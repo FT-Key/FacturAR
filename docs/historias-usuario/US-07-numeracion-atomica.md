@@ -64,12 +64,12 @@ Scenario: Secuencias independientes
 
 ## Tareas técnicas
 
-- [ ] Crear `Secuencia` y `ISecuenciaRepository`.
-- [ ] Implementar `ObtenerSiguienteNumeroAsync`.
-- [ ] Configurar transacciones de MongoDB.
-- [ ] Crear el índice único de secuencias.
+- [x] Crear `Secuencia` y `ISecuenciaRepository`. — La entidad ya existía; `ISecuenciaRepository` y `SecuenciaRepository` son nuevos. Evidencia: `dotnet build FacturAR.slnx -c Release` sin errores.
+- [x] Implementar `ObtenerSiguienteNumeroAsync`. — `SecuenciaService` + `SecuenciaRepository` (`FindOneAndUpdate`, `$inc` 1L, `ReturnDocument.After`, `IsUpsert`, `$setOnInsert Id`). Evidencia: `SecuenciaServiceTests` verdes en la suite unitaria.
+- [x] Configurar transacciones de MongoDB. — Se reutiliza `ITransaccionMongo`/`MongoSesionActual` previo; el repositorio exige sesión activa y lanza `InvalidOperationException` si falta. Evidencia: guard cubierto por `SecuenciaRepositoryTests` (unitario verde).
+- [x] Crear el índice único de secuencias. — `ux_secuencias_contribuyente_punto_tipo` ya existía en `MongoIndexInitializer`. Sin verificación en runtime: no hay MongoDB disponible.
 - [ ] Integrar la asignación en `EmitirComprobanteService`.
-- [ ] Agregar tests de concurrencia y rollback.
+- [x] Agregar tests de concurrencia y rollback. — `MongoSecuenciasTests` escrito y compilado (11 casos `[MongoFact]`); se omiten sin `MONGO_CONNECTION_STRING`.
 - [ ] Documentar la regla de numeración.
 
 ## Definition of Done
@@ -126,7 +126,7 @@ El número se expone a través de `POST /v1/comprobantes` (US-05) y, para consul
 | --- | --- | --- |
 | Servicio | `FacturAR.Application.Comprobantes.SecuenciaService` (implementa `ISecuenciaService`) | Valida que el punto de venta esté activo y pide el siguiente número. |
 | Repositorio | `FacturAR.Application.Abstractions.ISecuenciaRepository` | `ObtenerSiguienteNumeroAsync(contribuyenteId, puntoVenta, tipo, ct)` devuelve `long`: el número asignado. Crea la secuencia si no existe. |
-| Repositorio | `FacturAR.Application.Comprobantes.SecuenciaRepository` (Infrastructure) | Ejecuta el `FindOneAndUpdate` con `$inc` y `IsUpsert`. Es el único lugar donde se toca el contador. |
+| Repositorio | `FacturAR.Infrastructure.Repositories.SecuenciaRepository` | Ejecuta el `FindOneAndUpdate` con `$inc` y `IsUpsert`. Es el único lugar donde se toca el contador. |
 | Servicio | `FacturAR.Application.Comprobantes.EmitirComprobanteService` (US-05) | Consume el número devuelto y lo persiste. No recalcula ni ajusta. |
 
 El filtro y la actualización del repositorio:
@@ -146,11 +146,11 @@ options: { ReturnDocument: After, IsUpsert: true }
 | Regla | Mensaje | Código |
 | --- | --- | --- |
 | El punto de venta existe pero está inactivo | "El punto de venta está inactivo." | `409 PUNTO_VENTA_INACTIVO` |
-| El punto de venta no existe o es de otro contribuyente | "El punto de venta no existe o no pertenece al contribuyente autenticado." | `404 COMPROBANTE_NO_ENCONTRADO` |
+| El punto de venta no existe o es de otro contribuyente | "El punto de venta está inactivo." | `409 PUNTO_VENTA_INACTIVO` |
 
 - La comprobación del punto de venta ocurre **antes** de tocar la secuencia: si el punto de venta está inactivo, no se consume número.
 - **No hay error de secuencia faltante.** La secuencia se crea de forma implícita: si no existe documento en `secuencias` para `(contribuyente, punto de venta, tipo)`, la primera emisión lo crea y recibe el número `1`. No hace falta habilitarla antes por onboarding ni por seed.
-- La numeración solo falla por un punto de venta inexistente (`404`) o inactivo (`409 PUNTO_VENTA_INACTIVO`), o por una transacción que no se puede confirmar.
+- La numeración solo falla por un punto de venta inexistente, de otro contribuyente o inactivo (`409 PUNTO_VENTA_INACTIVO`), o por una transacción que no se puede confirmar.
 
 ### Cálculos
 
@@ -185,7 +185,7 @@ Numero asignado = Secuencia.UltimoNumero después del $inc
 1. MongoDB garantiza que una actualización de un **único documento** es atómica. El `FindOneAndUpdate` con `$inc` sobre `secuencias` toma un lock de escritura a nivel de documento durante la operación: las dos emisiones concurrentes sobre la misma secuencia se serializan y cada una ve el valor ya incrementado por la anterior. No hay ventana de *read-modify-write* en la aplicación, porque la aplicación nunca lee el contador para calcular el número.
 2. Cada emisión corre dentro de su propia transacción (`session.WithTransactionAsync`). Si dos transacciones tocan el mismo documento de `secuencias`, MongoDB no puede aplicar ambas a la vez: una recibe un `WriteConflict` (`TransientTransactionError`) y el driver reintenta la transacción completa. Al reintentar, esa transacción obtiene el siguiente número. Por eso los números concurrentes son **distintos y consecutivos**, nunca repetidos.
 3. El índice único `ux_comprobantes_numeracion` sobre `(ContribuyenteId, PuntoVenta, TipoComprobante, Numero)` es la red de seguridad: si dos transacciones compartieran número, la segunda inserción fallaría por clave duplicada y su transacción se abortaría. No se persisten dos comprobantes con el mismo número.
-4. La creación implícita de la secuencia también es segura: si dos emisiones concurrentes intentan crear la secuencia inexistente, una de ellas recibe una clave duplicada del índice `ux_secuencias_contribuyente_punto_tipo`. En ese caso se reintenta el `FindOneAndUpdate` sin `IsUpsert` y se obtiene el número ya asignado: el número nunca se duplica.
+4. La creación implícita de la secuencia también es segura: si dos emisiones concurrentes intentan crear la secuencia inexistente, ambas ejecutan el `FindOneAndUpdate` con `IsUpsert` dentro de su transacción. MongoDB resuelve el conflicto como `WriteConflict` con label `TransientTransactionError`; `TransaccionMongo` usa `session.WithTransactionAsync`, que reintenta la transacción completa automáticamente. Al reintentar, la transacción que perdió la carrera encuentra la secuencia ya creada y obtiene el siguiente número: el número nunca se duplica y no se reintenta el `FindOneAndUpdate` de forma manual.
 
 **Rollback**
 
@@ -271,3 +271,37 @@ Numero asignado = Secuencia.UltimoNumero después del $inc
 - No implementa reinicio anual de secuencias.
 - No implementa numeración por sucursal fuera del punto de venta.
 - No implementa autorización de números por AFIP.
+
+## Estado de cierre
+
+**Estado: Base implementada.** No se marca ningún criterio de aceptación ni ítem del Definition of Done porque el comportamiento contra MongoDB real no se ejecutó.
+
+**Implementado**
+
+- `ISecuenciaRepository`, `SecuenciaService`, `PuntoVentaInactivoException`.
+- `SecuenciaRepository` con `FindOneAndUpdate`, `$inc` de `1L`, `ReturnDocument.After`, `IsUpsert` y `$setOnInsert Id`; exige una transacción activa.
+- `IPuntoVentaRepository.ObtenerPorNumeroAsync` y registro de dependencias en `Program.cs`.
+- Tests unitarios `SecuenciaServiceTests` y `SecuenciaRepositoryTests`.
+- Infraestructura previa reutilizada: entidad `Secuencia`, índice `ux_secuencias_contribuyente_punto_tipo`, `ITransaccionMongo`/`TransaccionMongo`/`MongoSesionActual` e índice `ux_comprobantes_numeracion`.
+
+**Evidencia ejecutada**
+
+| Comando | Resultado |
+| --- | --- |
+| `dotnet build FacturAR.slnx -c Release` | Compilación correcta; 0 advertencias, 0 errores. |
+| `dotnet test FacturAR.slnx -c Release --no-build --logger "console;verbosity=minimal"` | UnitTests: 294 superados, 0 errores. IntegrationTests: 74 superados, 103 omitidos, 0 errores. |
+| `dotnet format FacturAR.slnx --verify-no-changes` | Exit 0. |
+
+**Sin verificar**
+
+- Los 11 casos `[MongoFact]` de `tests/FacturAR.IntegrationTests/MongoSecuenciasTests.cs` se omiten porque no hay MongoDB, Docker ni `MONGO_CONNECTION_STRING` en la máquina: CP-07-01/02/03/04/07/08/09/11/12 y el caso de punto de venta de otro contribuyente.
+- El contrato §7.3 exige verificar concurrencia y rollback contra un deployment con replica set; sin esa corrida no se puede afirmar que dos emisiones simultáneas obtengan números distintos ni que un fallo no consuma el número.
+
+**Depende de otras historias**
+
+- US-05: integrar la asignación en `EmitirComprobanteService` y mapear a HTTP `409 PUNTO_VENTA_INACTIVO`. `EmitirComprobanteService` no existe todavía.
+- US-09: consulta de último autorizado (`GET /v1/comprobantes/ultimo-autorizado`).
+
+**Inconsistencia resuelta**
+
+La historia definía `404 COMPROBANTE_NO_ENCONTRADO` para el punto de venta inexistente, mientras que `docs/contratos-api.md` §7.3 establece que el punto de venta "debe existir y estar activo. Si no, `409 PUNTO_VENTA_INACTIVO`". Se resolvió a favor del contrato: tanto el punto de venta inexistente o de otro contribuyente como el inactivo lanzan `PuntoVentaInactivoException`, que se mapea a `409 PUNTO_VENTA_INACTIVO`. No queda un error `404` para este caso y se eliminó la excepción específica de punto de venta inexistente. No se editó `docs/contratos-api.md`.

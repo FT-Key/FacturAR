@@ -151,7 +151,21 @@ Contador atómico por contribuyente, punto de venta y tipo.
 | `TipoComprobante` | `TipoComprobante` | Sí | Parte de la clave lógica. |
 | `UltimoNumero` | `long` | Sí | Último número asignado. |
 
-La asignación se realiza con `findOneAndUpdate` y `$inc`, dentro de una transacción junto con la inserción del comprobante.
+La asignación se realiza con `findOneAndUpdate` y `$inc`, dentro de una transacción junto con la inserción del comprobante. La secuencia se crea de forma implícita en la primera emisión con `UltimoNumero = 0`; el primer número es `1`. La regla completa está en [US-07](historias-usuario/US-07-numeracion-atomica.md).
+
+### Parametro
+
+Override de un parámetro de facturación por contribuyente. El seed también persiste valores globales informativos con `ContribuyenteId = null`, que no se consultan en la resolución.
+
+| Campo | Tipo | Obligatorio | Notas |
+| --- | --- | --- | --- |
+| `Id` | `Guid` | Sí | Clave primaria. |
+| `ContribuyenteId` | `Guid?` | Sí | `null` para un valor global informativo. |
+| `Clave` | `string` | Sí | Nombre del parámetro, por ejemplo `DiasVencimientoCae`. |
+| `Valor` | `string` | Sí | Valor serializado. Las listas se separan con `;`. |
+| `UpdatedAt` | `DateTime` | Sí | UTC. |
+
+El orden de resolución es: override del contribuyente → sección `Facturacion` de la configuración → default de código.
 
 ### Comprobante
 
@@ -168,7 +182,7 @@ Documento fiscal emitido.
 | `Numero` | `long` | Sí | Correlativo. |
 | `FechaEmision` | `DateTime` | Sí | UTC. |
 | `Cae` | `string` | Sí | 14 dígitos, único. |
-| `CaeVencimiento` | `DateTime` | Sí | Emisión + 10 días. |
+| `CaeVencimiento` | `DateTime` | Sí | Emisión + `Facturacion__DiasVencimientoCae` (default 10, override por contribuyente). |
 | `ReceptorDocumentoTipo` | `string` | Sí | `99` para consumidor final. |
 | `ReceptorDocumentoNumero` | `string` | Sí | CUIT/DNI del receptor. |
 | `ReceptorRazonSocial` | `string` | Sí | Nombre o razón social. |
@@ -181,6 +195,8 @@ Documento fiscal emitido.
 | `IdempotencyKey` | `string` | Sí | Única por contribuyente. |
 | `Observaciones` | `string?` | No | Texto libre. |
 | `Items` | `List<ComprobanteItem>` | Sí | Detalle. |
+| `ComprobanteOriginalId` | `Guid?` | No | Solo en notas: la factura que ajusta (US-08). `null` en facturas. |
+| `ImporteOriginalAjustado` | `decimal?` | No | Solo en facturas: saldo ajustable. Arranca en `ImporteTotal`, baja con notas de crédito y sube con notas de débito (US-08). `null` en notas. |
 | `CreatedAt` | `DateTime` | Sí | UTC. |
 
 ### ComprobanteItem
@@ -202,11 +218,13 @@ Cola transaccional para eventos y notificaciones.
 | `Id` | `Guid` | Sí | Clave primaria. |
 | `Tipo` | `string` | Sí | Tipo de evento. |
 | `Payload` | `string` | Sí | JSON serializado. |
-| `Estado` | `string` | Sí | `Pendiente`, `Procesado`, `Fallido`. |
+| `Estado` | `string` | Sí | `Pendiente`, `Procesando`, `Procesado`, `Fallido`. |
 | `Intentos` | `int` | Sí | Reintentos. |
 | `CreatedAt` | `DateTime` | Sí | UTC. |
 | `ProcesadoAt` | `DateTime?` | No | UTC. |
-| `Error` | `string?` | No | Último error. |
+| `Error` | `string?` | No | Último error, sin secretos ni stack traces. |
+
+`Procesando` es transitorio: el worker reclama el mensaje con una actualización condicional (`_id` + `Estado = Pendiente`) y luego lo pasa a `Procesado`, lo devuelve a `Pendiente` o, tras el máximo de intentos (`Outbox:MaxIntentos`, default 5), lo deja en `Fallido`.
 
 ### EmailMessage
 
@@ -345,10 +363,13 @@ erDiagram
 | `apiKeys` | `Prefix` | Único |
 | `puntosVenta` | `ContribuyenteId + Numero` | Único |
 | `secuencias` | `ContribuyenteId + PuntoVenta + TipoComprobante` | Único |
+| `parametros` | `ContribuyenteId + Clave` | Único |
 | `comprobantes` | `Cae` | Único |
 | `comprobantes` | `ContribuyenteId + PuntoVenta + TipoComprobante + Numero` | Único |
+| `comprobantes` | `ContribuyenteId + ComprobanteOriginalId` | Compuesto |
 | `comprobantes` | `ContribuyenteId + IdempotencyKey` | Único |
 | `comprobantes` | `ContribuyenteId + FechaEmision` | Compuesto |
+| `comprobantes` | `ContribuyenteId + FechaEmision + Numero + Id` | Compuesto |
 | `comprobantes` | `ReceptorDocumentoNumero` | Simple |
 | `outbox` | `Estado + CreatedAt` | Compuesto |
 | `emails` | `Estado + CreatedAt` | Compuesto |
@@ -362,7 +383,7 @@ La inicialización se ejecuta al arrancar la API si `Mongo__InitializeIndexes=tr
 - `CuitValidator` normaliza separadores y valida el dígito verificador.
 - `CaeValidator` exige exactamente 14 dígitos.
 - `CaeGenerator` genera 14 dígitos aleatorios con primer dígito distinto de cero.
-- El vencimiento del CAE es la fecha de emisión más 10 días.
+- El vencimiento del CAE es la fecha de emisión más `Facturacion__DiasVencimientoCae` (default `10`); un override por contribuyente en `parametros` tiene prioridad.
 - No se permiten montos negativos salvo en notas de crédito, que se modelan con su propio tipo.
 - El email se normaliza a minúsculas y se valida con formato.
 - La contraseña exige al menos 10 caracteres, una letra y un número; no se guarda en texto plano.

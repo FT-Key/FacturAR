@@ -15,6 +15,7 @@ public static class SolicitudAltaEndpoints
         app.MapPost("/v1/solicitudes-alta", CrearAsync)
             .WithName("CrearSolicitudAlta")
             .WithTags("Solicitudes")
+            .AllowAnonymous()
             .RequireRateLimiting("solicitud-alta")
             .Produces<SolicitudAltaResponse>(StatusCodes.Status202Accepted)
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)

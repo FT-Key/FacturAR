@@ -5,7 +5,7 @@
 
 Simulador de facturación electrónica de AFIP/ARCA para el Trabajo Final Integrador de la carrera. Incluye onboarding de empresas con solicitud pública, aprobación por administrador global e invitación por email, además de emisión, consultas, API keys, portal y verificación pública de un CAE.
 
-> Estado actual: base funcional con API, portal Blazor/Razor, MongoDB, endpoint público de verificación, Docker y CI/CD. El onboarding, la autenticación, la emisión, el PDF y el SOAP están documentados y preparados como próximos incrementos. US-19, US-20, US-27, US-28 y US-31 están completadas; US-11 tiene base implementada; US-21 está en estado parcial.
+> Estado actual: base funcional con API, portal Blazor/Razor, MongoDB, emisión de facturas A, B y C y de notas de crédito y débito por API key, endpoint público de verificación, Docker y CI/CD. La emisión está implementada y cubierta por tests unitarios y de integración sin Mongo; la verificación real de transacción, concurrencia e índice único con MongoDB replica set sigue pendiente. La fachada SOAP de emisión (US-15) y consultas (US-16) está implementada y cubierta por tests unitarios y de integración sin Mongo; le falta la verificación end-to-end con Mongo real. El dashboard y el listado del portal (US-12) están completados y cubiertos por tests con MongoDB real y QA manual. US-08, US-12, US-19, US-20, US-27, US-28 y US-31 están completadas; US-05, US-06, US-09, US-14, US-15, US-16 y US-21 están en estado parcial; US-11 tiene base implementada; US-32 está en estado parcial con la landing pública, los temas, el SEO y el asistente de alta implementados y pendiente de Lighthouse, axe, Groq real y assets de marca.
 >
 > Planificación: las historias pendientes están refinadas con **contrato técnico** (modelo de datos, endpoints, validaciones y casos de prueba) contra el [contrato transversal de la API](docs/contratos-api.md), y el [plan de implementación](docs/plan-implementacion.md) fija el orden de ejecución.
 
@@ -33,7 +33,7 @@ Simulador de facturación electrónica de AFIP/ARCA para el Trabajo Final Integr
 | Capa | Tecnología |
 | --- | --- |
 | Backend | .NET 10, ASP.NET Core Minimal API |
-| SOAP | CoreWCF o SoapCore |
+| SOAP | SoapCore 1.2.1.18 (solo `FacturAR.Api`) |
 | Frontend | Blazor Web App (Server) + Razor Pages |
 | Base de datos | MongoDB 8+ (Atlas o replica set local) |
 | PDF / QR | QuestPDF, QRCoder |
@@ -124,6 +124,28 @@ El frontend lee:
 | `Api__BaseUrl` | URL interna de la API | `http://localhost:5171` |
 | `ASPNETCORE_ENVIRONMENT` | Entorno de ejecución | `Development` |
 
+Variables del asistente de alta (solo portal):
+
+| Variable | Descripción | Default |
+| --- | --- | --- |
+| `ASISTENTE_HABILITADO` | Prende el widget de `/solicitar-alta` y `POST /asistente/mensajes` | `false` |
+| `GROQ_API_KEY` | Secreto de Groq; obligatorio si el asistente está habilitado. La app no arranca si falta | — |
+| `ASISTENTE_BASE_URL` | Base de la API de Groq | `https://api.groq.com/openai/v1` |
+| `ASISTENTE_MODELO` | Modelo de Groq | `llama-3.3-70b-versatile` |
+| `ASISTENTE_ORIGEN` | `Origin`/`Referer` permitido por el endpoint | `Portal:BaseUrl` |
+| `ASISTENTE_TIMEOUT_SEGUNDOS` | Timeout de la llamada a Groq | `10` |
+| `ASISTENTE_MAX_TOKENS` | Tokens máximos de respuesta | `350` |
+| `ASISTENTE_MAX_CARACTERES_MENSAJE` | Caracteres máximos por mensaje | `600` |
+| `ASISTENTE_MAX_TURNOS` | Turnos máximos de historial | `8` |
+| `ASISTENTE_RATE_MINUTO` | Mensajes por minuto por IP | `6` |
+| `ASISTENTE_RATE_HORA` | Mensajes por hora por IP | `30` |
+| `ASISTENTE_RATE_DIA` | Mensajes por día por IP | `100` |
+| `ASISTENTE_RATE_SESION` | Mensajes por hora por sesión anónima | `20` |
+| `ASISTENTE_PRESUPUESTO_TOKENS` | Presupuesto diario de tokens | `150000` |
+| `ASISTENTE_MAX_REQUESTS_DIA` | Requests diarios globales | `500` |
+
+La key de Groq vive solo en el servidor del portal (`FacturAR.Web`); el navegador llama al endpoint del portal y nunca a Groq. No se escribe en `appsettings.json` versionado, ni en `.env` commiteado, ni en logs. Con `ASISTENTE_HABILITADO=false` el widget no se muestra y el endpoint responde `404`; si se habilita, `GROQ_API_KEY` es obligatoria y la falta de la key corta el arranque con un error explícito.
+
 Variables de entorno para Docker y onboarding:
 
 | Variable | Descripción | Ejemplo |
@@ -155,6 +177,64 @@ docker compose exec api ls /app/emails
 docker compose cp api:/app/emails ./emails-export
 ```
 
+### Datos semilla (US-18)
+
+El seed corre al arrancar la API **solo** cuando `Seed__Enabled=true`. Es idempotente: se puede ejecutar más de una vez sin duplicar datos. Todo lo que crea es **simulado**, incluida la empresa `Empresa Demo (simulada)`; no representa a un contribuyente real ni emite comprobantes fiscales.
+
+| Variable | Descripción | Default |
+| --- | --- | --- |
+| `Seed__Enabled` | Habilita el seed al arrancar la API | `false` |
+| `Seed__Password` | Contraseña de los usuarios demo; obligatoria si se habilita. Se hashea y nunca se versiona | — |
+| `Seed__ApiKeyDemo` | Crea una API key demo; solo tiene efecto en `Development` | `false` |
+| `Seed__Cuit` | CUIT de la empresa demo | `20123456786` |
+| `Seed__RazonSocial` | Razón social de la empresa demo | `Empresa Demo (simulada)` |
+| `Seed__Email` | Email base del usuario `Administrador` | `admin@demo.facturar.local` |
+| `Seed__Nombre` | Nombre visible del `SuperAdmin` demo | `Administrador Demo` |
+
+`Seed__Email` identifica al usuario `Administrador` de la empresa. Los usuarios `Emisor` y `Consulta` y el `SuperAdmin` global usan emails derivados con `+emisor`, `+consulta` y `+superadmin` respectivamente (por ejemplo, `admin+emisor@demo.facturar.local`). Todos comparten la contraseña de `Seed__Password`.
+
+El seed también crea el punto de venta `1` y las secuencias `FacturaA`, `FacturaB` y `FacturaC` en `0`. Las secuencias existentes no se reinician: si ya tienen numeración, se conservan sus contadores.
+
+Ejecución local con variables de entorno:
+
+```powershell
+$env:Seed__Enabled = "true"
+$env:Seed__Password = "<password-segura>"
+dotnet run --project facturAR_backend/src/FacturAR.Api
+```
+
+En Docker, definir las variables en `.env` y recrear los contenedores:
+
+```text
+SEED_ENABLED=true
+SEED_PASSWORD=<password-segura>
+```
+
+```powershell
+docker compose --env-file .env up --build
+```
+
+Si `Seed__ApiKeyDemo=true` en `Development`, la API key demo se entrega una sola vez: se escribe en `seed/api-key-demo.txt` y no vuelve a mostrarse. Leerla con:
+
+```powershell
+docker compose exec api cat /app/seed/api-key-demo.txt
+```
+
+En local el archivo queda en `facturAR_backend/src/FacturAR.Api/seed/api-key-demo.txt`. Ese archivo es un **secreto local**: está excluido de git (`.gitignore`) y de la imagen de Docker (`.dockerignore`), y no debe versionarse ni publicarse.
+
+Parámetros de facturación (`Facturacion__*`) que el seed persiste como parámetros globales:
+
+| Variable | Descripción | Default |
+| --- | --- | --- |
+| `Facturacion__DiasVencimientoCae` | Días para el vencimiento del CAE | `10` |
+| `Facturacion__AlicuotasPermitidas` | Alícuotas de IVA permitidas | `0`, `5`, `10.5`, `21`, `27` |
+| `Facturacion__PuntoVentaPorDefecto` | Punto de venta por defecto | `1` |
+| `Facturacion__Moneda` | Moneda por defecto | `ARS` |
+| `Facturacion__PaginaPorDefecto` | Tamaño de página por defecto en listados | `20` |
+| `Facturacion__PaginaMaxima` | Tamaño máximo de página en listados | `100` |
+
+La lista de alícuotas se configura por índice: `Facturacion__AlicuotasPermitidas__0` … `Facturacion__AlicuotasPermitidas__4`. El binder no toma una clave escalar `Facturacion__AlicuotasPermitidas` para un array. El default es `0`, `5`, `10.5`, `21`, `27`.
+
 ## Ejecución local
 
 ```powershell
@@ -184,12 +264,16 @@ URLs locales:
 - Salud (readiness): `http://localhost:5171/health`
 - Salud (liveness): `http://localhost:5171/health/live`
 - Portal: `http://localhost:5116`
+- Landing pública: `http://localhost:5116/`
+- Dashboard autenticado: `http://localhost:5116/dashboard`
+- Ruta vieja de la landing: `http://localhost:5116/inicio` redirige `301` a `/`
+- Listado de comprobantes: `http://localhost:5116/comprobantes`
 - Salud del portal: `http://localhost:5116/health` y `http://localhost:5116/health/live`
 - Verificación: `http://localhost:5116/verificar`
-- Solicitud de alta (prevista): `http://localhost:5116/solicitud`
-- Activación (prevista): `http://localhost:5116/activar`
+- Solicitud de alta con asistente: `http://localhost:5116/solicitar-alta`
+- Activación: `http://localhost:5116/activar`
 - Manual (previsto): `http://localhost:5116/manual`
-- Administración global (prevista): `http://localhost:5116/admin`
+- Administración global: `http://localhost:5116/admin`
 
 ### MongoDB
 
@@ -245,6 +329,12 @@ Para volver a una versión anterior, cambiar `IMAGE_TAG` en `.env.production` po
 | `GET` | `/health/live` | Liveness: el proceso está vivo, con `version` y `commit`. No consulta MongoDB |
 | `GET` | `/openapi/v1.json` | Documento OpenAPI (solo Development) |
 | `GET` | `/v1/comprobantes/verificar/{cae}` | Verificación pública de un comprobante |
+| `POST` | `/v1/comprobantes` | Emisión de facturas A, B y C. Requiere API key e `Idempotency-Key` |
+| `GET` | `/v1/comprobantes/dashboard` | Métricas del mes y últimos comprobantes. Acepta API key o cookie de empresa |
+| `POST` | `/soap` | Fachada SOAP 1.1 de emisión y consultas: `FECAESolicitar`, `FECAEGenerar`, `FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy`. Requiere API key |
+| `GET` | `/soap?wsdl` | WSDL de la fachada SOAP de emisión y consultas |
+
+La fachada SOAP reutiliza los mismos casos de uso y la misma API key que REST. El detalle del sobre `R`/`Fault` está en [`docs/contratos-api.md`](docs/contratos-api.md) §7.6 y los ejemplos de request/response en [`docs/manual-integracion.md`](docs/manual-integracion.md).
 
 Endpoints de onboarding planificados (todavía no implementados):
 
@@ -333,12 +423,14 @@ El environment usa `http://localhost:8080` para Docker. Para ejecución local, c
 ## Tests
 
 ```powershell
-dotnet test FacturAR.slnx
+dotnet build FacturAR.slnx -c Release
+dotnet test FacturAR.slnx -c Release --no-build --logger "console;verbosity=minimal"
+dotnet format FacturAR.slnx --verify-no-changes
 ```
 
-La suite local tiene 18 tests unitarios y 9 de integración. Los unitarios cubren validación de CUIT, CAE y el caso de uso de verificación. Los de integración levantan la API en memoria y validan el endpoint raíz, OpenAPI y el rechazo de CAE inválidos sin requerir MongoDB.
+La suite local tiene tests unitarios y de integración que pasan sin servicios externos; los tests de integración marcados con `MongoFact` se omiten cuando no hay connection string. Los unitarios cubren validación de CUIT, CAE, emisión de facturas A/B/C, cálculo de importes, consultas y reglas de receptor e ítems. Los de integración levantan la API en memoria y validan salud, OpenAPI, autenticación por API key, emisión y consultas por REST y SOAP sin requerir MongoDB.
 
-Los tests marcados con `MongoFact` validan la API contra MongoDB real: inserción de un comprobante, verificación pública, `404`, ausencia de datos internos y creación del índice único de CAE. Se omiten automáticamente si no existe `MONGO_CONNECTION_STRING` o `Mongo__ConnectionString`. Cuando se ejecutan, usan una base temporal `facturar_it_*` y la eliminan al finalizar.
+Los tests marcados con `MongoFact` validan la API contra MongoDB real: emisión de facturas A/B/C, rollback, concurrencia, índice único de CAE, inserción de un comprobante, verificación pública, `404` y ausencia de datos internos. Se omiten automáticamente si no existe `MONGO_CONNECTION_STRING` o `Mongo__ConnectionString`. Cuando se ejecutan, usan una base temporal `facturar_it_*` y la eliminan al finalizar.
 
 ```powershell
 $env:MONGO_CONNECTION_STRING = "mongodb+srv://..."
@@ -358,14 +450,17 @@ La guía operativa completa está en [`docs/despliegue-azure.md`](docs/despliegu
 
 Se ejecuta en:
 
-- Push a `main` y `development`.
-- Pull requests hacia `main` y `development`.
+- Manualmente con `workflow_dispatch`.
+- Push a `main` (promoción desde `development`).
+- Pull requests hacia `main` (promoción desde `development`).
+
+Las ramas de trabajo y los pull requests hacia `development` no disparan la CI automáticamente para no consumir Actions. Si el ruleset de `development` exige los checks de CI, ejecutá la CI manualmente sobre la rama del PR después del último push o quitá esos checks requeridos del ruleset.
 
 Jobs:
 
 1. `Validar nombre de rama`: solo en pull requests. Exige `feature/us-XX-slug`, `fix/us-XX-slug` o una rama auxiliar `chore/`, `docs/`, `refactor/`, `test/`, `perf/`, `ci/` o `build/`. Omite `main` y `development` para permitir la promoción entre ramas.
 2. `Build y tests`: restaura, compila en `Release`, **verifica formato y analizadores** con `dotnet format FacturAR.slnx --verify-no-changes --verbosity minimal`, levanta MongoDB 8.2 como servicio, ejecuta la suite completa (incluidos los tests `MongoFact`) y sube `TestResults` como artefacto.
-3. `Construir imágenes Docker`: construye la imagen de la API y la del portal **sin publicarlas**, para validar ambos Dockerfiles en cada push y PR. Usa los build args `SOURCE_COMMIT=${{ github.sha }}` y `APP_VERSION=0.1.0`, con caché de GitHub Actions separada por imagen.
+3. `Construir imágenes Docker`: construye la imagen de la API y la del portal **sin publicarlas**, para validar ambos Dockerfiles en las ejecuciones de CI. Usa los build args `SOURCE_COMMIT=${{ github.sha }}` y `APP_VERSION=0.1.0`, con caché de GitHub Actions separada por imagen.
 
 La CI debe pasar antes de mergear. No publica ni despliega nada.
 
@@ -473,7 +568,7 @@ Para rollback, cambiar `IMAGE_TAG` en `.env.production` por el SHA de un build a
 
 ## Alcance y supuestos
 
-- El CAE es simulado, con 14 dígitos y vencimiento a 10 días.
+- El CAE es simulado, con 14 dígitos y vencimiento configurable (`Facturacion__DiasVencimientoCae`, default 10 días).
 - No se realizan llamadas reales a AFIP/ARCA en el alcance obligatorio.
 - No hay registro libre: el alta es por solicitud y aprobación manual.
 - El CUIT es público y no prueba la titularidad de la empresa.
@@ -482,4 +577,4 @@ Para rollback, cambiar `IMAGE_TAG` en `.env.production` por el SHA de un build a
 - Los montos se modelan con `decimal` (MongoDB `Decimal128`).
 - Las fechas se almacenan en UTC.
 - El equipo es de 4-5 personas con una ventana de 3 semanas.
-- El alcance obligatorio tiene 26 historias y 47 días ideales, y se implementan en un único sprint; US-22 a US-25 quedan fuera del alcance del proyecto y están archivadas en `docs/historias-usuario-fuera-de-alcance/`.
+- El alcance obligatorio tiene 27 historias y 52 días ideales, y se implementan en un único sprint; US-22 a US-25 quedan fuera del alcance del proyecto y están archivadas en `docs/historias-usuario-fuera-de-alcance/`.

@@ -17,18 +17,18 @@ Todas las consultas se filtran por el `ContribuyenteId` autenticado. La verifica
 
 ## Criterios de aceptación
 
-- [ ] `GET /v1/comprobantes` lista solo comprobantes del contribuyente autenticado.
-- [ ] Se puede filtrar por fecha desde/hasta, punto de venta, tipo de comprobante, estado y receptor.
-- [ ] La lista usa paginación con `page` y `pageSize`, con límite máximo.
-- [ ] La lista se ordena por fecha de emisión descendente y número descendente.
-- [ ] `GET /v1/comprobantes/{id}` devuelve el detalle con ítems.
-- [ ] Un id de otra empresa devuelve `404`.
-- [ ] `GET /v1/comprobantes/ultimo-autorizado` devuelve el último número por punto de venta y tipo.
-- [ ] Si no hay comprobantes, el último autorizado es `0`.
-- [ ] Las fechas se interpretan en UTC y se documentan.
-- [ ] La respuesta no expone datos internos, hashes ni API keys.
-- [ ] La consulta usa índices por contribuyente y fecha.
-- [ ] Hay tests de filtros, paginación, aislamiento y último autorizado.
+- [x] `GET /v1/comprobantes` lista solo comprobantes del contribuyente autenticado. — Endpoint implementado y cubierto con stub; el aislamiento contra Mongo está en `MongoConsultasComprobantesTests` (omitido sin connection string).
+- [ ] Se puede filtrar por fecha desde/hasta, punto de venta, tipo de comprobante, estado y receptor. — Implementado; filtros inválidos cubiertos por tests. Falta la verificación de los filtros contra MongoDB real.
+- [ ] La lista usa paginación con `page` y `pageSize`, con límite máximo. — Implementado; `pageSize` fuera de 1..100 devuelve `400 VALIDACION` en tests. Falta la corrida contra MongoDB real.
+- [ ] La lista se ordena por fecha de emisión descendente y número descendente. — Implementado con `{FechaEmision:-1, Numero:-1, Id:1}`; falta la corrida contra MongoDB real.
+- [x] `GET /v1/comprobantes/{id}` devuelve el detalle con ítems. — Cubierto por tests unitarios de mapeo e integración con stub (200/404).
+- [ ] Un id de otra empresa devuelve `404`. — Implementado en el filtro `(Id, ContribuyenteId)`; falta la corrida contra MongoDB real.
+- [ ] `GET /v1/comprobantes/ultimo-autorizado` devuelve el último número por punto de venta y tipo. — Implementado y cubierto por unitarios con fakes; falta la corrida contra `secuencias` reales.
+- [ ] Si no hay comprobantes, el último autorizado es `0`. — Cubierto por unitarios con fakes; falta la corrida contra MongoDB real.
+- [x] Las fechas se interpretan en UTC y se documentan. — Parseo y límites cubiertos por unitarios; documentado en `docs/contratos-api.md` §14 y `docs/manual-integracion.md` §7.
+- [x] La respuesta no expone datos internos, hashes ni API keys. — Cubierto por test de integración CP-16 sobre el JSON.
+- [ ] La consulta usa índices por contribuyente y fecha. — Índice `ix_comprobantes_contribuyente_fecha_numero_id` creado en `MongoIndexInitializer`; falta la verificación contra MongoDB real.
+- [x] Hay tests de filtros, paginación, aislamiento y último autorizado. — 49 unitarios y 18 de integración sin Mongo verdes; 13 `[MongoFact]` escritos y omitidos sin connection string.
 
 ## Escenarios Gherkin
 
@@ -70,22 +70,44 @@ Scenario: Sin comprobantes
 
 ## Tareas técnicas
 
-- [ ] Crear DTOs de listado, detalle y último autorizado.
-- [ ] Implementar `ListarComprobantesService` y `ConsultarComprobanteService`.
-- [ ] Implementar `ObtenerUltimoAutorizadoService`.
-- [ ] Crear `GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` y `GET /v1/comprobantes/ultimo-autorizado`.
-- [ ] Aplicar filtro de tenant y paginación.
-- [ ] Agregar índices de consulta.
-- [ ] Agregar tests de filtros, aislamiento y paginación.
-- [ ] Documentar parámetros y respuestas en OpenAPI y Postman.
+- [x] Crear DTOs de listado, detalle y último autorizado.
+- [x] Implementar `ListarComprobantesService` y `ConsultarComprobanteService`.
+- [x] Implementar `ObtenerUltimoAutorizadoService`.
+- [x] Crear `GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` y `GET /v1/comprobantes/ultimo-autorizado`.
+- [x] Aplicar filtro de tenant y paginación.
+- [ ] Agregar índices de consulta. — El índice está en `MongoIndexInitializer`; falta la verificación contra MongoDB real.
+- [x] Agregar tests de filtros, aislamiento y paginación.
+- [x] Documentar parámetros y respuestas en OpenAPI y Postman.
 
 ## Definition of Done
 
-- [ ] Un cliente solo ve sus comprobantes.
-- [ ] La paginación y los filtros funcionan.
-- [ ] El último autorizado refleja la secuencia persistida.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el manual.
+- [ ] Un cliente solo ve sus comprobantes. — Pendiente de la corrida `MongoFact` con `MONGO_CONNECTION_STRING`.
+- [ ] La paginación y los filtros funcionan. — Pendiente de la corrida `MongoFact`.
+- [ ] El último autorizado refleja la secuencia persistida. — Pendiente de la corrida `MongoFact` contra `secuencias`.
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el manual.
+
+## Evidencia
+
+Fecha de verificación: 2026-11-02.
+
+| Comando | Resultado |
+| --- | --- |
+| `dotnet build FacturAR.slnx -c Release` | 0 errores, 0 advertencias. |
+| `dotnet test FacturAR.slnx -c Release --no-build` | 432 unitarios OK; 100 integración OK, 134 omitidos (`MongoFact` sin `MONGO_CONNECTION_STRING`), 0 fallos. |
+| `dotnet format FacturAR.slnx --verify-no-changes` | Sin cambios pendientes. |
+
+Tests nuevos:
+
+- `ConsultasComprobantesServiceTests` (49): paginación, fechas UTC, filtros, receptor normalizado, mapeo de resumen/detalle/ítems y último autorizado con y sin punto de venta.
+- `ComprobanteConsultaEndpointsTests` (18): 401 sin credenciales, 400 de validación, `pageSize` máximo, 404 de detalle, 403/200 con cookie de rol `Consulta` y ausencia de campos internos en el JSON.
+- `MongoConsultasComprobantesTests` (13, `[MongoFact]`): CP-01 a CP-09 y CP-11 a CP-13 más el índice nuevo; omitidos sin connection string.
+
+QA sin Mongo: API levantada en `http://localhost:5171`; los tres endpoints sin credenciales devuelven `401 API_KEY_AUSENTE` con `ErrorResponse`; `/openapi/v1.json` expone los tres endpoints y no la ruta de respaldo; `/v1/comprobantes/verificar/{cae}` sigue anónimo. Playwright no está disponible.
+
+## Estado de implementación
+
+US-09 queda **Parcial**: los tres endpoints, los servicios, el aislamiento por `ITenantContext`, la paginación, el orden estable y el índice están implementados, y la suite automática sin Mongo está verde. Falta la corrida de los 13 casos `[MongoFact]` con `MONGO_CONNECTION_STRING` sobre MongoDB 8+ con replica set y el QA manual con datos reales. No se mueve a `historias-usuario-terminadas/` hasta cerrar esos puntos.
 
 ## Contrato técnico
 

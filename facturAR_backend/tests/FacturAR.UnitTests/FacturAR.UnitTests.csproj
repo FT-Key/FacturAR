@@ -10,8 +10,11 @@
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="PdfPig" Version="0.1.16" />
+    <PackageReference Include="StbImageSharp" Version="2.30.16" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageReference Include="ZXing.Net" Version="0.16.11" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,6 +25,12 @@
     <ProjectReference Include="..\..\src\FacturAR.Domain\FacturAR.Domain.csproj" />
     <ProjectReference Include="..\..\src\FacturAR.Application\FacturAR.Application.csproj" />
     <ProjectReference Include="..\..\src\FacturAR.Infrastructure\FacturAR.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\FacturAR.Api\FacturAR.Api.csproj" />
+    <ProjectReference Include="..\..\..\facturAR_frontend\src\FacturAR.Web\FacturAR.Web.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
 </Project>

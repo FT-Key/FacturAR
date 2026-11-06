@@ -62,7 +62,57 @@ public sealed class VerificarComprobanteServiceTests
         public Task<Comprobante?> GetByCaeAsync(string cae, CancellationToken cancellationToken = default)
             => Task.FromResult(comprobante);
 
+        public Task<Comprobante?> GetByIdAsync(
+            Guid contribuyenteId,
+            Guid id,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(comprobante);
+
+        public Task<Comprobante?> GetByNumeracionAsync(
+            Guid contribuyenteId,
+            int puntoVenta,
+            TipoComprobante tipo,
+            long numero,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(comprobante);
+
+        public Task<Comprobante?> GetUltimoEmitidoAsync(
+            Guid contribuyenteId,
+            int puntoVenta,
+            TipoComprobante tipo,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(comprobante);
+
+        public Task<(IReadOnlyList<Comprobante> Items, long Total)> ListarAsync(
+            Guid contribuyenteId,
+            FiltroListadoComprobantes filtro,
+            int page,
+            int pageSize,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult<(IReadOnlyList<Comprobante>, long)>(([], 0));
+
+        public Task<MetricasDashboard> ObtenerMetricasAsync(
+            Guid contribuyenteId,
+            DateTime desde,
+            DateTime hastaExclusivo,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(new MetricasDashboard(0, 0m));
+
+        public Task<Comprobante?> GetByIdempotencyKeyAsync(
+            Guid contribuyenteId,
+            string clave,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult<Comprobante?>(null);
+
         public Task AddAsync(Comprobante nuevo, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
+
+        public Task<bool> AjustarSaldoAsync(
+            Guid contribuyenteId,
+            Guid originalId,
+            decimal? saldoEsperado,
+            decimal saldoNuevo,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(false);
     }
 }

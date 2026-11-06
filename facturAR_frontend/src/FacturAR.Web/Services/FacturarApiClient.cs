@@ -1,10 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using FacturAR.Contracts.ApiKeys;
 using FacturAR.Contracts.Auth;
 using FacturAR.Contracts.Comunes;
 using FacturAR.Contracts.Comprobantes;
 using FacturAR.Contracts.Invitaciones;
+using FacturAR.Contracts.PuntosVenta;
 using FacturAR.Contracts.Solicitudes;
 
 namespace FacturAR.Web.Services;
@@ -210,17 +212,202 @@ public sealed class FacturarApiClient(HttpClient httpClient)
             new AceptarInvitacionRequest(password, confirmacionPassword),
             cancellationToken);
 
+    public Task<ResultadoApi<ApiKeyCreadaResponse>> CrearApiKeyAsync(
+        string? cookie,
+        CrearApiKeyRequest request,
+        CancellationToken cancellationToken = default)
+        => EnviarAsync<ApiKeyCreadaResponse>(
+            HttpMethod.Post,
+            "v1/api-keys",
+            cookie,
+            request,
+            cancellationToken);
+
+    public Task<ResultadoApi<ApiKeyListResponse>> ListarApiKeysAsync(
+        string? cookie,
+        CancellationToken cancellationToken = default)
+        => EnviarAsync<ApiKeyListResponse>(
+            HttpMethod.Get,
+            "v1/api-keys",
+            cookie,
+            null,
+            cancellationToken);
+
+    public Task<ResultadoApi<bool>> RevocarApiKeyAsync(
+        string? cookie,
+        Guid id,
+        CancellationToken cancellationToken = default)
+        => EnviarSinContenidoAsync(
+            HttpMethod.Delete,
+            $"v1/api-keys/{id}",
+            cookie,
+            cancellationToken);
+
+    public Task<ResultadoApi<ApiKeyRegeneradaResponse>> RegenerarApiKeyAsync(
+        string? cookie,
+        Guid id,
+        CancellationToken cancellationToken = default)
+        => EnviarAsync<ApiKeyRegeneradaResponse>(
+            HttpMethod.Post,
+            $"v1/api-keys/{id}/regenerar",
+            cookie,
+            null,
+            cancellationToken);
+
+    public Task<ResultadoApi<DashboardResponse>> ObtenerDashboardAsync(
+        string? cookie,
+        string? mes,
+        CancellationToken ct = default)
+    {
+        var path = string.IsNullOrWhiteSpace(mes)
+            ? "v1/comprobantes/dashboard"
+            : $"v1/comprobantes/dashboard?mes={Uri.EscapeDataString(mes.Trim())}";
+
+        return EnviarAsync<DashboardResponse>(HttpMethod.Get, path, cookie, null, ct);
+    }
+
+    public Task<ResultadoApi<PaginaResponse<ComprobanteResumenResponse>>> ListarComprobantesAsync(
+        string? cookie,
+        ComprobanteFiltros filtro,
+        CancellationToken ct = default)
+        => EnviarAsync<PaginaResponse<ComprobanteResumenResponse>>(
+            HttpMethod.Get,
+            $"v1/comprobantes?{filtro.ConstruirQueryString()}",
+            cookie,
+            null,
+            ct);
+
+    public Task<ResultadoApi<ComprobanteDetalleResponse>> ObtenerComprobanteAsync(
+        string? cookie,
+        Guid id,
+        CancellationToken ct = default)
+        => EnviarAsync<ComprobanteDetalleResponse>(
+            HttpMethod.Get,
+            $"v1/comprobantes/{id}",
+            cookie,
+            null,
+            ct);
+
+    public Task<ResultadoApi<PuntoVentaListResponse>> ObtenerPuntosVentaAsync(
+        string? cookie,
+        CancellationToken ct = default)
+        => EnviarAsync<PuntoVentaListResponse>(
+            HttpMethod.Get,
+            "v1/puntos-venta",
+            cookie,
+            null,
+            ct);
+
+    public Task<ResultadoApi<PresupuestoResponse>> CalcularPresupuestoAsync(
+        string? cookie,
+        EmitirComprobanteRequest request,
+        CancellationToken ct = default)
+        => EnviarAsync<PresupuestoResponse>(
+            HttpMethod.Post,
+            "v1/comprobantes/presupuesto",
+            cookie,
+            request,
+            ct);
+
+    public Task<ResultadoApi<ComprobanteResponse>> EmitirComprobanteAsync(
+        string? cookie,
+        EmitirComprobanteRequest request,
+        string idempotencyKey,
+        CancellationToken ct = default)
+        => EnviarAsync<ComprobanteResponse>(
+            HttpMethod.Post,
+            "v1/comprobantes",
+            cookie,
+            request,
+            ct,
+            idempotencyKey);
+
+    public async Task<ResultadoApi<byte[]>> DescargarPdfAsync(
+        string? cookie,
+        Guid id,
+        CancellationToken ct = default)
+    {
+        using var request = CrearRequest(HttpMethod.Get, $"v1/comprobantes/{id}/pdf", cookie);
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await httpClient.SendAsync(
+                request,
+                HttpCompletionOption.ResponseHeadersRead,
+                ct);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
+        {
+            return ResultadoApi<byte[]>.Fallido(HttpStatusCode.ServiceUnavailable, null, MensajeApiNoDisponible);
+        }
+
+        using (response)
+        {
+            if (response.IsSuccessStatusCode)
+            {
+                var bytes = await response.Content.ReadAsByteArrayAsync(ct);
+                return ResultadoApi<byte[]>.ConExito(bytes);
+            }
+
+            var error = await LeerErrorAsync(response, ct);
+            return ResultadoApi<byte[]>.Fallido(
+                response.StatusCode,
+                error?.Codigo,
+                error?.Mensaje ?? MensajeApiNoDisponible);
+        }
+    }
+
+    private async Task<ResultadoApi<bool>> EnviarSinContenidoAsync(
+        HttpMethod method,
+        string path,
+        string? cookie,
+        CancellationToken cancellationToken)
+    {
+        using var request = CrearRequest(method, path, cookie);
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await httpClient.SendAsync(request, cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            return ResultadoApi<bool>.Fallido(HttpStatusCode.ServiceUnavailable, null, MensajeApiNoDisponible);
+        }
+
+        using (response)
+        {
+            if (response.IsSuccessStatusCode)
+            {
+                return ResultadoApi<bool>.ConExito(true);
+            }
+
+            var error = await LeerErrorAsync(response, cancellationToken);
+            return ResultadoApi<bool>.Fallido(
+                response.StatusCode,
+                error?.Codigo,
+                error?.Mensaje ?? MensajeApiNoDisponible);
+        }
+    }
+
     private async Task<ResultadoApi<T>> EnviarAsync<T>(
         HttpMethod method,
         string path,
         string? cookie,
         object? body,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? idempotencyKey = null)
     {
         using var request = CrearRequest(method, path, cookie);
         if (body is not null)
         {
             request.Content = JsonContent.Create(body, body.GetType());
+        }
+
+        if (!string.IsNullOrWhiteSpace(idempotencyKey))
+        {
+            request.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);
         }
 
         HttpResponseMessage response;

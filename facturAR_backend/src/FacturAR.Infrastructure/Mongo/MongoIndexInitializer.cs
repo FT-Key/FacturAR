@@ -73,11 +73,23 @@ public static class MongoIndexInitializer
             new CreateIndexModel<Comprobante>(
                 Builders<Comprobante>.IndexKeys
                     .Ascending(c => c.ContribuyenteId)
+                    .Ascending(c => c.ComprobanteOriginalId),
+                new CreateIndexOptions { Name = "ix_comprobantes_original" }),
+            new CreateIndexModel<Comprobante>(
+                Builders<Comprobante>.IndexKeys
+                    .Ascending(c => c.ContribuyenteId)
                     .Descending(c => c.FechaEmision),
                 new CreateIndexOptions { Name = "ix_comprobantes_contribuyente_fecha" }),
             new CreateIndexModel<Comprobante>(
                 Builders<Comprobante>.IndexKeys.Ascending(c => c.ReceptorDocumentoNumero),
-                new CreateIndexOptions { Name = "ix_comprobantes_receptor_documento" })
+                new CreateIndexOptions { Name = "ix_comprobantes_receptor_documento" }),
+            new CreateIndexModel<Comprobante>(
+                Builders<Comprobante>.IndexKeys
+                    .Ascending(c => c.ContribuyenteId)
+                    .Descending(c => c.FechaEmision)
+                    .Descending(c => c.Numero)
+                    .Ascending(c => c.Id),
+                new CreateIndexOptions { Name = "ix_comprobantes_contribuyente_fecha_numero_id" })
         ], cancellationToken);
 
         await context.Outbox.Indexes.CreateManyAsync(
@@ -155,6 +167,15 @@ public static class MongoIndexInitializer
                     .Ascending(s => s.Estado)
                     .Descending(s => s.CreatedAt),
                 new CreateIndexOptions { Name = "ix_solicitudes_alta_estado_fecha" })
+        ], cancellationToken);
+
+        await context.Parametros.Indexes.CreateManyAsync(
+        [
+            new CreateIndexModel<Parametro>(
+                Builders<Parametro>.IndexKeys
+                    .Ascending(p => p.ContribuyenteId)
+                    .Ascending(p => p.Clave),
+                new CreateIndexOptions { Unique = true, Name = "ux_parametros_contribuyente_clave" })
         ], cancellationToken);
     }
 }

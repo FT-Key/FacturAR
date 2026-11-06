@@ -1,8 +1,24 @@
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@if (_apiNoDisponible)
+{
+    <MensajeError Mensaje="No pudimos contactar al servicio. Intentá de nuevo en unos minutos."
+                  UrlReintentar="@Navigation.Uri" />
+}
 
 @code {
+    private bool _apiNoDisponible;
+
     protected override void OnInitialized()
     {
+        if (AuthenticationStateProvider is ApiAuthenticationStateProvider proveedor
+            && proveedor.ApiNoDisponible)
+        {
+            _apiNoDisponible = true;
+            return;
+        }
+
         var ruta = Navigation.ToBaseRelativePath(Navigation.Uri);
         var destino = ruta.StartsWith("admin", StringComparison.OrdinalIgnoreCase)
             ? "/admin/login"

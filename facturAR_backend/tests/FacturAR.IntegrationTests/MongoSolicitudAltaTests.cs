@@ -42,6 +42,7 @@ public sealed class MongoSolicitudAltaTests : IAsyncLifetime
                 builder.UseSetting("Mongo:ConnectionString", MongoTestSettings.GetConnectionStringWithTimeout());
                 builder.UseSetting("Mongo:DatabaseName", _databaseName);
                 builder.UseSetting("Mongo:InitializeIndexes", "true");
+                builder.UseSetting("Outbox:Habilitado", "false");
                 builder.UseSetting("Admin:NotificationEmail", string.Empty);
                 builder.ConfigureTestServices(services =>
                 {

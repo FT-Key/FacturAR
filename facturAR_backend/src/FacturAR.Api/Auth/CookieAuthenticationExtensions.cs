@@ -88,6 +88,17 @@ public static class CookieAuthenticationExtensions
                 .RequireClaim("contribuyenteId")
                 .RequireClaim("rol", "Administrador", "Emisor", "Consulta"));
 
+            o.AddPolicy("ComprobantesEmision", p => p
+                .AddAuthenticationSchemes(
+                    ApiKeyAuthenticationHandler.SchemeName,
+                    EmpresaScheme,
+                    AdminScheme)
+                .RequireAuthenticatedUser()
+                .RequireClaim(ApiKeyAuthenticationHandler.ClaimContribuyenteId)
+                .RequireAssertion(context =>
+                    context.User.HasClaim(claim => claim.Type == ApiKeyAuthenticationHandler.ClaimApiKeyId)
+                    || context.User.FindFirst("rol")?.Value is "Administrador" or "Emisor" or "Consulta"));
+
             o.AddPolicy("AdminGlobal", p => p
                 .AddAuthenticationSchemes(EmpresaScheme, AdminScheme)
                 .RequireAuthenticatedUser()

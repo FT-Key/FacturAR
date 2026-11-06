@@ -20,6 +20,128 @@ Accept: application/json
 
 ###
 
+# Emisión (US-05): pegar una API key válida de la empresa y una Idempotency-Key única por request.
+@apiKey = fak_000000000000_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+@idempotencyKey = pedido-2026-0001
+
+POST {{FacturAR_Api_HostAddress}}/v1/comprobantes
+X-Api-Key: {{apiKey}}
+Idempotency-Key: {{idempotencyKey}}
+Content-Type: application/json
+
+{
+  "tipoComprobante": 11,
+  "puntoVenta": 1,
+  "receptor": {
+    "documentoTipo": "99",
+    "documentoNumero": "0",
+    "razonSocial": "Consumidor Final",
+    "condicionIva": 5
+  },
+  "items": [
+    {
+      "descripcion": "Curso de programación",
+      "cantidad": 1,
+      "precioUnitario": 10000,
+      "alicuotaIva": 0
+    }
+  ],
+  "observaciones": "Venta de prueba"
+}
+
+###
+
+# Consultas (US-09): aceptan API key o cookie de empresa. Pegar una API key válida de la empresa.
+@comprobanteId = 6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22
+
+GET {{FacturAR_Api_HostAddress}}/v1/comprobantes?page=1&pageSize=20&desde=2026-10-01&hasta=2026-10-31&tipo=11
+X-Api-Key: {{apiKey}}
+Accept: application/json
+
+###
+
+GET {{FacturAR_Api_HostAddress}}/v1/comprobantes/{{comprobanteId}}
+X-Api-Key: {{apiKey}}
+Accept: application/json
+
+###
+
+# PDF (US-10): devuelve application/pdf con Content-Disposition: inline. No altera el comprobante.
+GET {{FacturAR_Api_HostAddress}}/v1/comprobantes/{{comprobanteId}}/pdf
+X-Api-Key: {{apiKey}}
+Accept: application/pdf
+
+###
+
+GET {{FacturAR_Api_HostAddress}}/v1/comprobantes/ultimo-autorizado?tipo=11&puntoVenta=1
+X-Api-Key: {{apiKey}}
+Accept: application/json
+
+### Dashboard del mes (US-12)
+GET {{FacturAR_Api_HostAddress}}/v1/comprobantes/dashboard?mes=2026-10
+X-Api-Key: {{apiKey}}
+Accept: application/json
+
+###
+
+# Replay idempotente (US-06): repetir la MISMA Idempotency-Key con el mismo body.
+# Esperado: 200 con el mismo id, numero y cae que la emisión original; no se crea otro comprobante.
+POST {{FacturAR_Api_HostAddress}}/v1/comprobantes
+X-Api-Key: {{apiKey}}
+Idempotency-Key: {{idempotencyKey}}
+Content-Type: application/json
+
+{
+  "tipoComprobante": 11,
+  "puntoVenta": 1,
+  "receptor": {
+    "documentoTipo": "99",
+    "documentoNumero": "0",
+    "razonSocial": "Consumidor Final",
+    "condicionIva": 5
+  },
+  "items": [
+    {
+      "descripcion": "Curso de programación",
+      "cantidad": 1,
+      "precioUnitario": 10000,
+      "alicuotaIva": 0
+    }
+  ],
+  "observaciones": "Venta de prueba"
+}
+
+###
+
+# Conflicto de idempotencia (US-06): misma Idempotency-Key con un payload distinto.
+# Esperado: 409 IDEMPOTENCIA_CONFLICTO; el comprobante original no se modifica.
+POST {{FacturAR_Api_HostAddress}}/v1/comprobantes
+X-Api-Key: {{apiKey}}
+Idempotency-Key: {{idempotencyKey}}
+Content-Type: application/json
+
+{
+  "tipoComprobante": 11,
+  "puntoVenta": 1,
+  "receptor": {
+    "documentoTipo": "99",
+    "documentoNumero": "0",
+    "razonSocial": "Consumidor Final",
+    "condicionIva": 5
+  },
+  "items": [
+    {
+      "descripcion": "Curso de programación",
+      "cantidad": 1,
+      "precioUnitario": 20000,
+      "alicuotaIva": 0
+    }
+  ],
+  "observaciones": "Venta de prueba"
+}
+
+###
+
 POST {{FacturAR_Api_HostAddress}}/v1/solicitudes-alta
 Content-Type: application/json
 
@@ -114,5 +236,87 @@ Content-Type: application/json
   "password": "{{passwordNueva}}",
   "confirmacionPassword": "{{passwordNueva}}"
 }
+
+###
+
+# Notas de crédito y débito (US-08): pegar el id de una factura emitida.
+@facturaOriginalId = 00000000-0000-0000-0000-000000000000
+
+POST {{FacturAR_Api_HostAddress}}/v1/comprobantes
+X-Api-Key: {{apiKey}}
+Idempotency-Key: nota-credito-0001
+Content-Type: application/json
+
+{
+  "tipoComprobante": 3,
+  "puntoVenta": 1,
+  "comprobanteOriginalId": "{{facturaOriginalId}}",
+  "receptor": {
+    "documentoTipo": "CUIT",
+    "documentoNumero": "30712345671",
+    "razonSocial": "Cliente S.A.",
+    "condicionIva": 1
+  },
+  "items": [
+    { "descripcion": "Corrección de la factura", "cantidad": 1, "precioUnitario": 1000, "alicuotaIva": 21 }
+  ]
+}
+
+###
+
+# SOAP 1.1 (US-15 y US-16): WSDL, emisión y consultas sobre POST /soap.
+GET {{FacturAR_Api_HostAddress}}/soap?wsdl
+
+###
+
+POST {{FacturAR_Api_HostAddress}}/soap
+X-Api-Key: {{apiKey}}
+SOAPAction: http://ar.gov.afip.dif.FEV1Service/FECompUltimoAutorizado
+Content-Type: text/xml; charset=utf-8
+
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <FECompUltimoAutorizado xmlns="http://ar.gov.afip.dif.FEV1Service/">
+      <request>
+        <PtoVta>1</PtoVta>
+        <TipoComprobante>11</TipoComprobante>
+      </request>
+    </FECompUltimoAutorizado>
+  </soap:Body>
+</soap:Envelope>
+
+###
+
+POST {{FacturAR_Api_HostAddress}}/soap
+X-Api-Key: {{apiKey}}
+SOAPAction: http://ar.gov.afip.dif.FEV1Service/FECompConsultar
+Content-Type: text/xml; charset=utf-8
+
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <FECompConsultar xmlns="http://ar.gov.afip.dif.FEV1Service/">
+      <request>
+        <PtoVta>1</PtoVta>
+        <TipoComprobante>11</TipoComprobante>
+        <Numero>1</Numero>
+      </request>
+    </FECompConsultar>
+  </soap:Body>
+</soap:Envelope>
+
+###
+
+POST {{FacturAR_Api_HostAddress}}/soap
+X-Api-Key: {{apiKey}}
+SOAPAction: http://ar.gov.afip.dif.FEV1Service/FEDummy
+Content-Type: text/xml; charset=utf-8
+
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <FEDummy xmlns="http://ar.gov.afip.dif.FEV1Service/">
+      <request />
+    </FEDummy>
+  </soap:Body>
+</soap:Envelope>
 
 ###

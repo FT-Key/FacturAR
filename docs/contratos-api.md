@@ -20,6 +20,8 @@ Sirve para dos cosas:
 | Documentación | OpenAPI en `/openapi/v1.json` en Development. |
 | Puerto local | API `5171`, portal `5116`. En Docker: API `8080`, portal `8081`. |
 
+> **Excepción SOAP.** La fachada de emisión y consultas por SOAP (US-15, US-16) usa SOAP 1.1 sobre XML en `/soap`; se documenta en §7.6. El resto de la API de negocio sigue siendo JSON.
+
 ## 2. Errores
 
 Toda respuesta de error usa el mismo cuerpo:
@@ -76,6 +78,7 @@ Los códigos `VALIDACION`, `SOLICITUD_PENDIENTE`, `CUIT_YA_REGISTRADO`, `RATE_LI
 - El `codigo` no cambia. Si se necesita más detalle, se agregan campos opcionales al DTO en una historia futura, no se altera el existente.
 - Los errores de validación **no** enumeran los campos que fallaron salvo que la historia lo pida explícitamente.
 - **Nunca** se devuelve un `500` por datos inválidos del cliente: es un `400` con código específico.
+- **SOAP:** los errores de negocio viajan en HTTP `200` con `Resultado = "R"`; los de autenticación o protocolo viajan como `SOAP Fault` con el HTTP del código. Los códigos son los mismos de §2.1. Ver §7.6.
 
 ## 3. Identidad, roles y aislamiento multiempresa
 
@@ -148,7 +151,7 @@ Hay dos mecanismos, según quién consume la API.
 Header:
 
 ```http
-X-Api-Key: fak_9f3a1c7b2e40_<secreto>
+X-Api-Key: fak_<prefijo>_<secreto>
 ```
 
 Formato exacto: `fak_` + `prefix` (12 caracteres hexadecimales) + `_` + `secret` (43 caracteres base64url, resultado de 32 bytes aleatorios). La expresión regular de validación es `^fak_[0-9a-f]{12}_[A-Za-z0-9_-]{43}$`.
@@ -158,6 +161,7 @@ Formato exacto: `fak_` + `prefix` (12 caracteres hexadecimales) + `_` + `secret`
 - La comparación del hash usa tiempo constante (`CryptographicOperations.FixedTimeEquals`).
 - Un `GET /v1/api-keys` **nunca** devuelve `Hash` ni el valor de la key. Devuelve `prefix` con el formato `fak_<prefix>`.
 - `ApiKey.UltimoUso` se actualiza en cada autenticación exitosa, con una granularidad mínima de 1 minuto para no generar escrituras por petición.
+- La fachada SOAP de emisión y consultas (US-15, US-16) reutiliza la misma API key: por el header `X-Api-Key` o por `Auth/Token` dentro del sobre. `Auth/Sign` se ignora. Ver §7.6.
 
 ### 4.2 Cookie de sesión — para el portal (US-04)
 
@@ -166,7 +170,8 @@ Formato exacto: `fak_` + `prefix` (12 caracteres hexadecimales) + `_` + `secret`
   - `cookies.contribuyente`: login de empresas clientes.
   - `cookies.admin`: login de la consola global (`SuperAdmin` / `Soporte`).
 - El login de empresa **no** puede crear sesión de consola global y viceversa.
-- La sesión del portal **no** autoriza llamadas a la API de negocio: esas exigen API key. Es deliberado, para que el portal no sea un camino alterno al control de tenant.
+- La sesión del portal (`cookies.contribuyente`) **sí** autoriza los endpoints de consulta de comprobantes: `GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` y `GET /v1/comprobantes/ultimo-autorizado` (US-09), con rol `Administrador`, `Emisor` o `Consulta`. Es el camino que usa el portal (US-12) para leer los comprobantes sin duplicar reglas ni acceder a MongoDB. `POST /v1/comprobantes` acepta API key o la cookie de empresa con rol `Administrador` o `Emisor`; el `ContribuyenteId` se resuelve desde la credencial y nunca desde el body. `POST /v1/comprobantes/presupuesto` y `GET /v1/puntos-venta` usan la misma cookie con rol `Administrador` o `Emisor`.
+- La cookie de empresa **no** habilita `/v1/soap/**` (US-15, US-16) ni `/v1/admin/**`, y no convierte en autenticados los endpoints públicos: la verificación por CAE sigue siendo anónima.
 
 ## 5. Idempotencia (US-06)
 
@@ -177,7 +182,9 @@ Formato exacto: `fak_` + `prefix` (12 caracteres hexadecimales) + `_` + `secret`
 - Si la misma clave llega con **otro** payload, se responde `409 IDEMPOTENCIA_CONFLICTO`.
 - Si la misma clave llega con el **mismo** payload, se devuelve el comprobante original con `200` y **no** se renumera ni se vuelve a generar el CAE.
 - El reintento devuelve el mismo `id`, `numero` y `cae`.
+- Todas las respuestas de `POST /v1/comprobantes`, incluidas `401` y `403`, devuelven el header `Idempotency-Key` con la clave recibida.
 - No hay expiración de claves: es una nota de alcance explícita de US-06.
+- No hay límite de intentos ni ventana temporal de reintentos: un replay con la misma clave y el mismo payload siempre devuelve el comprobante original.
 - La clave no se usa para otras operaciones (notas, pagos, consultas).
 
 ## 6. Paginación (US-09, US-12)
@@ -196,7 +203,7 @@ Respuesta:
 }
 ```
 
-Orden por defecto: `FechaEmision` descendente, desempate por `Id` para que la paginación sea estable.
+Orden del listado de comprobantes: `{ FechaEmision: -1, Numero: -1, Id: 1 }`. El `Id` cierra el orden para que la concatenación de páginas no repita ni saltee ítems cuando dos comprobantes comparten fecha y número (por ejemplo, distinto punto de venta o tipo).
 
 ## 7. Emisión de comprobantes (US-05, US-07, US-08)
 
@@ -259,12 +266,12 @@ Reglas de validación:
 ### 7.4 CAE
 
 - El CAE se genera con `FacturAR.Application.Comprobantes.CaeGenerator.Generar()`: **14 dígitos aleatorios**, sin dígito verificador. El CAE es **simulado** y no reproduce el algoritmo de la AFIP.
-- `CaeVencimiento` es la fecha de emisión más 10 días (`CaeGenerator.CalcularVencimiento`). El valor es fijo en el MVP.
+- `CaeVencimiento` es la fecha de emisión más `Facturacion__DiasVencimientoCae` (default `10`). El caso de uso de emisión resuelve los días con `IParametrosResolver`, incluido el override por contribuyente, y los pasa a `CaeGenerator.CalcularVencimiento`.
 - El CAE es **único** en toda la base: índice `ux_comprobantes_cae`, único y sin filtro.
 
 ### 7.5 Notas de crédito y débito (US-08)
 
-- `Comprobante` suma el campo `Guid? ComprobanteOriginalId` y `decimal? ImporteOriginalAjustado` (saldo pendiente del comprobante original). Ninguno de los dos existe hoy: US-08 los agrega.
+- `Comprobante` suma el campo `Guid? ComprobanteOriginalId` y `decimal? ImporteOriginalAjustado` (saldo pendiente del comprobante original). Los agregó US-08.
 - Una nota **debe** referenciar un comprobante original del mismo contribuyente, del mismo tipo base (A/B/C) y en estado `Emitido`. No puede referenciar uno `Anulado` o `Rechazado`.
 - Referenciar un comprobante de otra empresa responde `404 COMPROBANTE_NO_ENCONTRADO`, sin revelar su existencia.
 - El tipo de nota debe corresponder al de la factura original; si no, `400 TIPO_NOTA_INCOMPATIBLE`.
@@ -272,6 +279,26 @@ Reglas de validación:
 - El saldo ajustable del original es `ImporteTotal - Σ importes de notas de crédito + Σ importes de notas de débito`.
 - Una **nota de crédito** no puede superar el saldo ajustable del original: si lo supera, `400 IMPORTE_EXCEDIDO` y **no** se consume número ni CAE. Una **nota de débito** aumenta el saldo y no está limitada por él.
 - Emitir una nota actualiza el `ImporteOriginalAjustado` del comprobante original dentro de la misma transacción.
+
+### 7.6 SOAP de emisión y consultas (US-15, US-16)
+
+La emisión y las consultas también se exponen por **SOAP 1.1 sobre XML** en `POST /soap`. El WSDL está en `GET /soap?wsdl` y el namespace es `http://ar.gov.afip.dif.FEV1Service/`. No es un camino paralelo: `FECAESolicitar` delega en `EmitirComprobanteService` (US-05) y las consultas `FECompUltimoAutorizado` y `FECompConsultar` delegan en `ObtenerUltimoAutorizadoService` y `ConsultarComprobanteService` (US-09).
+
+| Operación | Request | Response |
+| --- | --- | --- |
+| `FECAESolicitar` | `Auth` (`Token`, `Sign`), `Cuit`, `PtoVta`, `TipoComprobante`, `Concepto`, `DocTipo`, `DocNro`, `CondicionIVA`, `Items[]` (`Descripcion`, `Cantidad`, `PrecioUnitario`, `AlicuotaIVA`), `IdempotencyKey` opcional | `FeCabResp` con `Resultado` (`"A"`/`"R"`), `CodAutorizacion` (CAE de 14 dígitos), `FchVto` (`yyyyMMdd`) y `Observaciones` |
+| `FECAEGenerar` | Misma estructura que `FECAESolicitar` | `Respuesta` con `Resultado` (`"A"`/`"R"`), `Error` (código canónico) y `Observaciones` (mensaje) |
+| `FECompUltimoAutorizado` | `Auth` opcional, `PtoVta`, `TipoComprobante` | `Resultado` (`"A"`/`"R"`), `PtoVta`, `TipoComprobante`, `UltimoNro` (`0` si no hay emitidos), `Cae`, `FechaEmision` (`yyyyMMdd`), `FchVto` (`yyyyMMdd`) y `Observaciones` |
+| `FECompConsultar` | `Auth` opcional, `PtoVta`, `TipoComprobante`, `Numero` | `Resultado` (`"A"`/`"R"`), `Cuit`, `PtoVta`, `TipoComprobante`, `Numero`, `FechaEmision` (`yyyyMMdd`), `Cae`, `FchVto` (`yyyyMMdd`), `DocTipo`, `DocNro`, `CondicionIVA`, `Moneda`, `ImporteNeto`, `ImporteIva`, `ImporteTotal`, `Estado` y `Observaciones` |
+| `FEDummy` | `Auth` opcional | `Estado` (`"OK"`), `ServerTime` (ISO 8601 UTC), `Version` y `Service` (`"FacturAR.Api"`) |
+
+- **Autenticación:** header `X-Api-Key` (canónica) o `Auth/Token` dentro del sobre. `Auth/Sign` es opcional e ignorado. Sin credencial: `401 API_KEY_AUSENTE`; credencial inválida o revocada: `401 API_KEY_INVALIDA`. La API key nunca aparece en el `Fault`, en `Observaciones` ni en el log. `FEDummy` también exige API key válida.
+- **Tenant:** sale **solo** de la API key. En emisión, el `Cuit` del request se compara con el CUIT del contribuyente autenticado; si difieren, se devuelve `Resultado = "R"` con código `VALIDACION` y no se crea el comprobante. En consultas (`FECompUltimoAutorizado` y `FECompConsultar`), todas las lecturas filtran por el `ContribuyenteId` de la API key; consultar un comprobante inexistente o de otra empresa devuelve `Resultado = "R"` con `COMPROBANTE_NO_ENCONTRADO` y sin ningún dato fiscal.
+- **`FECAESolicitar` es la única operación que persiste.** `FECAEGenerar`, `FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy` son de solo lectura: no insertan comprobantes, no consumen números y no generan eventos de auditoría.
+- **Errores de negocio:** HTTP `200` con `Resultado = "R"` y `Observaciones = "<CODIGO>: <mensaje>"`. **Errores de autenticación o protocolo:** `SOAP Fault` con `faultstring = "<CODIGO>: <mensaje>"`, `detail/codigo`, `detail/mensaje` y HTTP `401`/`400`; MongoDB no disponible `503`; error interno `500` sin detalle. Los códigos son los de §2.1.
+- **Idempotencia:** la extensión opcional `IdempotencyKey` se mapea al mecanismo de US-06. Si se omite, cada reintento es una emisión nueva. La fachada reconoce el replay y `IDEMPOTENCIA_CONFLICTO`; la verificación end-to-end con MongoDB replica set sigue pendiente.
+- **Alcance de tipos:** el contrato XML no transporta `RazonSocial` del receptor. Una Factura C se emite de punta a punta; las Facturas A y B requieren ese dato en el caso de uso y se rechazan por SOAP con `VALIDACION`.
+- **Configuración:** `Soap__Habilitado` (default `true`) y `Soap__Ruta` (default `/soap`). Con `Soap__Habilitado=false` la ruta responde `404`.
 
 ## 8. Verificación pública por CAE (US-11)
 
@@ -302,26 +329,36 @@ Se leen de la sección `Facturacion` de la configuración y se permiten sobrescr
 
 | Clave | Tipo | Default | Uso |
 | --- | --- | --- | --- |
-| `Facturacion__DiasVencimientoCae` | int | `10` | Días de vigencia del CAE. |
+| `Facturacion__DiasVencimientoCae` | int | `10` | Días de vigencia del CAE. Es la **única fuente** del vencimiento. |
 | `Facturacion__AlicuotasPermitidas` | lista | `0, 5, 10.5, 21, 27` | Alícuotas de IVA aceptadas. |
 | `Facturacion__PuntoVentaPorDefecto` | int | `1` | Punto de venta sugerido al crear el contribuyente. |
 | `Facturacion__Moneda` | string | `ARS` | Moneda única del MVP. |
+| `Facturacion__PaginaPorDefecto` | int | `20` | `pageSize` por defecto de los listados (§6). |
+| `Facturacion__PaginaMaxima` | int | `100` | `pageSize` máximo de los listados (§6). |
 
-La colección `parametros` permite override por contribuyente con clave `(ContribuyenteId, Clave)`.
+La lista de alícuotas se configura por índice: `Facturacion__AlicuotasPermitidas__0` … `Facturacion__AlicuotasPermitidas__4`. El binder no toma una clave escalar `Facturacion__AlicuotasPermitidas` para un array. El default es `0, 5, 10.5, 21, 27`.
+
+`CaeGenerator.CalcularVencimiento` recibe la fecha de emisión y los días ya resueltos. Con el default `10` el comportamiento es idéntico al de US-05; cualquier otro valor altera ese comportamiento y debe quedar registrado en la configuración del ambiente.
+
+La colección `parametros` permite override por contribuyente con clave `(ContribuyenteId, Clave)`. El orden de resolución es: override del contribuyente → valor de la sección `Facturacion` → default de código. Los documentos globales que escribe el seed (`ContribuyenteId = null`) son informativos y **no** se consultan en la resolución.
 
 ## 11. Seed y datos de demostración (US-18)
 
-El seed corre **solo** cuando `Seed__Enabled=true`. Es idempotente: se puede ejecutar varias veces sin duplicar.
+El seed corre al arrancar la API únicamente cuando `Seed__Enabled=true`. Es la **única autorización**, incluso en Production: con `false` (default) no se carga nada en ningún ambiente. En Production con `true` la carga ocurre y la API registra una advertencia sin secretos. Es idempotente: se puede ejecutar varias veces sin duplicar datos ni reiniciar secuencias.
 
 | Entidad | Datos |
 | --- | --- |
-| `contribuyentes` | 1 empresa demo con CUIT válido, razón social y email. |
-| `usuarios` | 1 `Administrador` de la empresa demo y 1 `SuperAdmin` de plataforma. Contraseña de demo definida por `Seed__Password`. |
-| `puntosVenta` | Punto de venta `1` activo para el contribuyente demo. |
-| `secuencias` | Secuencias `FacturaA`, `FacturaB` y `FacturaC` en `0`. |
-| `parametros` | Parámetros por defecto de la sección `Facturacion`. |
+| `contribuyentes` | 1 empresa demo con CUIT válido, razón social, email y `CondicionIva = ResponsableInscripto`. |
+| `usuarios` | 3 usuarios de la empresa demo: `Administrador`, `Emisor` y `Consulta`. `Seed__Email` identifica al `Administrador`; `Emisor` y `Consulta` se derivan insertando `+emisor` y `+consulta` antes de la `@`. |
+| `administradores` | 1 `SuperAdmin` de plataforma, con `Seed__Nombre` como nombre visible y el email derivado con `+superadmin`. |
+| `puntosVenta` | Punto de venta `Facturacion__PuntoVentaPorDefecto` (default `1`) activo para el contribuyente demo. |
+| `secuencias` | Secuencias `FacturaA`, `FacturaB` y `FacturaC` en `0`. Una secuencia existente nunca se reinicia. |
+| `parametros` | Valores por defecto de la sección `Facturacion`, con `ContribuyenteId = null`. |
+| `apiKeys` | En Development y con `Seed__ApiKeyDemo=true`, 1 API key demo de la empresa. |
 
-En Development, el seed deja además una API key de demostración de la empresa demo. Su valor **nunca** se escribe en un log ni en el repositorio: se expone solo por la respuesta de creación, igual que cualquier otra key.
+`Seed__Password` es obligatoria cuando el seed está habilitado; se valida con la política de contraseñas, se hashea antes de persistir y nunca se escribe en logs ni en el repositorio. El CUIT se valida con `CuitValidator`. Si la configuración es inválida, el seed no escribe nada y la API registra una advertencia sin la contraseña.
+
+En Development, el valor completo de la API key demo se entrega **una sola vez** en `seed/api-key-demo.txt`, relativo a la raíz de contenido. Nunca se escribe en un log ni en la base en claro: solo quedan `Prefix` y `Hash`. La carpeta `seed/` está excluida de git y de la imagen de Docker y debe tratarse como secreto local. Sin `Seed__ApiKeyDemo=true` no se crea ninguna API key; para una key de prueba se usa el flujo normal de US-02 o US-14.
 
 ## 12. Correo (US-29)
 
@@ -337,15 +374,19 @@ En Development, el seed deja además una API key de demostración de la empresa 
 - `EventoAuditoria` se escribe en la **misma** colección `eventos` con `Accion`, `Entidad`, `EntidadId` y `Datos` (JSON sin datos personales ni secretos).
 - `EventoAuditoria.ContribuyenteId` es `Guid?`: `null` para eventos de plataforma.
 - `OutboxMessage` es la cola de efectos externos (emails, webhooks). Se escribe **en la misma operación** que el cambio de estado de negocio, nunca después.
-- El `BackgroundService` de la outbox toma mensajes `Pendiente`, los marca `Procesando`, reintenta con backoff exponencial y termina en `Fallido` tras 5 intentos. `Estado`, `Intentos`, `ProcesadoAt` y `Error` quedan registrados.
+- El `BackgroundService` de la outbox toma mensajes `Pendiente`, los marca `Procesando`, reintenta con backoff exponencial y termina en `Fallido` tras el máximo configurado (`Outbox:MaxIntentos`, default 5). `Estado`, `Intentos`, `ProcesadoAt` y `Error` quedan registrados. Un mensaje `Procesado` no se vuelve a reclamar.
 
 ## 14. Convenciones de API para el cliente
 
-- Endpoint de emisión: `POST /v1/comprobantes`.
-- Consulta por id: `GET /v1/comprobantes/{id}`.
-- Listado: `GET /v1/comprobantes?page=1&pageSize=20&desde=2026-01-01&tipo=1&estado=1`.
-- Último autorizado: `GET /v1/comprobantes/ultimo-autorizado?tipo=1`.
+- Endpoint de emisión: `POST /v1/comprobantes` (API key o cookie de empresa con rol `Administrador`/`Emisor`, + `Idempotency-Key` obligatorio).
+- Presupuesto: `POST /v1/comprobantes/presupuesto` (cookie de empresa con rol `Administrador`/`Emisor`). Devuelve `PresupuestoResponse`; no persiste, no consume número, no genera CAE y no audita.
+- Puntos de venta: `GET /v1/puntos-venta` (cookie de empresa con rol `Administrador`/`Emisor`). Devuelve solo los puntos de venta del contribuyente, activos e inactivos, ordenados por número.
+- Los tres endpoints de consulta aceptan API key (`X-Api-Key`) o cookie de empresa (`cookies.contribuyente`) con rol `Administrador`, `Emisor` o `Consulta`.
+- Listado: `GET /v1/comprobantes?page=1&pageSize=20&desde=2026-01-01&hasta=2026-01-31&tipo=1&estado=1&puntoVenta=1&receptor=20345678901`. `pageSize` máximo `100`; `desde` y `hasta` se interpretan en UTC y `hasta` incluye el día completo.
+- Consulta por id: `GET /v1/comprobantes/{id}` (Guid). Un id inexistente o de otra empresa responde `404 COMPROBANTE_NO_ENCONTRADO`; un id que no es Guid responde `400 VALIDACION`.
+- Último autorizado: `GET /v1/comprobantes/ultimo-autorizado?tipo=1&puntoVenta=1`. `tipo` es obligatorio y va en singular; `puntoVenta` es opcional. Sin secuencia responde `numero: 0`; sin `puntoVenta`, la respuesta lo devuelve como `null`.
 - PDF: `GET /v1/comprobantes/{id}/pdf` → `application/pdf` con `Content-Disposition: inline; filename="0001-00000001.pdf"`.
+- Dashboard: `GET /v1/comprobantes/dashboard?mes=2026-10` (API key o cookie de empresa). `mes` es opcional (`YYYY-MM`; default mes UTC) y la respuesta es `DashboardResponse`. Errores: `400 VALIDACION`, `401 API_KEY_AUSENTE`, `401 API_KEY_INVALIDA`, `401 CREDENCIALES_INVALIDAS`, `403 SIN_PERMISOS`, `503 MONGO_NO_DISPONIBLE`, `500 ERROR_INTERNO`.
 - API keys: `GET|POST /v1/api-keys`, `DELETE /v1/api-keys/{id}`, `POST /v1/api-keys/{id}/regenerar`.
 - Solicitud de alta (público): `POST /v1/solicitudes-alta`.
 - Activación (público): `GET /v1/invitaciones/{token}` y `POST /v1/invitaciones/{token}/aceptar`.
@@ -358,6 +399,7 @@ En Development, el seed deja además una API key de demostración de la empresa 
 - Multi-moneda.
 - Webhooks (US-23, fuera de alcance).
 - Integración real con AFIP (US-24, fuera de alcance).
+- WSAA real con certificados X.509 ni padrón fiscal externo. El SOAP del MVP (US-15 y US-16) expone `FECAESolicitar`, `FECAEGenerar`, `FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy` autenticados con API key.
 - Kubernetes: no se usa. Decisión de plataforma en [`docs/plan-implementacion.md`](plan-implementacion.md) §2.
 
 ## 16. Trazabilidad

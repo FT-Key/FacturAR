@@ -154,7 +154,7 @@ public sealed class ActivacionInvitacionServiceTests
         Assert.NotNull(invitacion.UsadaAt);
 
         var evento = Assert.Single(ctx.Eventos.Eventos);
-        Assert.Equal("cuenta.activada", evento.Accion);
+        Assert.Equal("CuentaActivada", evento.Accion);
         Assert.Equal(ctx.Contribuyente.Id, evento.ContribuyenteId);
         Assert.Equal(usuario.Id, evento.UsuarioId);
         Assert.Equal("Empresa", evento.ActorTipo);
