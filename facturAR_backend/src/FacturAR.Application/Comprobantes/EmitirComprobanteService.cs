@@ -1,7 +1,9 @@
 using System.Globalization;
 using System.Text.Json;
 using FacturAR.Application.Abstractions;
+using FacturAR.Application.Auditoria;
 using FacturAR.Contracts.Comprobantes;
+using FacturAR.Domain;
 using FacturAR.Domain.Entities;
 using FacturAR.Domain.Enums;
 using FacturAR.Domain.Exceptions;
@@ -11,10 +13,10 @@ namespace FacturAR.Application.Comprobantes;
 
 public sealed class EmitirComprobanteService : IEmitirComprobanteService
 {
-    public const string AccionEmitido = "comprobante.emitido";
+    public const string AccionEmitido = AccionesAuditoria.ComprobanteEmitido;
+    public const string AccionNota = AccionesAuditoria.NotaEmitida;
 
-    private const string EntidadComprobante = "Comprobante";
-    private const string ActorEmpresa = "Empresa";
+    private const string EntidadComprobante = EntidadesAuditoria.Comprobante;
     private const string RolAdministrador = "Administrador";
     private const string RolEmisor = "Emisor";
     private const int ReintentosAjusteSaldo = 5;
@@ -29,6 +31,7 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
     private readonly IEventoAuditoriaRepository _eventos;
     private readonly ITransaccionMongo _transaccion;
     private readonly IParametrosResolver _parametros;
+    private readonly ITenantContext _tenant;
 
     public EmitirComprobanteService(
         IContribuyenteRepository contribuyentes,
@@ -38,7 +41,8 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
         IIdempotenciaService idempotencia,
         IEventoAuditoriaRepository eventos,
         ITransaccionMongo transaccion,
-        IParametrosResolver parametros)
+        IParametrosResolver parametros,
+        ITenantContext tenant)
     {
         _contribuyentes = contribuyentes;
         _puntosVenta = puntosVenta;
@@ -48,6 +52,7 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
         _eventos = eventos;
         _transaccion = transaccion;
         _parametros = parametros;
+        _tenant = tenant;
     }
 
     public async Task<ResultadoEmision> EmitirAsync(
@@ -365,15 +370,18 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
         }
     }
 
-    private static EventoAuditoria CrearEvento(Comprobante comprobante)
-        => new()
+    private EventoAuditoria CrearEvento(Comprobante comprobante)
+    {
+        var usuarioId = _tenant.UsuarioId;
+
+        return new()
         {
-            Accion = AccionEmitido,
+            Accion = NotaComprobanteValidator.EsNota(comprobante.TipoComprobante) ? AccionNota : AccionEmitido,
             Entidad = EntidadComprobante,
             EntidadId = comprobante.Id.ToString(),
             ContribuyenteId = comprobante.ContribuyenteId,
-            UsuarioId = null,
-            ActorTipo = ActorEmpresa,
+            UsuarioId = usuarioId,
+            ActorTipo = usuarioId.HasValue ? ActorTipos.Empresa : ActorTipos.Sistema,
             Datos = JsonSerializer.Serialize(new Dictionary<string, string>
             {
                 ["numero"] = comprobante.Numero.ToString(CultureInfo.InvariantCulture),
@@ -385,6 +393,7 @@ public sealed class EmitirComprobanteService : IEmitirComprobanteService
             }),
             CreatedAt = comprobante.CreatedAt
         };
+    }
 
     private static ComprobanteResponse Mapear(Comprobante comprobante)
         => new(

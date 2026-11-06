@@ -1,4 +1,5 @@
 using FacturAR.Application.Abstractions;
+using FacturAR.Application.Auditoria;
 using FacturAR.Application.Notificaciones;
 using FacturAR.Contracts.Solicitudes;
 using FacturAR.Domain.Enums;
@@ -9,7 +10,7 @@ namespace FacturAR.Application.Solicitudes;
 public sealed class RechazarSolicitudService
 {
     public const string AdvertenciaEmail = "No se pudo enviar el email de rechazo al solicitante.";
-    public const string AccionRechazada = "solicitud.rechazada";
+    public const string AccionRechazada = AccionesAuditoria.SolicitudRechazada;
     public const string MensajeMotivoObligatorio = "El motivo del rechazo es obligatorio.";
 
     private const int MotivoMinimo = 10;

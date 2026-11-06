@@ -80,7 +80,7 @@ public static class AuthEndpoints
         var sesion = await service.AutenticarAsync(request.Email, request.Password, cancellationToken);
         if (sesion is null)
         {
-            await auditoria.RegistrarLoginFallidoAsync(request.Email, cancellationToken);
+            await auditoria.RegistrarLoginFallidoAsync(cancellationToken);
             return CredencialesInvalidas;
         }
 
@@ -161,7 +161,7 @@ public static class AuthEndpoints
         var sesion = await service.AutenticarAsync(request.Email, request.Password, cancellationToken);
         if (sesion is null)
         {
-            await auditoria.RegistrarLoginFallidoAsync(request.Email, cancellationToken);
+            await auditoria.RegistrarLoginFallidoAsync(cancellationToken);
             return CredencialesInvalidas;
         }
 

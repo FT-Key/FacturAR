@@ -1,4 +1,5 @@
 using FacturAR.Application.Abstractions;
+using FacturAR.Application.Auditoria;
 using FacturAR.Contracts.Solicitudes;
 using FacturAR.Domain.Enums;
 using FacturAR.Domain.Exceptions;
@@ -7,7 +8,7 @@ namespace FacturAR.Application.Solicitudes;
 
 public sealed class EditarSolicitudService
 {
-    public const string AccionEditada = "solicitud.editada";
+    public const string AccionEditada = AccionesAuditoria.SolicitudEditada;
 
     private readonly ISolicitudAltaRepository _solicitudes;
     private readonly IEventoAuditoriaRepository _eventos;

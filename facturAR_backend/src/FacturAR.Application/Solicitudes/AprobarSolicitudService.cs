@@ -1,6 +1,9 @@
+using System.Text.Json;
 using FacturAR.Application.Abstractions;
+using FacturAR.Application.Auditoria;
 using FacturAR.Application.Notificaciones;
 using FacturAR.Contracts.Solicitudes;
+using FacturAR.Domain;
 using FacturAR.Domain.Entities;
 using FacturAR.Domain.Enums;
 using FacturAR.Domain.Exceptions;
@@ -12,7 +15,7 @@ namespace FacturAR.Application.Solicitudes;
 public sealed class AprobarSolicitudService
 {
     public const string AdvertenciaEmail = "No se pudo enviar el email de invitación. Podés reenviarlo.";
-    public const string AccionAprobada = "solicitud.aprobada";
+    public const string AccionAprobada = AccionesAuditoria.SolicitudAprobada;
     public const int NumeroPuntoVentaInicial = 1;
     public const string DescripcionPuntoVentaInicial = "Casa Central";
 
@@ -169,6 +172,24 @@ public sealed class AprobarSolicitudService
             CreatedAt = ahora
         };
         await _invitaciones.InsertarAsync(invitacion, ct);
+
+        await _eventos.AddAsync(
+            new EventoAuditoria
+            {
+                Accion = AccionesAuditoria.InvitacionEnviada,
+                Entidad = EntidadesAuditoria.Invitacion,
+                EntidadId = invitacion.Id.ToString(),
+                ActorTipo = ActorTipos.Administrador,
+                AdministradorId = administradorId,
+                ContribuyenteId = null,
+                Datos = JsonSerializer.Serialize(new Dictionary<string, string>
+                {
+                    ["cuit"] = cuit,
+                    ["solicitudId"] = solicitud.Id.ToString()
+                }),
+                CreatedAt = ahora
+            },
+            ct);
 
         if (!await _solicitudes.AprobarPendienteAsync(
                 solicitud.Id,
