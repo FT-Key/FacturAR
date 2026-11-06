@@ -374,7 +374,7 @@ En Development, el valor completo de la API key demo se entrega **una sola vez**
 - `EventoAuditoria` se escribe en la **misma** colección `eventos` con `Accion`, `Entidad`, `EntidadId` y `Datos` (JSON sin datos personales ni secretos).
 - `EventoAuditoria.ContribuyenteId` es `Guid?`: `null` para eventos de plataforma.
 - `OutboxMessage` es la cola de efectos externos (emails, webhooks). Se escribe **en la misma operación** que el cambio de estado de negocio, nunca después.
-- El `BackgroundService` de la outbox toma mensajes `Pendiente`, los marca `Procesando`, reintenta con backoff exponencial y termina en `Fallido` tras 5 intentos. `Estado`, `Intentos`, `ProcesadoAt` y `Error` quedan registrados.
+- El `BackgroundService` de la outbox toma mensajes `Pendiente`, los marca `Procesando`, reintenta con backoff exponencial y termina en `Fallido` tras el máximo configurado (`Outbox:MaxIntentos`, default 5). `Estado`, `Intentos`, `ProcesadoAt` y `Error` quedan registrados. Un mensaje `Procesado` no se vuelve a reclamar.
 
 ## 14. Convenciones de API para el cliente
 
