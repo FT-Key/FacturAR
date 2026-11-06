@@ -21,15 +21,15 @@ El dashboard y el listado solo muestran datos del contribuyente autenticado. La 
 - [x] El dashboard muestra los últimos cinco comprobantes.
 - [x] El listado permite filtrar por fecha, tipo, punto de venta, estado y receptor.
 - [x] El listado tiene paginación y conserva los filtros.
-- [ ] Cada fila muestra tipo, número, fecha, receptor, importe y estado.
-- [ ] Se puede abrir el detalle de un comprobante.
-- [ ] Se puede descargar el PDF de un comprobante propio.
-- [ ] Un usuario no puede ver comprobantes de otra empresa cambiando filtros o ids.
-- [ ] El estado vacío explica cómo emitir el primer comprobante.
-- [ ] La interfaz es responsive y accesible por teclado.
-- [ ] Los importes se muestran con formato argentino.
-- [ ] Las fechas se muestran en zona local, pero se envían en UTC.
-- [ ] Hay tests de endpoints y una prueba manual del portal.
+- [x] Cada fila muestra tipo, número, fecha, receptor, importe y estado.
+- [x] Se puede abrir el detalle de un comprobante.
+- [x] Se puede descargar el PDF de un comprobante propio.
+- [x] Un usuario no puede ver comprobantes de otra empresa cambiando filtros o ids.
+- [x] El estado vacío explica cómo emitir el primer comprobante.
+- [x] La interfaz es responsive y accesible por teclado.
+- [x] Los importes se muestran con formato argentino.
+- [x] Las fechas se muestran en zona local, pero se envían en UTC.
+- [x] Hay tests de endpoints y una prueba manual del portal.
 
 ## Escenarios Gherkin
 
@@ -76,18 +76,18 @@ Scenario: Aislamiento
 - [x] Crear el endpoint o servicio de métricas del dashboard.
 - [x] Crear la página del dashboard en el portal.
 - [x] Crear la página de listado con filtros y paginación.
-- [ ] Integrar el detalle y la descarga de PDF.
+- [x] Integrar el detalle y la descarga de PDF.
 - [x] Aplicar el contexto de tenant.
-- [ ] Formatear importes y fechas.
-- [ ] Agregar estados de carga, vacío y error.
+- [x] Formatear importes y fechas.
+- [x] Agregar estados de carga, vacío y error.
 - [x] Agregar tests de métricas y filtros.
-- [ ] Probar el flujo en desktop y mobile.
+- [x] Probar el flujo en desktop y mobile.
 
 ## Definition of Done
 
-- [ ] El dashboard muestra datos correctos y aislados por empresa.
-- [ ] El listado filtra, pagina y descarga PDF.
-- [ ] El portal es usable en desktop y mobile.
+- [x] El dashboard muestra datos correctos y aislados por empresa.
+- [x] El listado filtra, pagina y descarga PDF.
+- [x] El portal es usable en desktop y mobile.
 - [x] `dotnet test FacturAR.slnx` pasa.
 - [x] La historia está enlazada desde el índice y el manual.
 
@@ -318,20 +318,31 @@ Resultado:
 
 - Build: OK, 0 errores y 0 advertencias.
 - Formato: OK, sin cambios pendientes.
-- Tests: 712 aprobados, 164 omitidos (`MongoFact` sin connection string), 0 fallos.
-- Tests nuevos de US-12: 14 casos unitarios (`ObtenerDashboardServiceTests`) y 11 de integración (`DashboardEndpointTests`).
-- Casos `MongoFact` de US-12: 7 en `MongoDashboardTests`, omitidos en esta corrida.
+- Suite completa con MongoDB real (Atlas, base temporal QA): **556 unitarios + 320 integración, 0 omitidos, 0 fallos** (`dotnet test FacturAR.slnx -c Release --no-build`).
+- Suite sin Mongo: 712 aprobados / 164 omitidos (`MongoFact`) / 0 fallos. Con Mongo: 876 aprobados / 0 omitidos / 0 fallos.
+- Tests nuevos de US-12: 14 casos unitarios (`ObtenerDashboardServiceTests`), 11 de integración (`DashboardEndpointTests`) y 7 `MongoFact` (`MongoDashboardTests`).
+- Los 7 `MongoFact` de `MongoDashboardTests` pasaron con MongoDB real: CP-15 aislamiento, solo `Emitido`, bordes de octubre/noviembre, suma `Decimal128`, `ultimoCae` fuera del mes, top 5 y máximo global de secuencias, empresa vacía.
 
-QA mínima con Playwright (2026-11-05):
+QA manual Playwright con API + portal + Mongo real (2026-11-05):
 
-- `/inicio` responde OK.
-- `/` sin sesión redirige a `/login`.
-- `/comprobantes` y `/comprobantes/{guid}` sin sesión redirigen a `/login`.
-- `/comprobantes/nuevo` responde `404` porque la emisión manual es US-13.
-- Con la API caída, el dashboard muestra «No pudimos contactar al servicio» y el botón «Reintentar».
-- `GET /v1/comprobantes/dashboard` sin credenciales responde `401 API_KEY_AUSENTE`.
+- CP-01: dashboard con 25 comprobantes, importe `29.520,26`, último CAE, último número 24 y top 5.
+- CP-02: empresa sin comprobantes mostró el estado vacío «Todavía no emitiste comprobantes» con enlace a `/comprobantes/nuevo`.
+- CP-03/CP-15: aislamiento verificado por `MongoFact` (solo el tenant autenticado).
+- CP-04: filtro Factura C + página 2: 24 comprobantes, página 2 de 2, filtro conservado.
+- CP-05: PDF `200`, `application/pdf`, `Content-Disposition: inline; filename="0001-00000010.pdf"`.
+- CP-06: id ajeno/inexistente → «No encontrado», sin datos.
+- CP-07: importes `1.010,00`, `29.520,26`, cantidades `1,00`, IVA `21,00%`.
+- CP-08: F5 conserva `tipo=11&page=2&pageSize=20`.
+- CP-09: API caída con sesión → «No pudimos contactar al servicio» + «Reintentar»; al volver la API, Reintentar cargó 27 comprobantes.
+- CP-10: el primer chunk SSR contiene «Cargando comprobantes», `aria-busy="true"` y 8 de 12 controles `disabled`.
+- CP-11: 57 controles, todos con nombre accesible, labels válidos y foco visible (solo el botón deshabilitado «Anterior» no es focusable).
+- CP-12: 375 px sin scroll horizontal de página en `/`, `/comprobantes` y detalle (`scrollWidth` 360); se corrigió un overflow real causado por `span.visually-hidden` en los `th`. Las tablas scrollean dentro de `.table-responsive`.
+- CP-13: dashboard `29.520,26` = suma del listado de noviembre (25 filas).
+- CP-14: rol `Consulta` ve el dashboard y no ve «Emitir comprobante» ni «API keys».
 
 ## Estado de implementación (2026-11-05)
+
+**Estado: Completada.**
 
 **Implementado**
 
@@ -343,22 +354,18 @@ QA mínima con Playwright (2026-11-05):
 
 **Tests**
 
-- 14 casos unitarios y 11 de integración sin Mongo en verde.
-- 7 casos `MongoFact` de `MongoDashboardTests` pendientes de ejecución con MongoDB real.
+- Suite completa con MongoDB real: 556 unitarios + 320 integración, 0 omitidos, 0 fallos.
+- Suite sin Mongo: 712 aprobados / 164 omitidos / 0 fallos.
+- Los 7 `MongoFact` de `MongoDashboardTests` corrieron y pasaron con MongoDB real.
 
-**QA mínima**
+**QA manual**
 
-- Rutas públicas y redirección a `/login`, error de API caída y `401 API_KEY_AUSENTE` verificados con Playwright el 2026-11-05.
+- CP-01 a CP-14 verificados con Playwright contra API, portal y Mongo reales el 2026-11-05, incluidos dashboard, estado vacío, filtros, paginación, detalle, PDF, aislamiento, formato argentino, conservación de filtros por F5, error y reintento, carga SSR, teclado, responsive, conciliación dashboard/listado y rol `Consulta`.
 
 **Pendientes**
 
-- CP-01, CP-03, CP-04, CP-05, CP-06, CP-07, CP-08, CP-10, CP-11, CP-12, CP-13 y CP-14: requieren sesión iniciada y/o MongoDB real (métricas con datos, aislamiento, filtros y paginación end-to-end, descarga de PDF desde el listado, detalle, formato argentino, conservación de filtros, carga, teclado, responsive, conciliación dashboard/listado y rol `Consulta`).
-- CP-02: estado vacío real con una empresa sin comprobantes.
-- CP-09 y CP-15/CP-16: cubiertos por tests e integración; la verificación con MongoDB real de CP-15/CP-16 sigue pendiente.
-- 7 `MongoFact` de `MongoDashboardTests`.
-- Revisión responsive y de accesibilidad por teclado en navegador.
-- Prueba manual completa del portal en desktop y mobile.
+- Ninguno.
 
 **Bloqueos**
 
-- Las verificaciones pendientes dependen de una sesión de empresa válida y de MongoDB con replica set; no hay funcionalidad faltante identificada para el alcance de US-12.
+- Ninguno.

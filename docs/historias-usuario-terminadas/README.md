@@ -10,5 +10,6 @@ Aquí se archivan las historias con todos los criterios de aceptación y el Defi
 | [US-27](US-27-aprobacion-solicitudes.md) | Revisión y aprobación de solicitudes de empresa | 2026-10-30 |
 | [US-28](US-28-invitacion-cuenta.md) | Activación de cuenta por invitación | 2026-10-30 |
 | [US-08](US-08-notas-credito-debito.md) | Notas de crédito y débito | 2026-11-02 |
+| [US-12](US-12-dashboard-listado.md) | Dashboard y listado de comprobantes | 2026-11-05 |
 
 Al mover una historia desde `docs/historias-usuario/`, actualizar el enlace y el estado en el índice principal.

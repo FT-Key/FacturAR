@@ -121,7 +121,7 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 | US-07 | Numeración correlativa del comprobante (reglas de §5) | Pendiente |
 | US-09 | §7 Consultar comprobantes | Parcial |
 | US-10 | §7.4 Descarga del PDF (`GET /v1/comprobantes/{id}/pdf`) | Parcial |
-| US-12 | §7.6 Dashboard (`GET /v1/comprobantes/dashboard`) | Parcial |
+| US-12 | §7.6 Dashboard (`GET /v1/comprobantes/dashboard`) | Completada |
 | US-11 | §8 Verificar un comprobante por CAE | Base implementada |
 | US-27 | §1 Revisión y aprobación del administrador global | Pendiente |
 | US-28 | §2 Activar la cuenta: invitación por token | Completada |
@@ -744,7 +744,7 @@ Los errores de negocio viajan con HTTP `200`, `Resultado = "R"` y `Observaciones
 
 ### 7.6 Dashboard
 
-> **Parcial — US-12.** El endpoint está implementado y cubierto por tests unitarios y de integración sin Mongo; faltan la verificación con MongoDB real, los casos con sesión y datos reales y la revisión responsive.
+> **Completada — US-12.** El endpoint está implementado y cubierto por 14 tests unitarios, 11 de integración y 7 `MongoFact` con MongoDB real. La QA manual con Playwright contra API, portal y Mongo reales verificó CP-01 a CP-14.
 
 ```http
 GET /v1/comprobantes/dashboard?mes=2026-10
@@ -800,6 +800,8 @@ Errores:
 | `SIN_PERMISOS` | `403` | El rol del principal no permite consultar comprobantes. |
 | `MONGO_NO_DISPONIBLE` | `503` | No hay conexión con MongoDB. |
 | `ERROR_INTERNO` | `500` | Falla inesperada; el detalle queda solo en el log. |
+
+El contrato completo y los casos de prueba están en [`US-12`](historias-usuario-terminadas/US-12-dashboard-listado.md).
 
 ## 8. Verificar un comprobante
 
