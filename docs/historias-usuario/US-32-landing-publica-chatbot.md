@@ -117,7 +117,7 @@ Reglas que la landing y el asistente deben comunicar sin ambigüedad:
 
 ### Asistente de alta
 
-- [x] El asistente aparece en `/solicitar-alta`, abajo a la izquierda, con botón flotante y panel plegable.
+- [x] El asistente aparece en `/solicitar-alta`, abajo a la derecha, con botón flotante y panel plegable.
 - [x] El panel se puede abrir y cerrar con mouse, teclado y `Escape`; el foco vuelve al botón.
 - [x] En móvil el panel ocupa la pantalla completa y atrapa el foco; en escritorio es un panel no modal.
 - [x] El asistente tiene historial de mensajes, indicador de “escribiendo”, quick replies y un disclaimer visible.
@@ -311,7 +311,7 @@ Reglas:
 | Bloque de código | Fondo `--color-code-bg`, texto `--color-code-text`, botón “Copiar” accesible. |
 | Acordeón FAQ | `<details>`/`<summary>` nativo o botón con `aria-expanded`; foco visible. |
 | Toggle de tema | Grupo de 3 opciones (Claro, Oscuro, Sistema) o botón cíclico con nombre accesible. Persistencia y `aria-pressed`. |
-| Asistente | Botón flotante abajo a la izquierda, panel, header, mensajes, quick replies, input, disclaimer. |
+| Asistente | Botón flotante abajo a la derecha, panel, header, mensajes, quick replies, input, disclaimer. |
 
 ### Anti-patrones prohibidos
 
@@ -422,7 +422,7 @@ Implementación:
 
 ### Ubicación y UX
 
-- Botón flotante fijo en la esquina inferior izquierda de `/solicitar-alta`.
+- Botón flotante fijo en la esquina inferior derecha de `/solicitar-alta`.
 - Desktop: botón con texto “¿Te ayudo con el alta?”; al abrir, panel de 400 px de ancho y hasta 620 px de alto.
 - Mobile: botón circular con ícono y `aria-label`; al abrir, hoja a pantalla completa.
 - Header: título “Asistente de alta”, subtítulo “Guía para registrar tu empresa”, botón cerrar.
