@@ -1,4 +1,5 @@
 using FacturAR.Application.Abstractions;
+using FacturAR.Application.Auditoria;
 using FacturAR.Domain.Entities;
 using FacturAR.Infrastructure.Mongo;
 using MongoDB.Driver;
@@ -19,7 +20,10 @@ public sealed class EventoAuditoriaRepository : IEventoAuditoriaRepository
     }
 
     public Task AddAsync(EventoAuditoria evento, CancellationToken ct = default)
-        => _sesion.InsertOneAsync(_context.Eventos, evento, ct);
+    {
+        AuditoriaValidator.Validar(evento);
+        return _sesion.InsertOneAsync(_context.Eventos, evento, ct);
+    }
 
     public async Task<IReadOnlyList<EventoAuditoria>> ListarPorEntidadAsync(
         string entidad,
