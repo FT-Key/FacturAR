@@ -4,13 +4,16 @@ Fuentes incluidas en este directorio
 Los archivos woff2 de este directorio se distribuyen bajo la SIL Open Font
 License 1.1 (OFL-1.1). Se sirven self-hosted, sin CDN externo.
 
-- inter-latin-var.woff2
-  Inter (variable), Copyright (c) 2016 The Inter Project Authors.
-  https://github.com/rsms/inter
+- poppins-latin-400.woff2
+- poppins-latin-500.woff2
+- poppins-latin-600.woff2
+- poppins-latin-700.woff2
+  Poppins (static weights), Copyright (c) 2014-2019 Indian Type Foundry.
+  https://github.com/itfoundry/Poppins
 
-- fraunces-latin-var.woff2
-  Fraunces (variable), Copyright (c) 2018 The Fraunces Project Authors.
-  https://github.com/undercasetype/Fraunces
+- oswald-latin-var.woff2
+  Oswald (variable), Copyright (c) 2016 The Oswald Project Authors.
+  https://github.com/googlefonts/OswaldFont
 
 - jetbrains-mono-latin-var.woff2
   JetBrains Mono (variable), Copyright (c) 2020 The JetBrains Mono Project Authors.
