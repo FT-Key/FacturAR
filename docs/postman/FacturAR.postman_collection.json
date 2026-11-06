@@ -372,6 +372,165 @@
           "response": []
         },
         {
+          "name": "Login empresa (portal)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Crea cookie de sesión de empresa', () => pm.expect(pm.response.headers.has('Set-Cookie')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailEmpresa}}\",\n  \"password\": \"{{passwordEmpresa}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "login"]
+            },
+            "description": "US-13. Inicia la sesión de una empresa. Postman guarda la cookie `.FacturAR.Contribuyente` para los requests de presupuesto, puntos de venta y emisión manual."
+          },
+          "response": []
+        },
+        {
+          "name": "Puntos de venta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Devuelve numero, descripcion y activo', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.items).to.be.an('array');",
+                  "  body.items.forEach(p => { pm.expect(p).to.have.property('numero'); pm.expect(p).to.have.property('descripcion'); pm.expect(p).to.have.property('activo'); });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/puntos-venta",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "puntos-venta"]
+            },
+            "description": "US-13. Requiere la cookie de empresa con rol Administrador o Emisor. Devuelve todos los puntos de venta del contribuyente, activos e inactivos, ordenados por número."
+          },
+          "response": []
+        },
+        {
+          "name": "Presupuesto factura A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Calcula neto, IVA y total', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.importeNeto).to.eql(2000);",
+                  "  pm.expect(body.importeIva).to.eql(420);",
+                  "  pm.expect(body.importeTotal).to.eql(2420);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoComprobante\": 1,\n  \"puntoVenta\": 1,\n  \"receptor\": {\n    \"documentoTipo\": \"CUIT\",\n    \"documentoNumero\": \"30712345671\",\n    \"razonSocial\": \"Cliente S.A.\",\n    \"condicionIva\": 1\n  },\n  \"items\": [\n    {\n      \"descripcion\": \"Servicio\",\n      \"cantidad\": 2,\n      \"precioUnitario\": 1000,\n      \"alicuotaIva\": 21\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes/presupuesto",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "comprobantes", "presupuesto"]
+            },
+            "description": "US-13. Requiere la cookie de empresa con rol Administrador o Emisor. Calcula neto, IVA y total sin persistir, sin consumir número ni generar CAE."
+          },
+          "response": []
+        },
+        {
+          "name": "Emitir factura C desde portal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Devuelve CAE de 14 dígitos', () => pm.expect(pm.response.json().cae).to.match(/^[1-9][0-9]{13}$/));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoComprobante\": 11,\n  \"puntoVenta\": 1,\n  \"receptor\": {\n    \"documentoTipo\": \"99\",\n    \"documentoNumero\": \"0\",\n    \"razonSocial\": \"Consumidor Final\",\n    \"condicionIva\": 5\n  },\n  \"items\": [\n    {\n      \"descripcion\": \"Servicio\",\n      \"cantidad\": 1,\n      \"precioUnitario\": 10000,\n      \"alicuotaIva\": 0\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/comprobantes",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "comprobantes"]
+            },
+            "description": "US-13. Emisión manual con cookie de empresa (rol Administrador o Emisor) e Idempotency-Key. Ejecutar primero Login empresa (portal)."
+          },
+          "response": []
+        },
+        {
           "name": "Listar comprobantes",
           "event": [
             {

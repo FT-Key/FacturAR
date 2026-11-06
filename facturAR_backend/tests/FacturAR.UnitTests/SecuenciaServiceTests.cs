@@ -73,6 +73,11 @@ public sealed class SecuenciaServiceTests
             UltimaConsulta = (contribuyenteId, numero);
             return Task.FromResult(respuesta);
         }
+
+        public Task<IReadOnlyList<PuntoVenta>> ListarPorContribuyenteAsync(
+            Guid contribuyenteId,
+            CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<PuntoVenta>>(respuesta is null ? [] : [respuesta]);
     }
 
     private sealed class SecuenciaRepositoryFake(long numero) : ISecuenciaRepository

@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\src\FacturAR.Application\FacturAR.Application.csproj" />
     <ProjectReference Include="..\..\src\FacturAR.Infrastructure\FacturAR.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\FacturAR.Api\FacturAR.Api.csproj" />
+    <ProjectReference Include="..\..\..\facturAR_frontend\src\FacturAR.Web\FacturAR.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>

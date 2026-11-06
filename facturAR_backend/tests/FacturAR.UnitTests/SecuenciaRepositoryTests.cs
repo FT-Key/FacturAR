@@ -64,5 +64,10 @@ public sealed class SecuenciaRepositoryTests
                 Numero = numero,
                 Activo = true
             });
+
+        public Task<IReadOnlyList<PuntoVenta>> ListarPorContribuyenteAsync(
+            Guid contribuyenteId,
+            CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<PuntoVenta>>([]);
     }
 }

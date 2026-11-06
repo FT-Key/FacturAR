@@ -17,20 +17,20 @@ La emisión manual usa el mismo caso de uso que la API. El `ContribuyenteId` se 
 
 ## Criterios de aceptación
 
-- [ ] Solo usuarios con rol `Administrador` o `Emisor` pueden emitir.
-- [ ] El formulario permite elegir punto de venta y tipo de comprobante.
-- [ ] El formulario permite cargar receptor y varios ítems.
-- [ ] El total se calcula en vivo y se muestra antes de confirmar.
-- [ ] Se valida que los ítems tengan cantidad mayor que cero y precio no negativo.
-- [ ] Se valida la condición IVA del receptor según el tipo de comprobante.
-- [ ] Al confirmar se llama al mismo caso de uso de emisión de la API.
-- [ ] Se usa una clave de idempotencia generada por el portal para evitar dobles envíos.
-- [ ] La respuesta muestra número, CAE, vencimiento y total.
-- [ ] Se ofrece descargar el PDF.
-- [ ] Un error de validación se muestra por campo y no pierde los datos cargados.
-- [ ] Un usuario no puede emitir para otra empresa.
-- [ ] La emisión queda auditada.
-- [ ] Hay tests del caso de uso y una prueba manual del formulario.
+- [x] Solo usuarios con rol `Administrador` o `Emisor` pueden emitir.
+- [x] El formulario permite elegir punto de venta y tipo de comprobante.
+- [x] El formulario permite cargar receptor y varios ítems.
+- [x] El total se calcula en vivo y se muestra antes de confirmar.
+- [x] Se valida que los ítems tengan cantidad mayor que cero y precio no negativo.
+- [x] Se valida la condición IVA del receptor según el tipo de comprobante.
+- [x] Al confirmar se llama al mismo caso de uso de emisión de la API.
+- [x] Se usa una clave de idempotencia generada por el portal para evitar dobles envíos.
+- [x] La respuesta muestra número, CAE, vencimiento y total.
+- [x] Se ofrece descargar el PDF.
+- [x] Un error de validación se muestra por campo y no pierde los datos cargados.
+- [x] Un usuario no puede emitir para otra empresa.
+- [x] La emisión queda auditada.
+- [x] Hay tests del caso de uso y una prueba manual del formulario.
 
 ## Escenarios Gherkin
 
@@ -75,23 +75,23 @@ Scenario: Usuario Consulta
 
 ## Tareas técnicas
 
-- [ ] Crear la página de emisión manual.
-- [ ] Crear el formulario de ítems y el cálculo de totales.
-- [ ] Integrar el caso de uso de emisión.
-- [ ] Generar y enviar `Idempotency-Key`.
-- [ ] Mostrar resultado y descarga de PDF.
-- [ ] Aplicar autorización por rol.
-- [ ] Agregar validaciones y mensajes de error.
-- [ ] Agregar tests del flujo y prueba manual.
-- [ ] Documentar el flujo en el manual.
+- [x] Crear la página de emisión manual.
+- [x] Crear el formulario de ítems y el cálculo de totales.
+- [x] Integrar el caso de uso de emisión.
+- [x] Generar y enviar `Idempotency-Key`.
+- [x] Mostrar resultado y descarga de PDF.
+- [x] Aplicar autorización por rol.
+- [x] Agregar validaciones y mensajes de error.
+- [x] Agregar tests del flujo y prueba manual.
+- [x] Documentar el flujo en el manual.
 
 ## Definition of Done
 
-- [ ] Se emite una factura desde el portal y se descarga el PDF.
-- [ ] Los cálculos y validaciones coinciden con la API.
-- [ ] El doble envío no duplica comprobantes.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el manual.
+- [x] Se emite una factura desde el portal y se descarga el PDF.
+- [x] Los cálculos y validaciones coinciden con la API.
+- [x] El doble envío no duplica comprobantes.
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el manual.
 
 ## Contrato técnico
 
@@ -283,3 +283,43 @@ Antes de empezar US-13 tiene que existir:
 - No implementa emisión de notas; eso corresponde a US-08.
 - No implementa plantillas de factura recurrentes.
 - No implementa carga masiva.
+
+## Evidencia de cierre
+
+Cierre: 2026-11-06. Rama `feature/us-13-emision-manual`.
+
+### Automática
+
+- `dotnet build FacturAR.slnx -c Release`: correcto, 0 errores.
+- `dotnet test FacturAR.slnx -c Release --no-build --logger "console;verbosity=minimal"`: 570 unitarios aprobados; 171 de integración aprobados; 164 `MongoFact` omitidos sin connection string; 0 fallos.
+- `dotnet format FacturAR.slnx --verify-no-changes`: sin cambios pendientes.
+- Tests nuevos: `CalcularPresupuestoServiceTests`, `EmisionIdempotenciaTests`, `PresupuestoEndpointTests`, `PuntoVentaEndpointTests` y ampliación de `ComprobanteEndpointsTests` (cookie Admin/Emisor, `Consulta` 403, replay, aislamiento, `ContribuyenteId` de sesión e `IdempotencyKey`).
+
+### QA manual con API, portal y MongoDB reales
+
+Base temporal `facturar_us13_qa`, seed habilitado, navegador Playwright.
+
+- CP-01: Factura C 1×10000 emitida → `0001-00000001`, CAE de 14 dígitos, vencimiento y total 10.000,00.
+- CP-02: Factura A 2×1000 al 21% → resumen 2.000,00 / 420,00 / 2.420,00 devuelto por la API.
+- CP-03: cantidad 0 → error junto al campo, sin emisión y con los datos conservados.
+- CP-04: doble clic en «Emitir» → un solo comprobante (`0001-00000002`), sin duplicado.
+- CP-06: cambio de precio a 20000 → clave nueva y comprobante nuevo (`0001-00000003`).
+- CP-07: usuario `Consulta` abre `/comprobantes/nuevo` → «Acceso denegado», sin formulario y sin enlace en el menú.
+- CP-08: `Consulta` envía un POST manual a `/v1/comprobantes` → `403 SIN_PERMISOS`.
+- CP-10: la clave del formulario es de 32 caracteres hexadecimales; el formulario no incluye `contribuyenteId` ni `importeTotal`.
+- CP-13: descripción vacía → error junto al campo, sin emisión y con los datos conservados.
+- CP-14: PDF del comprobante emitido → `200 application/pdf`.
+
+### Cobertura automática de los casos restantes
+
+- CP-05: `ComprobanteEndpointsTests` verifica que el reintento con la misma clave y el mismo payload devuelve `200` con el mismo `id`, número y CAE, y un solo comprobante.
+- CP-09: el endpoint devuelve los puntos de venta inactivos con `activo=false` y el formulario solo ofrece los activos (`PuntoVentaEndpointTests` + filtro de la página).
+- CP-11: la emisión persiste el `ContribuyenteId` de la sesión y el `IdempotencyKey` recibido; cubierto por la integración con fakes y por el uso real de la API.
+- CP-12: el estado de error del resumen con botón «Reintentar» y el botón «Emitir» disponible se observó cuando el presupuesto devolvió `CUIT_INVALIDO`/`VALIDACION`; no se simuló la caída total de la API de presupuesto.
+
+### Documentación
+
+- `docs/contratos-api.md` §4.2 y §14 actualizados para la emisión con cookie de portal.
+- `docs/manual-integracion.md` §5.2 con el flujo de emisión manual y los endpoints nuevos.
+- `docs/postman/FacturAR.postman_collection.json` con login de empresa, puntos de venta, presupuesto y emisión desde portal.
+

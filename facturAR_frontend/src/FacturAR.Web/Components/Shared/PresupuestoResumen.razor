@@ -1,0 +1,42 @@
+@using FacturAR.Contracts.Comprobantes
+
+@if (Presupuesto is not null && !Calculando)
+{
+    <section class="card mb-4" aria-labelledby="titulo-resumen">
+        <div class="card-body">
+            <h2 id="titulo-resumen" class="h6">Resumen</h2>
+            <dl class="row mb-0">
+                <dt class="col-sm-6 fw-normal text-muted">Neto</dt>
+                <dd class="col-sm-6 text-end"><ImporteTexto Valor="Presupuesto.ImporteNeto" /></dd>
+                <dt class="col-sm-6 fw-normal text-muted">IVA</dt>
+                <dd class="col-sm-6 text-end"><ImporteTexto Valor="Presupuesto.ImporteIva" /></dd>
+                <dt class="col-sm-6 fw-semibold">Total</dt>
+                <dd class="col-sm-6 text-end fw-semibold"><ImporteTexto Valor="Presupuesto.ImporteTotal" /></dd>
+            </dl>
+        </div>
+    </section>
+}
+else if (Error is not null)
+{
+    <div class="alert alert-danger" role="alert">
+        <p class="mb-2">No pudimos calcular el resumen. @Error</p>
+        <button type="submit" class="btn btn-outline-secondary btn-sm" name="Accion" value="recalcular">
+            Reintentar
+        </button>
+    </div>
+}
+else
+{
+    <p class="text-muted" role="status" aria-busy="true">Calculando…</p>
+}
+
+@code {
+    [Parameter]
+    public PresupuestoResponse? Presupuesto { get; set; }
+
+    [Parameter]
+    public string? Error { get; set; }
+
+    [Parameter]
+    public bool Calculando { get; set; }
+}

@@ -6,6 +6,7 @@ using FacturAR.Contracts.Auth;
 using FacturAR.Contracts.Comunes;
 using FacturAR.Contracts.Comprobantes;
 using FacturAR.Contracts.Invitaciones;
+using FacturAR.Contracts.PuntosVenta;
 using FacturAR.Contracts.Solicitudes;
 
 namespace FacturAR.Web.Services;
@@ -287,6 +288,40 @@ public sealed class FacturarApiClient(HttpClient httpClient)
             null,
             ct);
 
+    public Task<ResultadoApi<PuntoVentaListResponse>> ObtenerPuntosVentaAsync(
+        string? cookie,
+        CancellationToken ct = default)
+        => EnviarAsync<PuntoVentaListResponse>(
+            HttpMethod.Get,
+            "v1/puntos-venta",
+            cookie,
+            null,
+            ct);
+
+    public Task<ResultadoApi<PresupuestoResponse>> CalcularPresupuestoAsync(
+        string? cookie,
+        EmitirComprobanteRequest request,
+        CancellationToken ct = default)
+        => EnviarAsync<PresupuestoResponse>(
+            HttpMethod.Post,
+            "v1/comprobantes/presupuesto",
+            cookie,
+            request,
+            ct);
+
+    public Task<ResultadoApi<ComprobanteResponse>> EmitirComprobanteAsync(
+        string? cookie,
+        EmitirComprobanteRequest request,
+        string idempotencyKey,
+        CancellationToken ct = default)
+        => EnviarAsync<ComprobanteResponse>(
+            HttpMethod.Post,
+            "v1/comprobantes",
+            cookie,
+            request,
+            ct,
+            idempotencyKey);
+
     public async Task<ResultadoApi<byte[]>> DescargarPdfAsync(
         string? cookie,
         Guid id,
@@ -361,12 +396,18 @@ public sealed class FacturarApiClient(HttpClient httpClient)
         string path,
         string? cookie,
         object? body,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? idempotencyKey = null)
     {
         using var request = CrearRequest(method, path, cookie);
         if (body is not null)
         {
             request.Content = JsonContent.Create(body, body.GetType());
+        }
+
+        if (!string.IsNullOrWhiteSpace(idempotencyKey))
+        {
+            request.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);
         }
 
         HttpResponseMessage response;

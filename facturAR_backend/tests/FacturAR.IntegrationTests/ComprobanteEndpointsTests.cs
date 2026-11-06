@@ -103,7 +103,7 @@ public sealed class ComprobanteEndpointsTests
     }
 
     [Fact]
-    public async Task Emitir_ConCookieDePortalSinApiKey_Devuelve401ApiKeyAusente()
+    public async Task Emitir_ConCookieDePortalAdministrador_Devuelve201()
     {
         using var factory = new ComprobanteApiKeyFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
@@ -127,7 +127,144 @@ public sealed class ComprobanteEndpointsTests
 
         var response = await client.SendAsync(mensaje);
 
-        await AssertErrorAsync(response, HttpStatusCode.Unauthorized, "API_KEY_AUSENTE");
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var guardado = Assert.Single(factory.Comprobantes.Comprobantes);
+        Assert.Equal(ComprobanteApiKeyFactory.ContribuyenteId, guardado.ContribuyenteId);
+        Assert.Equal("idem-cookie", guardado.IdempotencyKey);
+    }
+
+    [Fact]
+    public async Task Emitir_ConCookieDePortalEmisor_Devuelve201ConContribuyenteDeLaSesion()
+    {
+        using var factory = new ComprobanteApiKeyFactory();
+        factory.AgregarUsuario(ComprobanteApiKeyFactory.EmailEmisor, RolUsuario.Emisor);
+        using var client = ComprobantePortalTestHelpers.CrearCliente(factory);
+
+        var cookie = await ComprobantePortalTestHelpers.IniciarSesionAsync(
+            client,
+            ComprobanteApiKeyFactory.EmailEmisor);
+
+        var response = await ComprobantePortalTestHelpers.EnviarConCookieAsync(
+            client,
+            "/v1/comprobantes",
+            FacturaA(),
+            cookie,
+            "idem-cookie-emisor");
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var guardado = Assert.Single(factory.Comprobantes.Comprobantes);
+        Assert.Equal(ComprobanteApiKeyFactory.ContribuyenteId, guardado.ContribuyenteId);
+        Assert.Equal("idem-cookie-emisor", guardado.IdempotencyKey);
+        Assert.Equal(1, factory.Secuencias.Llamadas);
+    }
+
+    [Fact]
+    public async Task Emitir_ConCookieDePortalConsulta_Devuelve403SinPermisosYSinEscrituras()
+    {
+        using var factory = new ComprobanteApiKeyFactory();
+        factory.AgregarUsuario(ComprobanteApiKeyFactory.EmailConsulta, RolUsuario.Consulta);
+        using var client = ComprobantePortalTestHelpers.CrearCliente(factory);
+
+        var cookie = await ComprobantePortalTestHelpers.IniciarSesionAsync(
+            client,
+            ComprobanteApiKeyFactory.EmailConsulta);
+
+        var response = await ComprobantePortalTestHelpers.EnviarConCookieAsync(
+            client,
+            "/v1/comprobantes",
+            FacturaA(),
+            cookie,
+            "idem-cookie-consulta");
+
+        await AssertErrorAsync(response, HttpStatusCode.Forbidden, "SIN_PERMISOS");
+        Assert.Empty(factory.Comprobantes.Comprobantes);
+        Assert.Equal(0, factory.Secuencias.Llamadas);
+        Assert.Equal(0, factory.Transaccion.Ejecuciones);
+        Assert.DoesNotContain(
+            factory.Eventos.Eventos,
+            evento => evento.Accion == EmitirComprobanteService.AccionEmitido);
+    }
+
+    [Fact]
+    public async Task CP05_ReintentoConCookieYIdempotencyKey_Devuelve200ConElMismoComprobante()
+    {
+        using var factory = new ComprobanteApiKeyFactory();
+        using var client = ComprobantePortalTestHelpers.CrearCliente(factory);
+
+        var cookie = await ComprobantePortalTestHelpers.IniciarSesionAsync(client);
+
+        var primero = await ComprobantePortalTestHelpers.EnviarConCookieAsync(
+            client,
+            "/v1/comprobantes",
+            FacturaA(),
+            cookie,
+            "idem-cookie-reintento");
+        Assert.Equal(HttpStatusCode.Created, primero.StatusCode);
+        var original = await primero.Content.ReadFromJsonAsync<ComprobanteResponse>();
+        Assert.NotNull(original);
+
+        var segundo = await ComprobantePortalTestHelpers.EnviarConCookieAsync(
+            client,
+            "/v1/comprobantes",
+            FacturaA(),
+            cookie,
+            "idem-cookie-reintento");
+        Assert.Equal(HttpStatusCode.OK, segundo.StatusCode);
+        var repetido = await segundo.Content.ReadFromJsonAsync<ComprobanteResponse>();
+        Assert.NotNull(repetido);
+
+        Assert.Equal(original!.Id, repetido!.Id);
+        Assert.Equal(original.Numero, repetido.Numero);
+        Assert.Equal(original.Cae, repetido.Cae);
+
+        var guardado = Assert.Single(factory.Comprobantes.Comprobantes);
+        Assert.Equal(ComprobanteApiKeyFactory.ContribuyenteId, guardado.ContribuyenteId);
+        Assert.Equal(1, factory.Secuencias.Llamadas);
+        Assert.Equal(1, factory.Transaccion.Ejecuciones);
+        Assert.Single(
+            factory.Eventos.Eventos,
+            evento => evento.Accion == EmitirComprobanteService.AccionEmitido);
+    }
+
+    [Fact]
+    public async Task Emitir_ConContribuyenteIdExtraEnElBody_UsaElDeLaSesion()
+    {
+        using var factory = new ComprobanteApiKeyFactory();
+        using var client = ComprobantePortalTestHelpers.CrearCliente(factory);
+
+        var cookie = await ComprobantePortalTestHelpers.IniciarSesionAsync(client);
+
+        var cuerpo = $$"""
+        {
+          "tipoComprobante": 1,
+          "puntoVenta": 1,
+          "receptor": {
+            "documentoTipo": "CUIT",
+            "documentoNumero": "{{ComprobanteApiKeyFactory.CuitReceptor}}",
+            "razonSocial": "Cliente S.A.",
+            "condicionIva": 1
+          },
+          "items": [
+            { "descripcion": "Servicio", "cantidad": 2, "precioUnitario": 5000, "alicuotaIva": 21 }
+          ],
+          "importeTotal": 12100,
+          "contribuyenteId": "{{ComprobanteApiKeyFactory.ContribuyenteIdB}}"
+        }
+        """;
+
+        using var mensaje = new HttpRequestMessage(HttpMethod.Post, "/v1/comprobantes")
+        {
+            Content = new StringContent(cuerpo, Encoding.UTF8, "application/json")
+        };
+        mensaje.Headers.TryAddWithoutValidation("Cookie", cookie);
+        mensaje.Headers.TryAddWithoutValidation("Idempotency-Key", "idem-cookie-extra");
+
+        var response = await client.SendAsync(mensaje);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var guardado = Assert.Single(factory.Comprobantes.Comprobantes);
+        Assert.Equal(ComprobanteApiKeyFactory.ContribuyenteId, guardado.ContribuyenteId);
+        Assert.NotEqual(ComprobanteApiKeyFactory.ContribuyenteIdB, guardado.ContribuyenteId);
     }
 
     [Fact]
@@ -441,6 +578,8 @@ public sealed class ComprobanteApiKeyFactory : WebApplicationFactory<Program>
     public const string ApiKeyValidaB = "fak_0123456789ac_EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE";
     public const string ApiKeyDesconocida = "fak_ffffffffffff_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
     public const string EmailUsuario = "admin@demo.com";
+    public const string EmailEmisor = "emisor@demo.com";
+    public const string EmailConsulta = "consulta@demo.com";
     public const string PasswordUsuario = "Secreta123!";
     public const string CuitEmisor = "20123456786";
     public const string CuitEmisorB = "20111111112";
@@ -495,6 +634,19 @@ public sealed class ComprobanteApiKeyFactory : WebApplicationFactory<Program>
             Rol = RolUsuario.Administrador,
             Activo = true
         };
+    }
+
+    public void AgregarUsuario(string email, RolUsuario rol)
+    {
+        Usuarios.Agregar(new Usuario
+        {
+            Id = Guid.NewGuid(),
+            ContribuyenteId = ContribuyenteId,
+            Email = email,
+            PasswordHash = _hasher.Hash(PasswordUsuario),
+            Rol = rol,
+            Activo = true
+        });
     }
 
     public ComprobanteContribuyenteFake Contribuyentes { get; } = new();
@@ -608,6 +760,12 @@ public sealed class ComprobantePuntoVentaFake : IPuntoVentaRepository
         CancellationToken ct = default)
         => Task.FromResult(PuntosVenta.FirstOrDefault(
             p => p.ContribuyenteId == contribuyenteId && p.Numero == numero));
+
+    public Task<IReadOnlyList<PuntoVenta>> ListarPorContribuyenteAsync(
+        Guid contribuyenteId,
+        CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<PuntoVenta>>(
+            [.. PuntosVenta.Where(p => p.ContribuyenteId == contribuyenteId).OrderBy(p => p.Numero)]);
 }
 
 public sealed class ComprobanteParametrosFake : IParametrosResolver
@@ -632,20 +790,35 @@ public sealed class ComprobanteParametrosFake : IParametrosResolver
 
 public sealed class ComprobanteUsuarioFake : IUsuarioRepository
 {
-    public Usuario? Usuario { get; set; }
+    private readonly List<Usuario> _usuarios = [];
+
+    public Usuario? Usuario
+    {
+        get => _usuarios.FirstOrDefault();
+        set
+        {
+            _usuarios.Clear();
+            if (value is not null)
+            {
+                _usuarios.Add(value);
+            }
+        }
+    }
+
+    public IReadOnlyList<Usuario> Usuarios => _usuarios;
+
+    public void Agregar(Usuario usuario) => _usuarios.Add(usuario);
 
     public Task<Usuario?> GetByEmailAsync(string email, CancellationToken ct = default)
-        => Task.FromResult(
-            Usuario is not null && string.Equals(Usuario.Email, email, StringComparison.OrdinalIgnoreCase)
-                ? Usuario
-                : null);
+        => Task.FromResult(_usuarios.FirstOrDefault(
+            usuario => string.Equals(usuario.Email, email, StringComparison.OrdinalIgnoreCase)));
 
     public Task<Usuario?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => Task.FromResult(Usuario is not null && Usuario.Id == id ? Usuario : null);
+        => Task.FromResult(_usuarios.FirstOrDefault(usuario => usuario.Id == id));
 
     public Task InsertAsync(Usuario usuario, CancellationToken ct = default)
     {
-        Usuario = usuario;
+        _usuarios.Add(usuario);
         return Task.CompletedTask;
     }
 
@@ -657,7 +830,16 @@ public sealed class ComprobanteUsuarioFake : IUsuarioRepository
 
     public Task UpdateAsync(Usuario usuario, CancellationToken ct = default)
     {
-        Usuario = usuario;
+        var indice = _usuarios.FindIndex(actual => actual.Id == usuario.Id);
+        if (indice >= 0)
+        {
+            _usuarios[indice] = usuario;
+        }
+        else
+        {
+            _usuarios.Add(usuario);
+        }
+
         return Task.CompletedTask;
     }
 }

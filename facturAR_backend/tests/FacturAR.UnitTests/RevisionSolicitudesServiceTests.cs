@@ -618,6 +618,12 @@ public sealed class RevisionSolicitudesServiceTests
 
         public Task<PuntoVenta?> ObtenerPorNumeroAsync(Guid contribuyenteId, int numero, CancellationToken ct = default)
             => Task.FromResult(Insertados.FirstOrDefault(p => p.ContribuyenteId == contribuyenteId && p.Numero == numero));
+
+        public Task<IReadOnlyList<PuntoVenta>> ListarPorContribuyenteAsync(
+            Guid contribuyenteId,
+            CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<PuntoVenta>>(
+                [.. Insertados.Where(p => p.ContribuyenteId == contribuyenteId)]);
     }
 
     private sealed class FakeInvitaciones : IInvitacionRepository

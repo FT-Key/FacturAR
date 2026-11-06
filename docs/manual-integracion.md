@@ -23,7 +23,9 @@ Base URL local: `http://localhost:5171`. En Docker: `http://localhost:8080`.
 | `POST` | `/v1/api-keys` | Crea una key y devuelve el valor completo una única vez. Requiere cookie de empresa (rol `Administrador`). |
 | `DELETE` | `/v1/api-keys/{id}` | Revoca una key. Requiere cookie de empresa (rol `Administrador`). |
 | `POST` | `/v1/api-keys/{id}/regenerar` | Regenera el secreto de una key y devuelve el valor nuevo una única vez. Requiere cookie de empresa (rol `Administrador`). |
-| `POST` | `/v1/comprobantes` | Emisión de facturas A, B y C con CAE simulado. Requiere API key e `Idempotency-Key`. |
+| `POST` | `/v1/comprobantes` | Emisión de facturas A, B y C con CAE simulado. Requiere API key o cookie de empresa (rol `Administrador`/`Emisor`) e `Idempotency-Key`. |
+| `POST` | `/v1/comprobantes/presupuesto` | Calcula neto, IVA y total sin emitir. Requiere cookie de empresa (rol `Administrador`/`Emisor`). |
+| `GET` | `/v1/puntos-venta` | Puntos de venta de la empresa para el formulario de emisión. Requiere cookie de empresa (rol `Administrador`/`Emisor`). |
 | `POST` | `/soap` | Fachada SOAP 1.1 de emisión y consultas: `FECAESolicitar`, `FECAEGenerar`, `FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy`. Requiere API key. |
 | `GET` | `/soap?wsdl` | WSDL de la fachada SOAP de emisión y consultas. |
 | `GET` | `/v1/comprobantes` | Lista los comprobantes de la empresa autenticada, con filtros y paginación. |
@@ -53,7 +55,9 @@ Todo lo demás que aparece en este manual está **especificado pero no implement
 | `POST` | `/v1/api-keys` | cookie de empresa | implementado (US-02) |
 | `DELETE` | `/v1/api-keys/{id}` | cookie de empresa | implementado (US-02) |
 | `POST` | `/v1/api-keys/{id}/regenerar` | cookie de empresa | implementado (US-02) |
-| `POST` | `/v1/comprobantes` | API key | implementado (US-05) |
+| `POST` | `/v1/comprobantes` | API key o cookie de empresa (rol `Administrador`/`Emisor`) | implementado (US-05 y US-13) |
+| `POST` | `/v1/comprobantes/presupuesto` | cookie de empresa (rol `Administrador`/`Emisor`) | implementado (US-13) |
+| `GET` | `/v1/puntos-venta` | cookie de empresa (rol `Administrador`/`Emisor`) | implementado (US-13) |
 | `POST` | `/soap` | API key en header o `Auth/Token` | implementado (US-15); verificación end-to-end con Mongo pendiente |
 | `GET` | `/soap?wsdl` | ninguna | implementado (US-15) |
 | `GET` | `/v1/comprobantes` | API key o cookie de empresa | implementado (US-09) |
@@ -62,7 +66,7 @@ Todo lo demás que aparece en este manual está **especificado pero no implement
 | `GET` | `/v1/comprobantes/{id}/pdf` | API key o cookie de empresa | implementado (US-10) |
 | `GET` | `/v1/comprobantes/dashboard` | API key o cookie de empresa | implementado (US-12) |
 
-La API key viaja en el header `X-Api-Key`. La sesión del portal usa cookies con esquemas separados: `cookies.contribuyente` para empresas y `cookies.admin` para la consola global. La cookie de empresa habilita las consultas de comprobantes (US-09) con rol `Administrador`, `Emisor` o `Consulta`; `POST /v1/comprobantes`, `/soap` y `/v1/admin/**` quedan fuera de ese alcance. Ver `docs/contratos-api.md` §4.
+La API key viaja en el header `X-Api-Key`. La sesión del portal usa cookies con esquemas separados: `cookies.contribuyente` para empresas y `cookies.admin` para la consola global. La cookie de empresa habilita las consultas de comprobantes (US-09) con rol `Administrador`, `Emisor` o `Consulta` y la emisión manual (US-13) con rol `Administrador` o `Emisor`; `/soap` y `/v1/admin/**` quedan fuera de ese alcance. Ver `docs/contratos-api.md` §4.
 
 ### Headers
 
@@ -230,7 +234,7 @@ Reglas:
 - Key mal formada, inexistente, revocada o de un contribuyente inactivo: `401 API_KEY_INVALIDA`. El mensaje es el mismo en todos los casos: la respuesta no revela si el prefijo existe.
 - Si MongoDB no responde durante la autenticación: `503 MONGO_NO_DISPONIBLE`.
 - La key resuelve la empresa. El tenant sale **solo** del claim `contribuyenteId` derivado de la key; nunca se envía `contribuyenteId` en el body ni en el query string y, si se envía, se ignora.
-- La API key no autoriza los endpoints de cookie. La cookie de empresa habilita las consultas de comprobantes (US-09) con rol `Administrador`, `Emisor` o `Consulta`; no habilita `POST /v1/comprobantes`, `/soap` ni `/v1/admin/**`.
+- La API key no autoriza los endpoints de cookie. La cookie de empresa habilita las consultas de comprobantes (US-09) y la emisión manual (US-13) con rol `Administrador` o `Emisor`; no habilita `/soap` ni `/v1/admin/**`.
 - La verificación pública por CAE (`GET /v1/comprobantes/verificar/{cae}`) permanece anónima y no requiere API key.
 
 Ejemplo de error de autenticación:
@@ -246,7 +250,7 @@ La API actualiza `UltimoUso` en cada autenticación exitosa, con granularidad de
 
 ## 5. Emitir una factura
 
-> **Implementado — US-05.** `POST /v1/comprobantes` acepta facturas A (`1`), B (`6`) y C (`11`). Requiere API key e `Idempotency-Key`; la cookie del portal no autoriza este endpoint. La emisión manual desde el portal llega con US-13. La lógica y el endpoint están cubiertos por tests unitarios y de integración sin Mongo; la verificación real con MongoDB replica set (transacción, concurrencia e índice único) sigue pendiente.
+> **Implementado — US-05.** `POST /v1/comprobantes` acepta facturas A (`1`), B (`6`) y C (`11`). Requiere API key o cookie de empresa (rol `Administrador` o `Emisor`) e `Idempotency-Key`. La emisión manual desde el portal está implementada con US-13. La lógica y el endpoint están cubiertos por tests unitarios y de integración sin Mongo; la verificación real con MongoDB replica set (transacción, concurrencia e índice único) sigue pendiente.
 
 | Header | Regla |
 | --- | --- |
@@ -489,6 +493,59 @@ Límites conocidos:
 - La nota y el ajuste del saldo se guardan en la misma transacción. Dos notas de crédito simultáneas sobre la misma factura no pueden dejar el saldo negativo: si la segunda ya no entra en el saldo, responde `IMPORTE_EXCEDIDO`.
 - La respuesta `201` es el mismo `ComprobanteResponse` de las facturas, con los datos y el CAE de la nota. El saldo y la referencia al original son internos y no se devuelven.
 - Cada CAE se verifica por separado en `GET /v1/comprobantes/verificar/{cae}`: la factura por el suyo y la nota por el propio.
+
+### 5.2 Emisión manual desde el portal (US-13)
+
+> Historia: [`US-13`](historias-usuario-terminadas/US-13-emision-manual.md).
+
+Un usuario con rol `Administrador` o `Emisor` puede emitir sin escribir código desde `/comprobantes/nuevo`. El portal no calcula IVA ni genera número o CAE: arma el request y delega en la API.
+
+Flujo:
+
+1. `GET /v1/puntos-venta` con la cookie de empresa para llenar el combo de puntos de venta (solo se ofrecen los activos).
+2. Al cambiar ítems, tipo o alícuota, el portal llama a `POST /v1/comprobantes/presupuesto` y muestra el neto, el IVA y el total que devuelve la API.
+3. Al confirmar, `POST /v1/comprobantes` con la cookie de empresa y un header `Idempotency-Key` de 32 caracteres hexadecimales generado por el portal.
+4. La pantalla de resultado muestra número, CAE, vencimiento y total, y enlaza a `GET /v1/comprobantes/{id}/pdf`.
+
+Ejemplo de presupuesto (Factura A, 2 × 1000 al 21%):
+
+```http
+POST /v1/comprobantes/presupuesto
+Cookie: .FacturAR.Contribuyente=<sesión>
+Content-Type: application/json
+
+{
+  "tipoComprobante": 1,
+  "puntoVenta": 1,
+  "receptor": {
+    "documentoTipo": "CUIT",
+    "documentoNumero": "30712345671",
+    "razonSocial": "Cliente S.A.",
+    "condicionIva": 1
+  },
+  "items": [
+    { "descripcion": "Servicio", "cantidad": 2, "precioUnitario": 1000, "alicuotaIva": 21 }
+  ]
+}
+```
+
+Respuesta `200`:
+
+```json
+{
+  "importeNeto": 2000.00,
+  "importeIva": 420.00,
+  "importeTotal": 2420.00,
+  "items": [
+    { "descripcion": "Servicio", "cantidad": 2, "precioUnitario": 1000, "alicuotaIva": 21, "subtotal": 2000.00 }
+  ]
+}
+```
+
+- El presupuesto valida con las mismas reglas que la emisión y **no persiste**, no consume número, no genera CAE y no audita.
+- La clave de idempotencia se conserva mientras el payload no cambie; si el usuario modifica ítems, receptor, tipo o punto de venta, el portal genera una clave nueva. Un reintento sin cambios devuelve el comprobante original (`200`).
+- El botón «Emitir» se deshabilita mientras la petición está en vuelo para evitar el doble envío. Un rol `Consulta` recibe `403 SIN_PERMISOS` y el portal muestra «Acceso denegado».
+- Los errores de validación se muestran junto al campo y conservan los datos cargados. Si la API responde un error de negocio, el portal muestra el `codigo` y el `mensaje` del `ErrorResponse`.
 
 ## 6. Idempotencia
 
@@ -805,7 +862,7 @@ El contrato completo y los casos de prueba están en [`US-12`](historias-usuario
 
 ## 8. Verificar un comprobante
 
-> **Disponible hoy — US-11 (base implementada).** La verificación no requiere API key. La emisión (`POST /v1/comprobantes`) también está disponible y sí requiere API key.
+> **Disponible hoy — US-11 (base implementada).** La verificación no requiere API key. La emisión (`POST /v1/comprobantes`) también está disponible y acepta API key o cookie de empresa con rol `Administrador` o `Emisor`.
 
 La verificación es pública y no requiere API key:
 
@@ -843,7 +900,7 @@ La respuesta no expone datos internos, secretos ni API keys.
 
 ## 9. Ejemplos
 
-> **Disponible — US-05.** Los ejemplos de emisión funcionan contra `POST /v1/comprobantes`; requieren API key e `Idempotency-Key`.
+> **Disponible — US-05.** Los ejemplos de emisión funcionan contra `POST /v1/comprobantes`; aceptan API key o cookie de empresa con rol `Administrador` o `Emisor`, e `Idempotency-Key`.
 
 ### curl
 
@@ -976,7 +1033,7 @@ El catálogo cerrado de códigos está en [Estado de la API](#estado-de-la-api) 
 ## 12. Preguntas frecuentes
 
 **¿Qué puedo consumir hoy?**
-La emisión de facturas A, B y C y de notas de crédito y débito (`POST /v1/comprobantes`, con API key e `Idempotency-Key`), la emisión por SOAP (`POST /soap`, con `FECAESolicitar` y `FECAEGenerar`), las consultas de comprobantes (`GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` y `GET /v1/comprobantes/ultimo-autorizado`, con API key o cookie de empresa), la descarga del PDF (`GET /v1/comprobantes/{id}/pdf`, con API key o cookie de empresa), la verificación pública por CAE (`GET /v1/comprobantes/verificar/{cae}`), los endpoints de salud, el login y la sesión (`/v1/auth/**` y `/v1/admin/auth/**`) y la gestión de API keys (`/v1/api-keys`, US-02 y US-14). El alta y la activación siguen pendientes; el contrato completo está en `docs/contratos-api.md`.
+La emisión de facturas A, B y C y de notas de crédito y débito (`POST /v1/comprobantes`, con API key o cookie de empresa e `Idempotency-Key`), la emisión por SOAP (`POST /soap`, con `FECAESolicitar` y `FECAEGenerar`), las consultas de comprobantes (`GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` y `GET /v1/comprobantes/ultimo-autorizado`, con API key o cookie de empresa), la descarga del PDF (`GET /v1/comprobantes/{id}/pdf`, con API key o cookie de empresa), la verificación pública por CAE (`GET /v1/comprobantes/verificar/{cae}`), los endpoints de salud, el login y la sesión (`/v1/auth/**` y `/v1/admin/auth/**`) y la gestión de API keys (`/v1/api-keys`, US-02 y US-14) y la emisión manual desde el portal (`POST /v1/comprobantes/presupuesto`, `GET /v1/puntos-venta` y `POST /v1/comprobantes` con cookie, US-13). El alta y la activación siguen pendientes; el contrato completo está en `docs/contratos-api.md`.
 
 **¿Puedo registrarme solo con el CUIT?**
 No. El CUIT es público. La cuenta se activa con una invitación enviada al email del solicitante y aprobada por un administrador global.

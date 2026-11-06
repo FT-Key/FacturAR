@@ -1,0 +1,93 @@
+@using FacturAR.Web.Models
+
+<div class="table-responsive">
+    <table class="table align-middle">
+        <thead>
+            <tr>
+                <th scope="col">Descripción</th>
+                <th scope="col" class="text-end">Cantidad</th>
+                <th scope="col" class="text-end">Precio unitario</th>
+                <th scope="col">Alícuota IVA</th>
+                <th scope="col"><span class="visually-hidden">Acciones</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (var i = 0; i < Modelo.Items.Count; i++)
+            {
+                var indice = i;
+                <tr>
+                    <td>
+                        <InputText class="form-control"
+                                   @bind-Value="Modelo.Items[indice].Descripcion"
+                                   data-recalcular="true" />
+                        @if (Mensaje($"Items[{indice}].Descripcion") is string errorDescripcion)
+                        {
+                            <p class="text-danger small mb-0" role="alert">@errorDescripcion</p>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <InputNumber class="form-control text-end"
+                                     @bind-Value="Modelo.Items[indice].Cantidad"
+                                     data-recalcular="true" />
+                        @if (Mensaje($"Items[{indice}].Cantidad") is string errorCantidad)
+                        {
+                            <p class="text-danger small mb-0" role="alert">@errorCantidad</p>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <InputNumber class="form-control text-end"
+                                     @bind-Value="Modelo.Items[indice].PrecioUnitario"
+                                     data-recalcular="true" />
+                        @if (Mensaje($"Items[{indice}].PrecioUnitario") is string errorPrecio)
+                        {
+                            <p class="text-danger small mb-0" role="alert">@errorPrecio</p>
+                        }
+                    </td>
+                    <td>
+                        <InputSelect class="form-select"
+                                     @bind-Value="Modelo.Items[indice].AlicuotaIva"
+                                     data-recalcular="true">
+                            <option value="0" selected="@(Modelo.Items[indice].AlicuotaIva == 0m)">0%</option>
+                            <option value="5" selected="@(Modelo.Items[indice].AlicuotaIva == 5m)">5%</option>
+                            <option value="10.5" selected="@(Modelo.Items[indice].AlicuotaIva == 10.5m)">10,5%</option>
+                            <option value="21" selected="@(Modelo.Items[indice].AlicuotaIva == 21m)">21%</option>
+                            <option value="27" selected="@(Modelo.Items[indice].AlicuotaIva == 27m)">27%</option>
+                        </InputSelect>
+                        @if (Mensaje($"Items[{indice}].AlicuotaIva") is string errorAlicuota)
+                        {
+                            <p class="text-danger small mb-0" role="alert">@errorAlicuota</p>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <button type="submit"
+                                class="btn btn-outline-danger btn-sm"
+                                name="Accion"
+                                value="@($"quitar:{indice}")"
+                                formnovalidate>
+                            Quitar
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<button type="submit"
+        class="btn btn-outline-secondary btn-sm"
+        name="Accion"
+        value="agregar"
+        formnovalidate>
+    Agregar ítem
+</button>
+
+@code {
+    [Parameter, EditorRequired]
+    public EmisionModelo Modelo { get; set; } = new();
+
+    [Parameter]
+    public IReadOnlyDictionary<string, string>? Errores { get; set; }
+
+    private string? Mensaje(string clave)
+        => Errores is not null && Errores.TryGetValue(clave, out var mensaje) ? mensaje : null;
+}
