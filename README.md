@@ -5,7 +5,7 @@
 
 Simulador de facturación electrónica de AFIP/ARCA para el Trabajo Final Integrador de la carrera. Incluye onboarding de empresas con solicitud pública, aprobación por administrador global e invitación por email, además de emisión, consultas, API keys, portal y verificación pública de un CAE.
 
-> Estado actual: base funcional con API, portal Blazor/Razor, MongoDB, emisión de facturas A, B y C y de notas de crédito y débito por API key, endpoint público de verificación, Docker y CI/CD. La emisión está implementada y cubierta por tests unitarios y de integración sin Mongo; la verificación real de transacción, concurrencia e índice único con MongoDB replica set sigue pendiente. La fachada SOAP de emisión (US-15) y consultas (US-16) está implementada y cubierta por tests unitarios y de integración sin Mongo; le falta la verificación end-to-end con Mongo real. El dashboard y el listado del portal (US-12) están completados y cubiertos por tests con MongoDB real y QA manual. US-08, US-12, US-19, US-20, US-27, US-28 y US-31 están completadas; US-05, US-06, US-09, US-14, US-15 y US-16 están en estado parcial; US-11 tiene base implementada; US-21 está en estado parcial.
+> Estado actual: base funcional con API, portal Blazor/Razor, MongoDB, emisión de facturas A, B y C y de notas de crédito y débito por API key, endpoint público de verificación, Docker y CI/CD. La emisión está implementada y cubierta por tests unitarios y de integración sin Mongo; la verificación real de transacción, concurrencia e índice único con MongoDB replica set sigue pendiente. La fachada SOAP de emisión (US-15) y consultas (US-16) está implementada y cubierta por tests unitarios y de integración sin Mongo; le falta la verificación end-to-end con Mongo real. El dashboard y el listado del portal (US-12) están completados y cubiertos por tests con MongoDB real y QA manual. US-08, US-12, US-19, US-20, US-27, US-28 y US-31 están completadas; US-05, US-06, US-09, US-14, US-15, US-16 y US-21 están en estado parcial; US-11 tiene base implementada; US-32 está en estado parcial con la landing pública, los temas, el SEO y el asistente de alta implementados y pendiente de Lighthouse, axe, Groq real y assets de marca.
 >
 > Planificación: las historias pendientes están refinadas con **contrato técnico** (modelo de datos, endpoints, validaciones y casos de prueba) contra el [contrato transversal de la API](docs/contratos-api.md), y el [plan de implementación](docs/plan-implementacion.md) fija el orden de ejecución.
 
@@ -123,6 +123,28 @@ El frontend lee:
 | --- | --- | --- |
 | `Api__BaseUrl` | URL interna de la API | `http://localhost:5171` |
 | `ASPNETCORE_ENVIRONMENT` | Entorno de ejecución | `Development` |
+
+Variables del asistente de alta (solo portal):
+
+| Variable | Descripción | Default |
+| --- | --- | --- |
+| `ASISTENTE_HABILITADO` | Prende el widget de `/solicitar-alta` y `POST /asistente/mensajes` | `false` |
+| `GROQ_API_KEY` | Secreto de Groq; obligatorio si el asistente está habilitado. La app no arranca si falta | — |
+| `ASISTENTE_BASE_URL` | Base de la API de Groq | `https://api.groq.com/openai/v1` |
+| `ASISTENTE_MODELO` | Modelo de Groq | `llama-3.3-70b-versatile` |
+| `ASISTENTE_ORIGEN` | `Origin`/`Referer` permitido por el endpoint | `Portal:BaseUrl` |
+| `ASISTENTE_TIMEOUT_SEGUNDOS` | Timeout de la llamada a Groq | `10` |
+| `ASISTENTE_MAX_TOKENS` | Tokens máximos de respuesta | `350` |
+| `ASISTENTE_MAX_CARACTERES_MENSAJE` | Caracteres máximos por mensaje | `600` |
+| `ASISTENTE_MAX_TURNOS` | Turnos máximos de historial | `8` |
+| `ASISTENTE_RATE_MINUTO` | Mensajes por minuto por IP | `6` |
+| `ASISTENTE_RATE_HORA` | Mensajes por hora por IP | `30` |
+| `ASISTENTE_RATE_DIA` | Mensajes por día por IP | `100` |
+| `ASISTENTE_RATE_SESION` | Mensajes por hora por sesión anónima | `20` |
+| `ASISTENTE_PRESUPUESTO_TOKENS` | Presupuesto diario de tokens | `150000` |
+| `ASISTENTE_MAX_REQUESTS_DIA` | Requests diarios globales | `500` |
+
+La key de Groq vive solo en el servidor del portal (`FacturAR.Web`); el navegador llama al endpoint del portal y nunca a Groq. No se escribe en `appsettings.json` versionado, ni en `.env` commiteado, ni en logs. Con `ASISTENTE_HABILITADO=false` el widget no se muestra y el endpoint responde `404`; si se habilita, `GROQ_API_KEY` es obligatoria y la falta de la key corta el arranque con un error explícito.
 
 Variables de entorno para Docker y onboarding:
 
@@ -242,15 +264,16 @@ URLs locales:
 - Salud (readiness): `http://localhost:5171/health`
 - Salud (liveness): `http://localhost:5171/health/live`
 - Portal: `http://localhost:5116`
-- Dashboard autenticado: `http://localhost:5116/`
-- Landing pública: `http://localhost:5116/inicio`
+- Landing pública: `http://localhost:5116/`
+- Dashboard autenticado: `http://localhost:5116/dashboard`
+- Ruta vieja de la landing: `http://localhost:5116/inicio` redirige `301` a `/`
 - Listado de comprobantes: `http://localhost:5116/comprobantes`
 - Salud del portal: `http://localhost:5116/health` y `http://localhost:5116/health/live`
 - Verificación: `http://localhost:5116/verificar`
-- Solicitud de alta (prevista): `http://localhost:5116/solicitud`
-- Activación (prevista): `http://localhost:5116/activar`
+- Solicitud de alta con asistente: `http://localhost:5116/solicitar-alta`
+- Activación: `http://localhost:5116/activar`
 - Manual (previsto): `http://localhost:5116/manual`
-- Administración global (prevista): `http://localhost:5116/admin`
+- Administración global: `http://localhost:5116/admin`
 
 ### MongoDB
 
@@ -400,7 +423,9 @@ El environment usa `http://localhost:8080` para Docker. Para ejecución local, c
 ## Tests
 
 ```powershell
-dotnet test FacturAR.slnx
+dotnet build FacturAR.slnx -c Release
+dotnet test FacturAR.slnx -c Release --no-build --logger "console;verbosity=minimal"
+dotnet format FacturAR.slnx --verify-no-changes
 ```
 
 La suite local tiene tests unitarios y de integración que pasan sin servicios externos; los tests de integración marcados con `MongoFact` se omiten cuando no hay connection string. Los unitarios cubren validación de CUIT, CAE, emisión de facturas A/B/C, cálculo de importes, consultas y reglas de receptor e ítems. Los de integración levantan la API en memoria y validan salud, OpenAPI, autenticación por API key, emisión y consultas por REST y SOAP sin requerir MongoDB.

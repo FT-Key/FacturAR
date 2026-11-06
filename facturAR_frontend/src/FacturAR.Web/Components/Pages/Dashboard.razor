@@ -1,4 +1,4 @@
-@page "/"
+@page "/dashboard"
 @using System.Globalization
 @using System.Net
 @using FacturAR.Contracts.Comprobantes
@@ -9,6 +9,10 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Dashboard - FacturAR</PageTitle>
+
+<HeadContent>
+    <meta name="robots" content="noindex, nofollow" />
+</HeadContent>
 
 <div class="py-4 d-flex flex-wrap justify-content-between align-items-end gap-2">
     <div>
@@ -30,7 +34,7 @@
 }
 else if (_error is not null)
 {
-    <MensajeError Mensaje="@_error" UrlReintentar="/" />
+    <MensajeError Mensaje="@_error" UrlReintentar="/dashboard" />
 }
 else if (_dashboard is null)
 {

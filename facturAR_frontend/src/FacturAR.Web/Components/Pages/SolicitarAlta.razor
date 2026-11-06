@@ -3,8 +3,11 @@
 @implements IDisposable
 @using System.ComponentModel.DataAnnotations
 @using FacturAR.Contracts.Solicitudes
+@using FacturAR.Web.Services.Asistente
 @using FacturAR.Web.Validation
+@using Microsoft.Extensions.Options
 @inject FacturarApiClient ApiClient
+@inject IOptions<AsistenteOptions> AsistenteOpciones
 
 <PageTitle>Solicitar alta de empresa - FacturAR</PageTitle>
 
@@ -22,13 +25,13 @@
             <h2 class="h5">Solicitud recibida</h2>
             <p class="mb-2">@_mensajeExito</p>
             <p class="text-muted">Revisamos los datos y te escribimos al email de contacto.</p>
-            <a class="btn btn-primary" href="/inicio">Volver al inicio</a>
+            <a class="btn btn-primary" href="/">Volver al inicio</a>
         </div>
     </div>
 }
 else
 {
-    <EditForm EditContext="_editContext" OnValidSubmit="EnviarAsync">
+    <EditForm EditContext="_editContext" OnValidSubmit="EnviarAsync" id="formulario-alta">
         <DataAnnotationsValidator />
 
         @if (!string.IsNullOrWhiteSpace(_errorGeneral))
@@ -131,6 +134,68 @@ else
             </div>
         </div>
     </EditForm>
+}
+
+@if (AsistenteOpciones.Value.Habilitado)
+{
+    <div id="asistente"
+         class="asistente"
+         data-bienvenida="@AsistentePolitica.MensajeBienvenida"
+         data-max-caracteres="@AsistenteOpciones.Value.MaxCaracteresMensaje">
+        <button type="button"
+                id="asistente-toggle"
+                class="asistente__toggle"
+                aria-expanded="false"
+                aria-controls="asistente-panel"
+                aria-label="Abrir el asistente de alta">
+            <span class="asistente__toggle-icono" aria-hidden="true">?</span>
+            <span class="asistente__toggle-texto">¿Te ayudo con el alta?</span>
+        </button>
+
+        <div id="asistente-panel" class="asistente__panel" aria-labelledby="asistente-titulo" hidden>
+            <header class="asistente__header">
+                <div>
+                    <h2 id="asistente-titulo" class="asistente__titulo">Asistente de alta</h2>
+                    <p class="asistente__subtitulo">Guía para registrar tu empresa</p>
+                </div>
+                <button type="button" id="asistente-cerrar" class="asistente__cerrar" aria-label="Cerrar el asistente">×</button>
+            </header>
+
+            <div id="asistente-mensajes" class="asistente__mensajes" role="log" aria-live="polite" aria-relevant="additions text"></div>
+
+            <div id="asistente-sugerencias" class="asistente__sugerencias">
+                <button type="button" class="asistente__sugerencia" data-sugerencia>¿Necesito una cuenta para empezar?</button>
+                <button type="button" class="asistente__sugerencia" data-sugerencia>¿Qué datos pide el formulario?</button>
+                <button type="button" class="asistente__sugerencia" data-sugerencia>¿Cuánto tarda la aprobación?</button>
+                <button type="button" class="asistente__sugerencia" data-sugerencia>¿Cómo creo una API key?</button>
+            </div>
+
+            <div id="asistente-error" class="asistente__error" role="alert" hidden>
+                <p id="asistente-error-texto" class="asistente__error-texto"></p>
+                <button type="button" id="asistente-reintentar" class="asistente__reintentar">Reintentar</button>
+                <p class="asistente__error-enlaces">
+                    <a href="/#como-funciona">Ver preguntas frecuentes</a>
+                    <a href="#formulario-alta">Ir al formulario</a>
+                </p>
+            </div>
+
+            <div class="asistente__entrada">
+                <label for="asistente-texto" class="visually-hidden">Escribí tu pregunta</label>
+                <textarea id="asistente-texto"
+                          class="asistente__textarea"
+                          rows="1"
+                          maxlength="@AsistenteOpciones.Value.MaxCaracteresMensaje"
+                          placeholder="Escribí tu pregunta…"
+                          aria-describedby="asistente-contador"></textarea>
+                <div class="asistente__acciones">
+                    <span id="asistente-contador" class="asistente__contador">0/@AsistenteOpciones.Value.MaxCaracteresMensaje</span>
+                    <button type="button" id="asistente-enviar" class="asistente__enviar" aria-label="Enviar mensaje">Enviar</button>
+                </div>
+            </div>
+
+            <p class="asistente__disclaimer">@AsistentePolitica.Disclaimer</p>
+        </div>
+    </div>
 }
 
 @code {

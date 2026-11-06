@@ -1,11 +1,22 @@
-﻿<!DOCTYPE html>
-<html lang="es">
+﻿@inject NavigationManager Navigation
+<!DOCTYPE html>
+<html lang="es-AR">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
+    @if (Navigation.ToBaseRelativePath(Navigation.Uri)
+        .StartsWith("activar", StringComparison.OrdinalIgnoreCase))
+    {
+        <meta name="robots" content="noindex, nofollow" />
+    }
+    <script>
+(function(){try{var k='facturar-tema',v=localStorage.getItem(k),d=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches,t=v==='claro'?'light':v==='oscuro'?'dark':(d?'dark':'light'),p=v==='claro'||v==='oscuro'?v:'system';document.documentElement.setAttribute('data-theme',t);document.documentElement.setAttribute('data-theme-preference',p);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+    </script>
     <ResourcePreloader />
+    <link rel="stylesheet" href="@Assets["css/tokens.css"]" />
+    <link rel="stylesheet" href="@Assets["css/asistente.css"]" />
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["FacturAR.Web.styles.css"]" />
@@ -18,10 +29,13 @@
     <CascadingAuthenticationState>
         <Routes />
     </CascadingAuthenticationState>
+    <AntiforgeryToken />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
+    <script src="@Assets["js/theme.js"]"></script>
     <script type="module" src="@Assets["js/api-keys.js"]"></script>
     <script src="@Assets["js/emision-manual.js"]"></script>
+    <script src="@Assets["js/asistente.js"]"></script>
 </body>
 
 </html>

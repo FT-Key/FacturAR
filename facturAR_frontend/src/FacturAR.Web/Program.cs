@@ -3,9 +3,13 @@ using FacturAR.Web.Auth;
 using FacturAR.Web.Components;
 using FacturAR.Web.Endpoints;
 using FacturAR.Web.Services;
+using FacturAR.Web.Services.Asistente;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.AddInMemoryCollection(AsistenteOptions.VariablesEntorno());
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -18,6 +22,22 @@ builder.Services.AddHttpClient<FacturarApiClient>(client =>
     var baseUrl = builder.Configuration["Api:BaseUrl"] ?? "http://localhost:5171";
     client.BaseAddress = new Uri($"{baseUrl.TrimEnd('/')}/");
     client.Timeout = TimeSpan.FromSeconds(10);
+});
+
+builder.Services.AddOptions<AsistenteOptions>()
+    .BindConfiguration(AsistenteOptions.SectionName)
+    .Validate(
+        options => !options.Habilitado || !string.IsNullOrWhiteSpace(options.GroqApiKey),
+        "El asistente está habilitado pero falta la clave de Groq. Configurá Asistente:GroqApiKey o la variable GROQ_API_KEY.")
+    .ValidateOnStart();
+
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<AsistenteLimites>();
+builder.Services.AddScoped<AsistenteAltasService>();
+builder.Services.AddHttpClient<IGroqChatClient, GroqChatClient>((services, client) =>
+{
+    var options = services.GetRequiredService<IOptions<AsistenteOptions>>().Value;
+    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSegundos));
 });
 
 builder.Services.AddScoped<AuthenticationStateProvider, ApiAuthenticationStateProvider>();
@@ -67,8 +87,29 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseAntiforgery();
 
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path == "/activar")
+    {
+        context.Response.Headers["X-Robots-Tag"] = "noindex, nofollow";
+    }
+
+    await next(context);
+});
+
 app.MapStaticAssets();
 app.MapRazorPages();
+app.MapSeoEndpoints();
+if (builder.Configuration.GetValue<bool>($"{AsistenteOptions.SectionName}:Habilitado"))
+{
+    app.MapAsistenteEndpoints();
+}
+else
+{
+    app.MapPost("/asistente/mensajes", () => Results.Json(
+        new AsistenteErrorResponse("ASISTENTE_DESHABILITADO", "El asistente no está disponible."),
+        statusCode: StatusCodes.Status404NotFound));
+}
 app.MapComprobantePdfProxy();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
@@ -90,3 +131,5 @@ app.MapGet("/health/live", () => Results.Ok(new EstadoVivoResponse(
 .Produces<EstadoVivoResponse>();
 
 app.Run();
+
+public partial class Program;

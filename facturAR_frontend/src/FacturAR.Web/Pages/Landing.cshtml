@@ -1,0 +1,263 @@
+@page "/"
+@model FacturAR.Web.Pages.LandingModel
+@{
+    ViewData["Title"] = Model.Titulo;
+    ViewData["Description"] = Model.Description;
+}
+
+@section Head {
+    <link rel="canonical" href="@Model.Canonical" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="FacturAR" />
+    <meta property="og:title" content="@Model.Titulo" />
+    <meta property="og:description" content="@Model.Description" />
+    <meta property="og:url" content="@Model.Canonical" />
+    <meta property="og:image" content="@Model.OgImage" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="es_AR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@Model.Titulo" />
+    <meta name="twitter:description" content="@Model.Description" />
+    <meta name="twitter:image" content="@Model.OgImage" />
+    <script type="application/ld+json">@Html.Raw(Model.JsonLd)</script>
+}
+
+<section class="hero" aria-labelledby="hero-title">
+    <div class="container hero__grid">
+        <div class="hero__content">
+            <p class="eyebrow">Facturación electrónica simulada para Argentina</p>
+            <h1 id="hero-title" class="hero__title">Emití, consultá y verificá comprobantes como en AFIP. Sin la fricción.</h1>
+            <p class="hero__lead">
+                FacturAR simula la emisión de facturas A, B y C, las consultas y la verificación pública por CAE.
+                Todo con una API REST y SOAP y un portal listo para probar.
+            </p>
+            <ul class="hero__seals" aria-label="Características principales">
+                <li class="seal">CAE simulado</li>
+                <li class="seal">Multiempresa</li>
+                <li class="seal">API REST + SOAP</li>
+                <li class="seal">PDF con QR</li>
+            </ul>
+            <div class="hero__actions">
+                <a class="btn btn--primary" href="/solicitar-alta">Solicitar alta de empresa</a>
+                <a class="btn btn--secondary" href="#como-funciona">Ver cómo funciona</a>
+            </div>
+        </div>
+        <aside class="hero__panel" aria-hidden="true">
+            <div class="receipt">
+                <span class="receipt__stamp">CAE simulado</span>
+                <p class="receipt__type">Factura B</p>
+                <dl>
+                    <div>
+                        <dt>Punto de venta</dt>
+                        <dd>0001</dd>
+                    </div>
+                    <div>
+                        <dt>Número</dt>
+                        <dd>00000001</dd>
+                    </div>
+                    <div>
+                        <dt>CAE</dt>
+                        <dd>00000000000000</dd>
+                    </div>
+                </dl>
+                <p class="receipt__note">FacturAR es un simulador. El CAE es simulado y no tiene validez fiscal.</p>
+            </div>
+        </aside>
+    </div>
+</section>
+
+<section class="section" aria-labelledby="que-es">
+    <div class="container">
+        <div class="section__head">
+            <h2 id="que-es" class="section__title">Qué podés hacer con FacturAR</h2>
+            <p class="section__lead">
+                Un simulador del circuito de facturación electrónica argentina para practicar, integrar y probar
+                sin riesgo y sin depender de un entorno real.
+            </p>
+        </div>
+        <div class="card-grid">
+            <article class="card">
+                <h3>Emisión A, B y C</h3>
+                <p>Emití facturas con numeración atómica, CAE simulado e ítems detallados. También podés emitir notas de crédito y débito.</p>
+            </article>
+            <article class="card">
+                <h3>Consultas y último autorizado</h3>
+                <p>Listá tus comprobantes, consultá el detalle y conocé el último número autorizado por punto de venta.</p>
+            </article>
+            <article class="card">
+                <h3>Verificación pública por CAE</h3>
+                <p>Cualquier persona puede verificar un comprobante con su CAE desde el portal, sin iniciar sesión.</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="section section--subtle" id="como-funciona" aria-labelledby="como-funciona-titulo">
+    <div class="container">
+        <div class="section__head">
+            <h2 id="como-funciona-titulo" class="section__title">Cómo se obtiene acceso</h2>
+            <p class="section__lead">
+                No hay registro libre. Primero aprobamos tu empresa; después activás tu cuenta.
+            </p>
+        </div>
+        <ol class="steps">
+            <li class="step">
+                <span class="step__number" aria-hidden="true">1</span>
+                <div>
+                    <h3 class="step__title">Completás la solicitud</h3>
+                    <p class="step__text">La empresa completa el formulario con razón social, CUIT, condición IVA y email. No se pide contraseña.</p>
+                </div>
+            </li>
+            <li class="step">
+                <span class="step__number" aria-hidden="true">2</span>
+                <div>
+                    <h3 class="step__title">Revisión y aprobación</h3>
+                    <p class="step__text">FacturAR revisa la solicitud y la aprueba o rechaza. Todavía no existe una cuenta.</p>
+                </div>
+            </li>
+            <li class="step">
+                <span class="step__number" aria-hidden="true">3</span>
+                <div>
+                    <h3 class="step__title">Invitación por email</h3>
+                    <p class="step__text">Si se aprueba, se crea la empresa, el punto de venta y una invitación de 48 horas que llega por email.</p>
+                </div>
+            </li>
+            <li class="step">
+                <span class="step__number" aria-hidden="true">4</span>
+                <div>
+                    <h3 class="step__title">Activación de la cuenta</h3>
+                    <p class="step__text">Abrís el link y definís tu contraseña. La cuenta se crea cuando activás la invitación, no cuando completás el formulario.</p>
+                </div>
+            </li>
+            <li class="step">
+                <span class="step__number" aria-hidden="true">5</span>
+                <div>
+                    <h3 class="step__title">Ingreso y API key</h3>
+                    <p class="step__text">Iniciás sesión y creás tu primera API key desde el portal. La API key se muestra una sola vez. Guardala en un lugar seguro.</p>
+                </div>
+            </li>
+        </ol>
+        <div class="callout">
+            <strong>Para usar la API tenés que registrar tu empresa y esperar la aprobación.</strong>
+            <p>El formulario de alta no crea la cuenta: la cuenta se crea cuando activás la invitación.</p>
+        </div>
+        <a class="btn btn--primary" href="/solicitar-alta">Empezar la solicitud</a>
+    </div>
+</section>
+
+<section class="section" id="api" aria-labelledby="api-titulo">
+    <div class="container integrator">
+        <div>
+            <h2 id="api-titulo" class="section__title">Para integradores</h2>
+            <p class="section__lead">
+                La API expone REST y SOAP sobre el mismo circuito de emisión. Autenticás con <code>X-Api-Key</code>,
+                protegés los reintentos con <code>Idempotency-Key</code> y recibís errores canónicos.
+            </p>
+            <ul class="integrator__list">
+                <li><strong>REST y SOAP</strong> para emitir, consultar el último autorizado y verificar comprobantes.</li>
+                <li><strong>Autenticación</strong> con el header <code>X-Api-Key</code> en cada request.</li>
+                <li><strong>Idempotencia</strong> con el header <code>Idempotency-Key</code>: el mismo payload devuelve el mismo comprobante.</li>
+                <li><strong>Errores canónicos</strong> como <code>400 VALIDACION</code>, <code>401 API_KEY_AUSENTE</code>, <code>403 SIN_PERMISOS</code> y <code>409 IDEMPOTENCIA_CONFLICTO</code>.</li>
+            </ul>
+            <p>La API key se muestra una sola vez. Guardala en un lugar seguro.</p>
+            <div class="guide-slot">
+                <span class="seal">Próximamente</span>
+                <strong>Guía de integración</strong>
+                <p>La guía completa con endpoints, ejemplos y códigos de error se publica cuando esté disponible.</p>
+                <button type="button" class="btn btn--secondary" disabled aria-disabled="true">Leer la guía</button>
+            </div>
+        </div>
+        <div class="code-block">
+            <div class="code-block__header">
+                <span>Emitir comprobante</span>
+                <button type="button" class="code-copy" data-copiar data-copiar-target="codigo-curl">Copiar</button>
+            </div>
+            <pre id="codigo-curl"><code>curl -X POST "http://localhost:5171/v1/comprobantes" \
+  -H "X-Api-Key: fak_reemplazar_por_tu_api_key" \
+  -H "Idempotency-Key: 00000000-0000-4000-8000-000000000000" \
+  -H "Content-Type: application/json" \
+  -d @@comprobante.json</code></pre>
+        </div>
+    </div>
+</section>
+
+<section class="section section--subtle" id="seguridad" aria-labelledby="seguridad-titulo">
+    <div class="container">
+        <div class="section__head">
+            <h2 id="seguridad-titulo" class="section__title">Seguridad desde el diseño</h2>
+            <p class="section__lead">Las credenciales y los datos de cada empresa se manejan con controles explícitos.</p>
+        </div>
+        <ul class="check-list">
+            <li>
+                <strong>API keys hasheadas</strong>
+                <span>Se guardan hasheadas y el valor completo se muestra una sola vez.</span>
+            </li>
+            <li>
+                <strong>Aislamiento por contribuyente</strong>
+                <span>Cada consulta se filtra por la empresa autenticada, nunca por datos del body.</span>
+            </li>
+            <li>
+                <strong>Idempotencia</strong>
+                <span>Los reintentos no duplican comprobantes ni consumen numeración de más.</span>
+            </li>
+            <li>
+                <strong>TLS</strong>
+                <span>El tráfico viaja cifrado en los entornos publicados.</span>
+            </li>
+            <li>
+                <strong>Rate limiting</strong>
+                <span>Los endpoints sensibles aplican límites para evitar abuso.</span>
+            </li>
+            <li>
+                <strong>Aviso de simulación</strong>
+                <span>FacturAR es un simulador. El CAE es simulado y no tiene validez fiscal.</span>
+            </li>
+        </ul>
+    </div>
+</section>
+
+<section class="section" aria-labelledby="stack-titulo">
+    <div class="container">
+        <div class="section__head">
+            <h2 id="stack-titulo" class="section__title">Stack</h2>
+            <p class="section__lead">Tecnología abierta, sin dependencias de un proveedor de facturación.</p>
+        </div>
+        <ul class="chips">
+            <li class="chip">.NET 10</li>
+            <li class="chip">ASP.NET Core</li>
+            <li class="chip">Blazor</li>
+            <li class="chip">MongoDB</li>
+            <li class="chip">Docker</li>
+        </ul>
+    </div>
+</section>
+
+<section class="section section--subtle" aria-labelledby="preguntas-titulo">
+    <div class="container container--narrow">
+        <div class="section__head">
+            <h2 id="preguntas-titulo" class="section__title">Preguntas frecuentes</h2>
+        </div>
+        <div class="faq">
+            @foreach (var pregunta in Model.PreguntasFrecuentes)
+            {
+                <details>
+                    <summary>@pregunta.Pregunta</summary>
+                    <p>@pregunta.Respuesta</p>
+                </details>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="section cta-final" aria-labelledby="empezar">
+    <div class="container container--narrow">
+        <h2 id="empezar" class="section__title">¿Listo para emitir?</h2>
+        <p class="section__lead">Solicitá el alta de tu empresa y probá el circuito completo con CAE simulado.</p>
+        <div class="hero__actions">
+            <a class="btn btn--primary" href="/solicitar-alta">Solicitar alta de empresa</a>
+            <a class="btn btn--secondary" href="/verificar">Verificar un comprobante</a>
+        </div>
+        <p class="auth-switch">¿Ya tenés cuenta? <a href="/login">Ingresá</a>. ¿Todavía no? <a href="/solicitar-alta">Solicitá el alta</a>.</p>
+    </div>
+</section>
