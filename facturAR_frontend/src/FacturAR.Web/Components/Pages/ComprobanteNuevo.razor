@@ -1,0 +1,635 @@
+@page "/comprobantes/nuevo"
+@using System.Globalization
+@using System.Net
+@using System.Text.Json
+@using FacturAR.Contracts.Comprobantes
+@using FacturAR.Contracts.PuntosVenta
+@using FacturAR.Web.Models
+@inject FacturarApiClient ApiClient
+@inject NavigationManager Navigation
+@inject IConfiguration Configuration
+
+<PageTitle>Emitir comprobante - FacturAR</PageTitle>
+
+<div class="py-4">
+    <h1 class="h3 mb-1">Emitir comprobante</h1>
+    <p class="text-muted mb-0">Completá los datos y revisá los importes antes de confirmar.</p>
+</div>
+
+@if (_accesoDenegado)
+{
+    <section class="card border-danger" role="alert">
+        <div class="card-body">
+            <h2 class="h5">Acceso denegado</h2>
+            <p class="mb-2">Esta sección solo está disponible para usuarios con rol Administrador o Emisor.</p>
+            <p class="small text-muted mb-2">403 SIN_PERMISOS</p>
+            <a class="btn btn-outline-secondary btn-sm" href="/">Volver al dashboard</a>
+        </div>
+    </section>
+}
+else if (_resultado is not null)
+{
+    <section class="card border-success" role="status">
+        <div class="card-body">
+            <h2 class="h5">Comprobante emitido</h2>
+            <dl class="row mb-3">
+                <dt class="col-sm-4 fw-normal text-muted">Número</dt>
+                <dd class="col-sm-8 font-monospace">@($"{_resultado.PuntoVenta:D4}-{_resultado.Numero:D8}")</dd>
+                <dt class="col-sm-4 fw-normal text-muted">CAE</dt>
+                <dd class="col-sm-8 font-monospace">@_resultado.Cae</dd>
+                <dt class="col-sm-4 fw-normal text-muted">Vencimiento del CAE</dt>
+                <dd class="col-sm-8">@Fecha(_resultado.CaeVencimiento)</dd>
+                <dt class="col-sm-4 fw-normal text-muted">Total</dt>
+                <dd class="col-sm-8 fw-semibold"><ImporteTexto Valor="_resultado.ImporteTotal" /></dd>
+            </dl>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-primary"
+                   href="@($"/comprobantes/{_resultado.Id}/pdf")"
+                   target="_blank"
+                   rel="noreferrer">
+                    Descargar PDF
+                </a>
+                <a class="btn btn-outline-secondary" href="/comprobantes/nuevo">Emitir otro</a>
+            </div>
+        </div>
+    </section>
+}
+else if (_errorCarga is not null)
+{
+    <div class="alert alert-danger" role="alert">
+        <p class="mb-2">@_errorCarga</p>
+        <a class="btn btn-outline-secondary btn-sm" href="/comprobantes/nuevo">Reintentar</a>
+    </div>
+}
+else
+{
+    @if (_errorGeneral is not null)
+    {
+        <div class="alert alert-danger" role="alert">@_errorGeneral</div>
+    }
+
+    <EditForm Model="@Modelo" FormName="emision" OnSubmit="ProcesarAsync" Enhance id="form-emision">
+        <input type="hidden" name="Modelo.ClaveIdempotencia" value="@Modelo.ClaveIdempotencia" />
+        <input type="hidden" name="Modelo.FirmaPayload" value="@Modelo.FirmaPayload" />
+
+        <fieldset disabled="@_cargando" class="border-0 p-0 m-0">
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="tipoComprobante">Tipo de comprobante</label>
+                    <InputSelect id="tipoComprobante"
+                                 class="form-select"
+                                 @bind-Value="Modelo.TipoComprobante"
+                                 data-recalcular="true">
+                        <option value="1" selected="@(Modelo.TipoComprobante == 1)">Factura A</option>
+                        <option value="6" selected="@(Modelo.TipoComprobante == 6)">Factura B</option>
+                        <option value="11" selected="@(Modelo.TipoComprobante == 11)">Factura C</option>
+                    </InputSelect>
+                    @if (Error("TipoComprobante") is string errorTipo)
+                    {
+                        <p class="text-danger small mb-0" role="alert">@errorTipo</p>
+                    }
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="puntoVenta">Punto de venta</label>
+                    <InputSelect id="puntoVenta"
+                                 class="form-select"
+                                 @bind-Value="Modelo.PuntoVenta"
+                                 data-recalcular="true">
+                        @foreach (var punto in _puntosVenta.Where(p => p.Activo))
+                        {
+                            <option value="@punto.Numero" selected="@(Modelo.PuntoVenta == punto.Numero)">@($"{punto.Numero:D4}") - @punto.Descripcion</option>
+                        }
+                    </InputSelect>
+                    @if (Error("PuntoVenta") is string errorPuntoVenta)
+                    {
+                        <p class="text-danger small mb-0" role="alert">@errorPuntoVenta</p>
+                    }
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="fechaEmision">Fecha de emisión</label>
+                    <p class="form-control-plaintext mb-0">@Fecha(DateTime.UtcNow)</p>
+                </div>
+            </div>
+
+            <section class="card mb-4" aria-labelledby="titulo-receptor">
+                <div class="card-body">
+                    <h2 id="titulo-receptor" class="h6">Receptor</h2>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-3">
+                            <label class="form-label" for="documentoTipo">Tipo de documento</label>
+                            <InputSelect id="documentoTipo"
+                                         class="form-select"
+                                         @bind-Value="Modelo.Receptor.DocumentoTipo"
+                                         data-recalcular="true">
+                                <option value="CUIT" selected="@(string.Equals(Modelo.Receptor.DocumentoTipo, "CUIT", StringComparison.OrdinalIgnoreCase))">CUIT</option>
+                                <option value="DNI" selected="@(string.Equals(Modelo.Receptor.DocumentoTipo, "DNI", StringComparison.OrdinalIgnoreCase))">DNI</option>
+                                <option value="99" selected="@(Modelo.Receptor.DocumentoTipo == "99")">Consumidor final (99)</option>
+                            </InputSelect>
+                        </div>
+
+                        <div class="col-12 col-md-3">
+                            <label class="form-label" for="documentoNumero">Número de documento</label>
+                            <InputText id="documentoNumero"
+                                       class="form-control"
+                                       inputmode="numeric"
+                                       @bind-Value="Modelo.Receptor.DocumentoNumero"
+                                       data-recalcular="true" />
+                            @if (Error("Receptor.DocumentoNumero") is string errorDocumento)
+                            {
+                                <p class="text-danger small mb-0" role="alert">@errorDocumento</p>
+                            }
+                        </div>
+
+                        <div class="col-12 col-md-3">
+                            <label class="form-label" for="razonSocial">Razón social</label>
+                            <InputText id="razonSocial"
+                                       class="form-control"
+                                       maxlength="200"
+                                       @bind-Value="Modelo.Receptor.RazonSocial"
+                                       data-recalcular="true" />
+                            @if (Error("Receptor.RazonSocial") is string errorRazonSocial)
+                            {
+                                <p class="text-danger small mb-0" role="alert">@errorRazonSocial</p>
+                            }
+                        </div>
+
+                        <div class="col-12 col-md-3">
+                            <label class="form-label" for="condicionIva">Condición frente al IVA</label>
+                            <InputSelect id="condicionIva"
+                                         class="form-select"
+                                         @bind-Value="Modelo.Receptor.CondicionIva"
+                                         data-recalcular="true">
+                                <option value="1" selected="@(Modelo.Receptor.CondicionIva == 1)">Responsable Inscripto</option>
+                                <option value="4" selected="@(Modelo.Receptor.CondicionIva == 4)">Exento</option>
+                                <option value="5" selected="@(Modelo.Receptor.CondicionIva == 5)">Consumidor Final</option>
+                                <option value="6" selected="@(Modelo.Receptor.CondicionIva == 6)">Monotributo</option>
+                                <option value="7" selected="@(Modelo.Receptor.CondicionIva == 7)">Sujeto No Categorizado</option>
+                            </InputSelect>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card mb-4" aria-labelledby="titulo-items">
+                <div class="card-body">
+                    <h2 id="titulo-items" class="h6">Ítems</h2>
+                    <ComprobanteItemsEditor Modelo="@Modelo" Errores="@_errores" />
+                    @if (Error("Items") is string errorItems)
+                    {
+                        <p class="text-danger small mb-0" role="alert">@errorItems</p>
+                    }
+                </div>
+            </section>
+
+            <div class="mb-4">
+                <label class="form-label" for="observaciones">Observaciones (opcional)</label>
+                <InputTextArea id="observaciones"
+                               class="form-control"
+                               rows="2"
+                               maxlength="500"
+                               @bind-Value="Modelo.Observaciones"
+                               data-recalcular="true" />
+            </div>
+
+            <PresupuestoResumen Presupuesto="@_presupuesto"
+                                Error="@_errorPresupuesto"
+                                Calculando="@_calculandoPresupuesto" />
+
+            @if (!_puntosVenta.Any(p => p.Activo))
+            {
+                <div class="alert alert-warning" role="alert">
+                    No hay puntos de venta activos. Pedile al administrador que habilite uno.
+                </div>
+            }
+
+            <button type="submit"
+                    class="btn btn-primary"
+                    name="Accion"
+                    value="emitir"
+                    data-emitir="true"
+                    disabled="@(_cargando || _enviando || !_puntosVenta.Any(p => p.Activo))">
+                Emitir comprobante
+            </button>
+        </fieldset>
+    </EditForm>
+}
+
+@code {
+    private static readonly decimal[] AlicuotasPermitidas = [0m, 5m, 10.5m, 21m, 27m];
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    private EmisionModelo? _modelo;
+
+    [SupplyParameterFromForm(FormName = "emision")]
+    private EmisionModelo Modelo
+    {
+        get => _modelo ??= new EmisionModelo();
+        set => _modelo = value ?? new EmisionModelo();
+    }
+
+    [SupplyParameterFromForm(FormName = "emision")]
+    private string? Accion { get; set; }
+
+    private IReadOnlyList<PuntoVentaResumenResponse> _puntosVenta = [];
+    private Dictionary<string, string> _errores = [];
+    private PresupuestoResponse? _presupuesto;
+    private ComprobanteResponse? _resultado;
+    private string? _errorPresupuesto;
+    private string? _errorCarga;
+    private string? _errorGeneral;
+    private bool _cargando = true;
+    private bool _calculandoPresupuesto;
+    private bool _enviando;
+    private bool _accesoDenegado;
+
+    private CancellationToken Token => HttpContext?.RequestAborted ?? CancellationToken.None;
+
+    private string? Cookie => HttpContext?.Request.Cookies.TryGetValue(NombreCookieEmpresa, out var valor) == true
+        && !string.IsNullOrEmpty(valor)
+            ? $"{NombreCookieEmpresa}={valor}"
+            : null;
+
+    private string NombreCookieEmpresa =>
+        Configuration["Auth:Cookie:NombreContribuyente"] ?? ".FacturAR.Contribuyente";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = AuthenticationState is null ? null : (await AuthenticationState).User;
+        if (usuario?.Identity?.IsAuthenticated != true)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var rol = usuario.FindFirst("rol")?.Value;
+        if (rol is not ("Administrador" or "Emisor"))
+        {
+            _accesoDenegado = true;
+            _cargando = false;
+            return;
+        }
+
+        var esPost = HttpContext is { } contexto && HttpMethods.IsPost(contexto.Request.Method);
+        var puntos = await ApiClient.ObtenerPuntosVentaAsync(Cookie, Token);
+        if (puntos.SinSesion)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (puntos.Status == HttpStatusCode.Forbidden)
+        {
+            _accesoDenegado = true;
+            _cargando = false;
+            return;
+        }
+
+        if (!puntos.Exitoso || puntos.Valor is null)
+        {
+            if (!esPost)
+            {
+                _errorCarga = FormatearError(puntos);
+                _cargando = false;
+                return;
+            }
+
+            _errorGeneral = FormatearError(puntos);
+            _puntosVenta = Modelo.PuntoVenta > 0
+                ? [new PuntoVentaResumenResponse(Guid.Empty, Modelo.PuntoVenta, "Punto de venta actual", true)]
+                : [];
+            _cargando = false;
+        }
+        else
+        {
+            _puntosVenta = puntos.Valor.Items;
+            _cargando = false;
+        }
+
+        if (!esPost)
+        {
+            Modelo.PuntoVenta = _puntosVenta.FirstOrDefault(p => p.Activo)?.Numero ?? 0;
+            await CalcularPresupuestoAsync();
+        }
+    }
+
+    private async Task ProcesarAsync(EditContext contexto)
+    {
+        _ = contexto;
+
+        if (Modelo.Items is null)
+        {
+            Modelo.Items = [new EmisionItemModelo()];
+        }
+
+        if (Modelo.Receptor is null)
+        {
+            Modelo.Receptor = new ReceptorEmisionModelo();
+        }
+
+        var accion = Accion ?? string.Empty;
+
+        if (accion.StartsWith("quitar:", StringComparison.Ordinal))
+        {
+            if (int.TryParse(
+                    accion["quitar:".Length..],
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out var indice)
+                && indice >= 0
+                && indice < Modelo.Items.Count)
+            {
+                Modelo.Items.RemoveAt(indice);
+            }
+
+            await CalcularPresupuestoAsync();
+            return;
+        }
+
+        if (string.Equals(accion, "agregar", StringComparison.Ordinal))
+        {
+            if (Modelo.Items.Count < 500)
+            {
+                Modelo.Items.Add(new EmisionItemModelo());
+            }
+
+            await CalcularPresupuestoAsync();
+            return;
+        }
+
+        if (string.Equals(accion, "emitir", StringComparison.Ordinal))
+        {
+            await EmitirAsync();
+            return;
+        }
+
+        await CalcularPresupuestoAsync();
+    }
+
+    private async Task CalcularPresupuestoAsync()
+    {
+        var request = CrearRequest();
+        AsegurarClave(request);
+
+        _calculandoPresupuesto = true;
+        var resultado = await ApiClient.CalcularPresupuestoAsync(Cookie, request, Token);
+        _calculandoPresupuesto = false;
+
+        if (resultado.SinSesion)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (resultado.Status == HttpStatusCode.Forbidden)
+        {
+            _accesoDenegado = true;
+            return;
+        }
+
+        if (!resultado.Exitoso || resultado.Valor is null)
+        {
+            _presupuesto = null;
+            _errorPresupuesto = FormatearError(resultado);
+            return;
+        }
+
+        _presupuesto = resultado.Valor;
+        _errorPresupuesto = null;
+    }
+
+    private async Task EmitirAsync()
+    {
+        _errorGeneral = null;
+        await CalcularPresupuestoAsync();
+
+        if (_accesoDenegado)
+        {
+            return;
+        }
+
+        _errores = ValidarLocal();
+
+        if (_errores.Count > 0)
+        {
+            return;
+        }
+
+        var request = CrearRequest();
+        AsegurarClave(request);
+
+        _enviando = true;
+        var resultado = await ApiClient.EmitirComprobanteAsync(
+            Cookie,
+            request,
+            Modelo.ClaveIdempotencia,
+            Token);
+        _enviando = false;
+
+        if (resultado.SinSesion)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (resultado.Status == HttpStatusCode.Forbidden)
+        {
+            _accesoDenegado = true;
+            return;
+        }
+
+        if (!resultado.Exitoso || resultado.Valor is null)
+        {
+            _errorGeneral = FormatearError(resultado);
+            return;
+        }
+
+        _resultado = resultado.Valor;
+    }
+
+    private EmitirComprobanteRequest CrearRequest()
+        => new(
+            Modelo.TipoComprobante,
+            Modelo.PuntoVenta,
+            null,
+            new ReceptorComprobanteRequest(
+                Modelo.Receptor.DocumentoTipo,
+                Modelo.Receptor.DocumentoNumero,
+                Modelo.Receptor.RazonSocial,
+                Modelo.Receptor.CondicionIva),
+            [.. Modelo.Items.Select(item => new ItemComprobanteRequest(
+                item.Descripcion,
+                item.Cantidad,
+                item.PrecioUnitario,
+                item.AlicuotaIva))],
+            null,
+            string.IsNullOrWhiteSpace(Modelo.Observaciones) ? null : Modelo.Observaciones.Trim());
+
+    private void AsegurarClave(EmitirComprobanteRequest request)
+    {
+        var firma = JsonSerializer.Serialize(request);
+
+        if (string.IsNullOrEmpty(Modelo.ClaveIdempotencia))
+        {
+            Modelo.ClaveIdempotencia = EmisionIdempotencia.GenerarClave();
+            Modelo.FirmaPayload = firma;
+            return;
+        }
+
+        if (EmisionIdempotencia.DebeRegenerar(Modelo.FirmaPayload, firma))
+        {
+            Modelo.ClaveIdempotencia = EmisionIdempotencia.GenerarClave();
+            Modelo.FirmaPayload = firma;
+        }
+    }
+
+    private Dictionary<string, string> ValidarLocal()
+    {
+        var errores = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        if (Modelo.TipoComprobante is not (1 or 6 or 11))
+        {
+            errores["TipoComprobante"] = "Elegí el tipo de comprobante.";
+        }
+
+        if (!_puntosVenta.Any(p => p.Activo && p.Numero == Modelo.PuntoVenta))
+        {
+            errores["PuntoVenta"] = "Elegí el punto de venta.";
+        }
+
+        if (!ReceptorValido(out _))
+        {
+            errores["Receptor.DocumentoNumero"] = "El documento del receptor no es válido para este tipo de comprobante.";
+        }
+
+        var razonSocial = (Modelo.Receptor.RazonSocial ?? string.Empty).Trim();
+        if (razonSocial.Length is < 1 or > 200)
+        {
+            errores["Receptor.RazonSocial"] = "Ingresá la razón social del receptor.";
+        }
+
+        if (Modelo.Items.Count is < 1 or > 500)
+        {
+            errores["Items"] = "Agregá al menos un ítem.";
+        }
+
+        for (var i = 0; i < Modelo.Items.Count; i++)
+        {
+            var item = Modelo.Items[i];
+
+            var descripcion = (item.Descripcion ?? string.Empty).Trim();
+            if (descripcion.Length is < 1 or > 500)
+            {
+                errores[$"Items[{i}].Descripcion"] = "La descripción del ítem es obligatoria.";
+            }
+
+            if (item.Cantidad <= 0)
+            {
+                errores[$"Items[{i}].Cantidad"] = "La cantidad debe ser mayor que cero.";
+            }
+
+            if (item.PrecioUnitario < 0)
+            {
+                errores[$"Items[{i}].PrecioUnitario"] = "El precio unitario no puede ser negativo.";
+            }
+
+            if (!AlicuotasPermitidas.Contains(item.AlicuotaIva))
+            {
+                errores[$"Items[{i}].AlicuotaIva"] = "La alícuota de IVA no está permitida.";
+            }
+        }
+
+        return errores;
+    }
+
+    private bool ReceptorValido(out string normalizado)
+    {
+        normalizado = string.Empty;
+
+        var documentoTipo = (Modelo.Receptor.DocumentoTipo ?? string.Empty).Trim();
+        var documentoNumero = (Modelo.Receptor.DocumentoNumero ?? string.Empty).Trim();
+        var condicionIva = Modelo.Receptor.CondicionIva;
+
+        var esCuit = EsCuitValido(documentoNumero);
+        var esConsumidor = EsDocumentoConsumidorValido(documentoNumero);
+
+        var valido = Modelo.TipoComprobante switch
+        {
+            1 => string.Equals(documentoTipo, "CUIT", StringComparison.OrdinalIgnoreCase)
+                && esCuit
+                && condicionIva == 1,
+            6 => condicionIva is 4 or 5 or 6
+                && ((string.Equals(documentoTipo, "CUIT", StringComparison.OrdinalIgnoreCase) && esCuit)
+                    || (string.Equals(documentoTipo, "99", StringComparison.Ordinal) && esConsumidor)
+                    || (string.Equals(documentoTipo, "DNI", StringComparison.OrdinalIgnoreCase) && EsDniValido(documentoNumero))),
+            11 => condicionIva == 5
+                && (string.Equals(documentoTipo, "99", StringComparison.Ordinal)
+                    ? documentoNumero.Length > 0
+                    : string.Equals(documentoTipo, "CUIT", StringComparison.OrdinalIgnoreCase) && esCuit),
+            _ => false
+        };
+
+        if (valido)
+        {
+            normalizado = documentoNumero;
+        }
+
+        return valido;
+    }
+
+    private static bool EsDocumentoConsumidorValido(string documento)
+    {
+        var digitos = new string(documento.Where(char.IsAsciiDigit).ToArray());
+        return digitos.Length is 7 or 8 || EsCuitValido(documento);
+    }
+
+    private static bool EsDniValido(string documento)
+    {
+        var digitos = new string((documento ?? string.Empty).Where(char.IsAsciiDigit).ToArray());
+        return digitos.Length is 7 or 8;
+    }
+
+    private static bool EsCuitValido(string valor)
+    {
+        var cuit = new string((valor ?? string.Empty).Where(char.IsAsciiDigit).ToArray());
+        if (cuit.Length != 11)
+        {
+            return false;
+        }
+
+        int[] pesos = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+        var suma = 0;
+
+        for (var i = 0; i < pesos.Length; i++)
+        {
+            suma += (cuit[i] - '0') * pesos[i];
+        }
+
+        var resto = suma % 11;
+        var verificador = resto switch
+        {
+            0 => 0,
+            1 => 9,
+            _ => 11 - resto
+        };
+
+        return cuit[10] - '0' == verificador;
+    }
+
+    private string? Error(string clave)
+        => _errores.TryGetValue(clave, out var mensaje) ? mensaje : null;
+
+    private static string FormatearError<T>(ResultadoApi<T> resultado)
+        => resultado.Codigo is not null
+            ? $"{resultado.Codigo}: {resultado.Mensaje}"
+            : resultado.Mensaje ?? "No pudimos completar la operación.";
+
+    private static string Fecha(DateTime fecha)
+        => fecha.ToUniversalTime().ToString("dd/MM/yyyy HH:mm 'UTC'", CultureInfo.InvariantCulture);
+}
