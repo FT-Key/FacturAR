@@ -57,7 +57,7 @@ public sealed class LoginModel : PageModel
         }
 
         RelaySetCookies(cookies);
-        return Redirect("/");
+        return Redirect("/dashboard");
     }
 
     private void RelaySetCookies(IReadOnlyList<string> cookies)
