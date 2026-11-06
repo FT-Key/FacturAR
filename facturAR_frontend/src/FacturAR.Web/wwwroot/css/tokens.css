@@ -1,0 +1,119 @@
+@font-face {
+    font-family: "Inter";
+    src: url("../fonts/inter-latin-var.woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Fraunces";
+    src: url("../fonts/fraunces-latin-var.woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "JetBrains Mono";
+    src: url("../fonts/jetbrains-mono-latin-var.woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    color-scheme: light;
+
+    --color-bg: #FAF9F6;
+    --color-bg-subtle: #F3F0E9;
+    --color-surface: #FFFFFF;
+    --color-surface-raised: #FFFDF9;
+    --color-text: #141413;
+    --color-text-muted: #57534E;
+    --color-border: #E4DED3;
+    --color-border-strong: #C9C1B3;
+    --color-primary: #141413;
+    --color-on-primary: #FAF9F6;
+    --color-accent: #B4532A;
+    --color-on-accent: #FFFFFF;
+    --color-success: #15803D;
+    --color-warning: #B45309;
+    --color-danger: #B91C1C;
+    --color-focus: #1D4ED8;
+    --color-code-bg: #141413;
+    --color-code-text: #F5F1E8;
+
+    --font-ui: "Inter", "Segoe UI", system-ui, sans-serif;
+    --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --font-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, monospace;
+
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+    --text-3xl: 2rem;
+    --text-4xl: 2.5rem;
+    --text-5xl: 3.5rem;
+    --text-6xl: 4.5rem;
+
+    --line-height-display: 1.1;
+    --line-height-title: 1.25;
+    --line-height-body: 1.6;
+
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+    --space-8: 64px;
+    --space-9: 96px;
+
+    --radius-none: 0;
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-pill: 999px;
+    --radius-cta: 0 0 24px 24px;
+
+    --border-width: 1px;
+    --border: 1px solid var(--color-border);
+    --border-strong: 1px solid var(--color-border-strong);
+
+    --focus-ring: 2px solid var(--color-focus);
+    --focus-offset: 2px;
+
+    --duration-fast: 120ms;
+    --duration-base: 180ms;
+    --ease: ease-out;
+
+    --container-max: 1200px;
+    --measure: 720px;
+    --section-padding: clamp(64px, 10vw, 128px);
+}
+
+html[data-theme="dark"] {
+    color-scheme: dark;
+
+    --color-bg: #0E0E0D;
+    --color-bg-subtle: #161513;
+    --color-surface: #1B1A17;
+    --color-surface-raised: #211F1B;
+    --color-text: #FAF9F6;
+    --color-text-muted: #BDB6AA;
+    --color-border: #2E2B26;
+    --color-border-strong: #4A453D;
+    --color-primary: #FAF9F6;
+    --color-on-primary: #141413;
+    --color-accent: #E8926F;
+    --color-on-accent: #1A0F0A;
+    --color-success: #4ADE80;
+    --color-warning: #FBBF24;
+    --color-danger: #F87171;
+    --color-focus: #93C5FD;
+    --color-code-bg: #080807;
+    --color-code-text: #F5F1E8;
+}
