@@ -170,7 +170,7 @@ Formato exacto: `fak_` + `prefix` (12 caracteres hexadecimales) + `_` + `secret`
   - `cookies.contribuyente`: login de empresas clientes.
   - `cookies.admin`: login de la consola global (`SuperAdmin` / `Soporte`).
 - El login de empresa **no** puede crear sesión de consola global y viceversa.
-- La sesión del portal (`cookies.contribuyente`) **sí** autoriza los endpoints de consulta de comprobantes: `GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` y `GET /v1/comprobantes/ultimo-autorizado` (US-09), con rol `Administrador`, `Emisor` o `Consulta`. Es el camino que usa el portal (US-12) para leer los comprobantes sin duplicar reglas ni acceder a MongoDB. `POST /v1/comprobantes` sigue exigiendo API key.
+- La sesión del portal (`cookies.contribuyente`) **sí** autoriza los endpoints de consulta de comprobantes: `GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` y `GET /v1/comprobantes/ultimo-autorizado` (US-09), con rol `Administrador`, `Emisor` o `Consulta`. Es el camino que usa el portal (US-12) para leer los comprobantes sin duplicar reglas ni acceder a MongoDB. `POST /v1/comprobantes` acepta API key o la cookie de empresa con rol `Administrador` o `Emisor`; el `ContribuyenteId` se resuelve desde la credencial y nunca desde el body. `POST /v1/comprobantes/presupuesto` y `GET /v1/puntos-venta` usan la misma cookie con rol `Administrador` o `Emisor`.
 - La cookie de empresa **no** habilita `/v1/soap/**` (US-15, US-16) ni `/v1/admin/**`, y no convierte en autenticados los endpoints públicos: la verificación por CAE sigue siendo anónima.
 
 ## 5. Idempotencia (US-06)
@@ -378,7 +378,9 @@ En Development, el valor completo de la API key demo se entrega **una sola vez**
 
 ## 14. Convenciones de API para el cliente
 
-- Endpoint de emisión: `POST /v1/comprobantes` (API key + `Idempotency-Key`).
+- Endpoint de emisión: `POST /v1/comprobantes` (API key o cookie de empresa con rol `Administrador`/`Emisor`, + `Idempotency-Key` obligatorio).
+- Presupuesto: `POST /v1/comprobantes/presupuesto` (cookie de empresa con rol `Administrador`/`Emisor`). Devuelve `PresupuestoResponse`; no persiste, no consume número, no genera CAE y no audita.
+- Puntos de venta: `GET /v1/puntos-venta` (cookie de empresa con rol `Administrador`/`Emisor`). Devuelve solo los puntos de venta del contribuyente, activos e inactivos, ordenados por número.
 - Los tres endpoints de consulta aceptan API key (`X-Api-Key`) o cookie de empresa (`cookies.contribuyente`) con rol `Administrador`, `Emisor` o `Consulta`.
 - Listado: `GET /v1/comprobantes?page=1&pageSize=20&desde=2026-01-01&hasta=2026-01-31&tipo=1&estado=1&puntoVenta=1&receptor=20345678901`. `pageSize` máximo `100`; `desde` y `hasta` se interpretan en UTC y `hasta` incluye el día completo.
 - Consulta por id: `GET /v1/comprobantes/{id}` (Guid). Un id inexistente o de otra empresa responde `404 COMPROBANTE_NO_ENCONTRADO`; un id que no es Guid responde `400 VALIDACION`.
