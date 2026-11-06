@@ -1,12 +1,12 @@
 # Historias de usuario
 
-El alcance obligatorio tiene **26 historias y 47 días ideales de trabajo**, y **se implementan en un único sprint**. US-12, US-13, US-19, US-20, US-27, US-28 y US-31 están completadas y archivadas; quedan 19 historias activas.
+El alcance obligatorio tiene **27 historias y 52 días ideales de trabajo**, y **se implementan en un único sprint**. US-12, US-13, US-19, US-20, US-27, US-28 y US-31 están completadas y archivadas; quedan 20 historias activas.
 
 Las US-22 a US-25 **quedan fuera del alcance del proyecto** y están archivadas en [`docs/historias-usuario-fuera-de-alcance/`](../historias-usuario-fuera-de-alcance/README.md). No se implementan ni se cuentan para el avance del MVP.
 
 El sprint se ejecuta en **6 fases** que son, al mismo tiempo, el orden de implementación: las historias de una fase dependen de las anteriores. Dentro de una fase, las historias sin dependencia mutua se pueden tomar en paralelo.
 
-Las US-27 a US-30 completan el onboarding profesional: solicitud pública, aprobación por administrador global, invitación por email y manual de integración. Los números no indican orden de implementación; el orden lo define la columna **Orden**.
+Las US-27 a US-30 completan el onboarding profesional: solicitud pública, aprobación por administrador global, invitación por email y manual de integración. US-32 agrega la landing pública en `/`, el sistema de diseño con modo claro/oscuro/system y el asistente de alta. Los números no indican orden de implementación; el orden lo define la columna **Orden**.
 
 > El proceso completo está documentado en [`docs/proceso-alta-empresa.md`](../proceso-alta-empresa.md). El manual para integradores está en [`docs/manual-integracion.md`](../manual-integracion.md).
 
@@ -49,6 +49,7 @@ La columna **Orden** es la posición dentro del sprint. La columna **Contrato** 
 | 21 | [US-30](US-30-manual-integracion.md) | Manual online de integración | Portal | 6 | Media | 1 | RF-27 | Pendiente | Sí |
 | 22 | [US-21](US-21-tests-documentacion.md) | Tests, Postman y documentación | Calidad | 6 | Alta | 2 | RNF-13/17/18 | Parcial | Sí |
 | 23 | [US-11](US-11-verificacion-publica.md) | Verificación pública por CAE | Consultas | 6 | Alta | 2 | RF-10 | Base implementada | Sí |
+| 24 | [US-32](US-32-landing-publica-chatbot.md) | Landing pública, sistema de diseño y asistente de alta | Portal | 6 | Alta | 5 | RF-28 | Pendiente | Sí |
 | — | [US-19](../historias-usuario-terminadas/US-19-docker-compose.md) | Docker y Docker Compose | Infraestructura | — | Alta | 2 | RF-21 | Completada | — |
 | — | [US-20](../historias-usuario-terminadas/US-20-integracion-continua.md) | Integración continua (CI) | Infraestructura | — | Alta | 1 | RF-21 | Completada | — |
 | — | [US-31](../historias-usuario-terminadas/US-31-entrega-continua-azure.md) | Entrega continua y despliegue en Azure | Infraestructura | — | Alta | 3 | RNF-20 / RF-21 | Completada | — |
@@ -143,6 +144,7 @@ Ese recorrido es el criterio de avance del sprint. Si alguna historia del recorr
 | US-29 | US-19 | US-01, US-27, US-28 |
 | US-30 | US-02, US-03, US-05 | US-21 |
 | US-31 | US-19, US-20 | US-21 |
+| US-32 | US-01, US-02, US-03, US-04, US-14, US-29 | US-21, US-30 |
 
 ## Fases del sprint
 
@@ -155,7 +157,7 @@ Las fases son el orden de implementación, no sprints separados. Dentro de una f
 | 3 | Integraciones y numeración | US-02, US-03, US-07, US-18 | US-02 → US-03 en secuencia; US-07 y US-18 en paralelo |
 | 4 | Emisión | US-05, US-06, US-08 | US-05 primero; US-06 y US-08 en paralelo |
 | 5 | Consultas, documentos y portal | US-09, US-10, US-12, US-13, US-14 | US-09 → US-10; US-12, US-13 y US-14 en paralelo |
-| 6 | Interoperabilidad, operación y entrega | US-15, US-16, US-17, US-30, US-21, US-11 | US-15, US-16, US-17 y US-30 en paralelo; US-21 y US-11 al final |
+| 6 | Interoperabilidad, operación y entrega | US-15, US-16, US-17, US-30, US-32, US-21, US-11 | US-15, US-16, US-17, US-30 y US-32 en paralelo; US-21 y US-11 al final |
 
 El plan detallado, con prerrequisitos de infraestructura, checklists de demo y de entrega, está en [`docs/plan-implementacion.md`](../plan-implementacion.md).
 
@@ -189,6 +191,13 @@ flowchart TD
     US02 --> US30[US-30 Manual]
     US03 --> US30
     US05 --> US30
+    US04 --> US32[US-32 Landing y asistente]
+    US02 --> US32
+    US03 --> US32
+    US14 --> US32
+    US29 --> US32
+    US01 --> US32
+    US32 --> US21
     US19[US-19 Docker] --> US20[US-20 CI]
     US20 --> US31[US-31 CD Azure]
     US20 --> US21[US-21 Tests]
