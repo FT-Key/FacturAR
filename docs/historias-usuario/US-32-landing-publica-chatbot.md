@@ -79,7 +79,7 @@ Reglas que la landing y el asistente deben comunicar sin ambigüedad:
 - [x] La landing deja un slot visible para la guía de integración, con estado “Próximamente” mientras US-30 no esté implementada.
 - [x] La landing es navegable con teclado y tiene enlace “Saltar al contenido”.
 - [x] La landing se ve correctamente en 375, 768, 1280 y 1440 px, sin scroll horizontal.
-- [x] La landing no usa imágenes de stock ni templates genéricos; la identidad es original (“Papel y sello”).
+- [x] La landing no usa imágenes de stock ni templates genéricos; la identidad es original (“Planos en perspectiva”).
 - [x] La landing no depende de JavaScript para mostrar el contenido principal.
 
 ### Sistema de diseño y temas
@@ -139,7 +139,7 @@ Reglas que la landing y el asistente deben comunicar sin ambigüedad:
 - [x] Los tests del asistente usan un proveedor falso; no llaman a Groq en CI.
 - [x] Se actualizan `README.md`, el índice de historias, `docs/requisitos-funcionales.md` y este archivo.
 - [x] `dotnet build`, `dotnet test` y `dotnet format --verify-no-changes` pasan.
-- [ ] El PR incluye capturas de la landing en claro y oscuro, desktop y móvil.
+- [x] El PR incluye capturas de la landing en claro y oscuro, desktop y móvil.
 - [ ] El PR incluye el reporte de Lighthouse y el resultado de axe.
 
 ## Escenarios Gherkin
@@ -216,23 +216,24 @@ Scenario: Groq no responde
 
 ### Fuente y concepto
 
-La base visual se toma del skill **claude** de OpenDesign (`.opencode/skills/claude/SKILL.md` y `DESIGN.md`, autor `typeui.sh`), incorporado al repositorio en `.opencode/skills/claude/`.
+La base visual se toma del skill **Perspective** de OpenDesign (`.opencode/skills/perspective/SKILL.md` y `DESIGN.md`, autor `typeui.sh`), incorporado al repositorio en `.opencode/skills/perspective/`.
 
-El skill propone una estética editorial sobre papel cálido, tinta casi negra y un acento terroso, con superficies de bordes duros, sin sombras y con una CTA primaria de geometría asimétrica. Se adapta a FacturAR con el concepto **“Papel y sello / libro mayor”**:
+El skill propone una estética espacial con vistas isométricas, puntos de fuga y capas que ordenan la atención. Se adapta a FacturAR con el concepto **“Planos y comprobantes en perspectiva”**:
 
-- Papel marfil en claro y tinta nocturna en oscuro.
-- Líneas de libro mayor como separadores, no como decoración excesiva.
-- Un sello tipográfico para “CAE simulado” y para los hitos de confianza.
-- Monospace para CUIT, CAE y bloques de código.
-- CTA primaria con borde superior recto y borde inferior redondeado, usada con moderación.
-- Sin gradientes, sin glows, sin sombras difusas y sin glassmorphism.
+- Fondo verde tinta muy claro en claro y verde nocturno en oscuro.
+- Grilla en perspectiva en el hero, el alta y la verificación.
+- Comprobante apilado en capas con desplazamiento 3D en el hero.
+- Tarjetas con borde superior mint y sombra dura.
+- CTA primaria con labio inferior sólido que se hunde al presionar.
+- Etiquetas, CUIT, CAE y código en monoespaciada.
+- Sin glassmorphism, sin gradientes violeta y sin animaciones de parallax.
 
-Las fuentes propietarias del skill (Anthropic Sans/Serif) **no se usan**. Se reemplazan por alternativas abiertas y self-hosted:
+Las fuentes propietarias del skill **no se usan**. Se reemplazan por alternativas abiertas y self-hosted:
 
 | Rol | Fuente | Fallback |
 | --- | --- | --- |
-| UI / texto | Inter (variable) | `"Segoe UI", system-ui, sans-serif` |
-| Display / títulos | Fraunces (variable) | `"Iowan Old Style", Georgia, serif` |
+| UI / texto | Poppins 400/500/600/700 | `"Segoe UI", system-ui, sans-serif` |
+| Display / títulos | Oswald (variable) | `"Arial Narrow", Impact, sans-serif` |
 | Mono / código | JetBrains Mono (variable) | `"Cascadia Code", ui-monospace, monospace` |
 
 ### Paleta de tokens
@@ -241,28 +242,35 @@ Los valores son la fuente de verdad para implementar. El contraste final se vali
 
 | Token | Claro | Oscuro | Uso |
 | --- | --- | --- | --- |
-| `--color-bg` | `#FAF9F6` | `#0E0E0D` | Fondo de página |
-| `--color-bg-subtle` | `#F3F0E9` | `#161513` | Secciones alternas |
-| `--color-surface` | `#FFFFFF` | `#1B1A17` | Tarjetas y paneles |
-| `--color-surface-raised` | `#FFFDF9` | `#211F1B` | Elementos elevados |
-| `--color-text` | `#141413` | `#FAF9F6` | Texto principal |
-| `--color-text-muted` | `#57534E` | `#BDB6AA` | Texto secundario |
-| `--color-border` | `#E4DED3` | `#2E2B26` | Bordes y separadores |
-| `--color-border-strong` | `#C9C1B3` | `#4A453D` | Bordes de foco/énfasis |
-| `--color-primary` | `#141413` | `#FAF9F6` | Botón primario |
-| `--color-on-primary` | `#FAF9F6` | `#141413` | Texto sobre primario |
-| `--color-accent` | `#B4532A` | `#E8926F` | Acento arcilla, links y sellos |
-| `--color-on-accent` | `#FFFFFF` | `#1A0F0A` | Texto sobre acento |
+| `--color-bg` | `#F2F7F4` | `#06100C` | Fondo de página |
+| `--color-bg-subtle` | `#E8F1EC` | `#0A1712` | Secciones alternas |
+| `--color-surface` | `#FFFFFF` | `#0D1B15` | Tarjetas y paneles |
+| `--color-surface-raised` | `#F8FCFA` | `#12241C` | Elementos elevados |
+| `--color-text` | `#0A1511` | `#E9F6EF` | Texto principal |
+| `--color-text-muted` | `#4C615A` | `#A9C0B6` | Texto secundario |
+| `--color-border` | `#D2E3DA` | `#1E3329` | Bordes y separadores |
+| `--color-border-strong` | `#A6C4B6` | `#355547` | Bordes de énfasis y sombras duras |
+| `--color-primary` | `#00BD7D` | `#00D68F` | CTA, focos y acentos |
+| `--color-primary-strong` | `#00996A` | `#00A36C` | Labio 3D del primario |
+| `--color-on-primary` | `#032219` | `#032219` | Texto sobre primario |
+| `--color-accent` | `#00714B` | `#6EE7B7` | Enlaces y énfasis |
+| `--color-on-accent` | `#FFFFFF` | `#04231A` | Texto sobre acento |
 | `--color-success` | `#15803D` | `#4ADE80` | Éxito |
 | `--color-warning` | `#B45309` | `#FBBF24` | Advertencia |
 | `--color-danger` | `#B91C1C` | `#F87171` | Error |
-| `--color-focus` | `#1D4ED8` | `#93C5FD` | Anillo de foco funcional |
-| `--color-code-bg` | `#141413` | `#080807` | Bloques de código |
-| `--color-code-text` | `#F5F1E8` | `#F5F1E8` | Texto de código |
+| `--color-focus` | `#005C3C` | `#7DFFC4` | Anillo de foco funcional |
+| `--color-code-bg` | `#06110C` | `#030A07` | Bloques de código |
+| `--color-code-header` | `#0B1D15` | `#07140F` | Cabecera del bloque de código |
+| `--color-code-text` | `#D7F5E7` | `#D7F5E7` | Texto de código |
+| `--color-primary-soft` | `rgba(0,189,125,.12)` | `rgba(0,214,143,.14)` | Glows y fondos suaves |
+| `--color-grid` | `rgba(7,60,44,.10)` | `rgba(126,231,183,.10)` | Grillas en perspectiva |
 
 Reglas:
 
-- El acento arcilla se usa en menos del 5% de la superficie visible.
+- El primario mint se usa para CTA, foco y estados activos; no como color de texto de párrafo.
+- La profundidad se construye con desplazamientos duros (`2px`, `4px`, `8px`) y el labio de `4px` del botón primario.
+- La sombra difusa se reserva para el recibo del hero, las tarjetas de autenticación y el panel del asistente.
+- Los planos 3D nunca contienen texto interactivo ni reemplazan la jerarquía semántica.
 - El foco nunca se elimina; se dibuja con `outline: 2px solid var(--color-focus); outline-offset: 2px`.
 - Los estados `hover`, `active`, `disabled` y `focus-visible` son explícitos.
 - No se usan colores crudos en componentes; siempre tokens semánticos.
@@ -279,45 +287,49 @@ Reglas:
 | `--text-xl` | 1.25rem / 20px | H3 |
 | `--text-2xl` | 1.5rem / 24px | H2 |
 | `--text-3xl` | 2rem / 32px | H1 mobile |
-| `--text-4xl` | 2.5rem / 40px | H1 tablet |
+| `--text-4xl` | 2.75rem / 44px | H1 tablet |
 | `--text-5xl` | 3.5rem / 56px | H1 desktop |
 | `--text-6xl` | 4.5rem / 72px | Display puntual |
 
-- Interlineado: 1.1 para display, 1.25 para títulos, 1.6 para cuerpo.
+- Interlineado: 1.02 para display, 1.15 para títulos, 1.65 para cuerpo.
 - Ancho de lectura: 65–75 caracteres.
-- No se usa todo en mayúsculas salvo etiquetas cortas con `letter-spacing: 0.08em`.
-- Los títulos usan Fraunces 500/600; el cuerpo usa Inter 400/500.
+- No se usa todo en mayúsculas salvo etiquetas cortas con `letter-spacing: 0.08em–0.16em`.
+- Los títulos usan Oswald 500; el cuerpo usa Poppins 400/500 y los labels Poppins 600.
+- El hero usa `clamp(2.6rem, 5.4vw, 4.75rem)`; en móvil baja a `clamp(2.35rem, 11vw, 3.25rem)`.
+- Los números de paso, chips y sellos usan JetBrains Mono en mayúsculas.
 
 ### Espaciado, radios y movimiento
 
 - Escala de espaciado: 4, 8, 12, 16, 24, 32, 48, 64, 96 px.
 - Secciones de landing: `clamp(64px, 10vw, 128px)` de padding vertical.
 - Contenedor máximo: 1200 px; lectura: 720 px.
-- Radios: 0 para CTA principales, 4 px para inputs, 8 px para tarjetas, 999 px solo para chips.
-- Sombras: ninguna decorativa. Solo borde de 1 px y, si hace falta, un desplazamiento duro de 2 px en hover.
-- Transiciones: 120–180 ms, `ease-out`; se desactivan con `prefers-reduced-motion: reduce`.
+- Radios: 4 px para controles, botones y chips; 8 px para tarjetas y paneles; 999 px solo para el toggle de tema y el botón flotante del asistente.
+- Profundidad: sombras duras de `2px`, `4px` y `8px`; labio del primario `0 4px 0`; sombra de elevación solo en recibo, auth y asistente.
+- Planos isométricos: `perspective` entre 600 y 1200 px, `rotateX`/`rotateY` suaves y `overflow: hidden` en la sección para evitar scroll horizontal.
+- Transiciones: 120–200 ms, `cubic-bezier(0.2, 0.7, 0.2, 1)`; se desactivan con `prefers-reduced-motion: reduce`.
 - No se usan animaciones de scroll, parallax ni autoplay.
 
 ### Componentes base
 
 | Componente | Reglas |
 | --- | --- |
-| Navbar | Logo, enlaces, toggle de tema, “Ingresar”, CTA “Solicitar alta”. Sticky con borde inferior. En móvil, menú accesible con `<button aria-expanded>`. |
+| Navbar | Logo, enlaces mono en mayúsculas, toggle de tema, “Ingresar”, CTA “Solicitar alta”. Sticky con blur, borde inferior y regla mint. En móvil, menú accesible con `<button aria-expanded>`. |
 | Footer | Logo, descripción corta, columnas Producto/Desarrolladores/Legal, estado del servicio y copyright. |
-| Botón primario | Fondo `--color-primary`, texto `--color-on-primary`, borde superior recto y borde inferior redondeado 24 px. |
-| Botón secundario | Borde 1 px, fondo transparente, texto principal. |
-| Tarjeta | Superficie, borde 1 px, sin sombra, padding 24–32 px. |
-| Badge/sello | Borde 1 px, texto mono en mayúsculas, sin relleno fuerte. |
-| Bloque de código | Fondo `--color-code-bg`, texto `--color-code-text`, botón “Copiar” accesible. |
-| Acordeón FAQ | `<details>`/`<summary>` nativo o botón con `aria-expanded`; foco visible. |
-| Toggle de tema | Grupo de 3 opciones (Claro, Oscuro, Sistema) o botón cíclico con nombre accesible. Persistencia y `aria-pressed`. |
-| Asistente | Botón flotante abajo a la derecha, panel, header, mensajes, quick replies, input, disclaimer. |
+| Botón primario | Fondo `--color-primary`, texto `--color-on-primary`, radio 4 px y labio `0 4px 0 --color-primary-strong`. Hover eleva 2 px; active hunde 2 px. |
+| Botón secundario | Superficie, borde fuerte, texto principal y sombra dura de 3 px; hover cambia el labio a mint. |
+| Tarjeta | Superficie, borde 1 px, borde superior mint de 3 px, radio 8 px y sombra dura de 4 px. Hover eleva 2 px. |
+| Badge/sello | Mono en mayúsculas, superficie, borde fuerte, cuadrado mint y sombra dura de 2 px. |
+| Bloque de código | Fondo oscuro, cabecera con punto mint, texto mono claro y botón “Copiar” accesible. |
+| Acordeón FAQ | `<details>`/`<summary>` nativo; indicador +/− en cuadrado mint con sombra dura; foco visible. |
+| Toggle de tema | Grupo de 3 opciones (Claro, Oscuro, Sistema) con `aria-pressed`; la opción activa usa mint. Persistencia y `prefers-color-scheme` en `system`. |
+| Asistente | Botón flotante abajo a la derecha con labio mint, panel con borde superior mint, header, mensajes, quick replies, input y disclaimer. |
 
 ### Anti-patrones prohibidos
 
 - Copiar un template de landing SaaS genérico.
-- Usar gradientes violeta/azul, glassmorphism o ilustraciones 3D de stock.
-- Sombras difusas, bordes redondeados en todos los elementos y animaciones constantes.
+- Usar glassmorphism, gradientes violeta/azul o ilustraciones 3D de stock.
+- Aplicar transformaciones 3D a párrafos, formularios o controles interactivos.
+- Sombras difusas fuera del recibo, las tarjetas de auth y el asistente.
 - Texto gris claro sobre fondo claro.
 - Íconos sin etiqueta accesible.
 - Un `<div>` clickeable en lugar de un `<a>` o `<button>`.
@@ -376,10 +388,13 @@ Reglas:
 - JavaScript propio mínimo en `wwwroot/js/theme.js` y `wwwroot/js/asistente.js`.
 - Sin Bootstrap en la landing. El portal autenticado puede conservar Bootstrap mientras migra a tokens.
 - Fuentes self-hosted:
-  - `wwwroot/fonts/inter-latin-var.woff2`
-  - `wwwroot/fonts/fraunces-latin-var.woff2`
+  - `wwwroot/fonts/poppins-latin-400.woff2`
+  - `wwwroot/fonts/poppins-latin-500.woff2`
+  - `wwwroot/fonts/poppins-latin-600.woff2`
+  - `wwwroot/fonts/poppins-latin-700.woff2`
+  - `wwwroot/fonts/oswald-latin-var.woff2`
   - `wwwroot/fonts/jetbrains-mono-latin-var.woff2`
-- Preload solo de Inter 400/600 y Fraunces 600; el resto con `font-display: swap`.
+- Preload solo de Poppins 400/600 y Oswald variable; el resto con `font-display: swap`.
 - El tema se aplica con un script inline de menos de 1 KB antes del primer paint.
 - Las imágenes del hero usan `fetchpriority="high"`; el resto `loading="lazy"`.
 
@@ -716,7 +731,7 @@ Enlaces a revisar: `Dashboard.razor`, `NavMenu.razor`, `Login.cshtml.cs`, `Compr
 
 - .NET 10 y el stack existente. No se agregan frameworks CSS/JS.
 - Groq se consume por HTTP con `HttpClient`; no se agrega SDK.
-- Fuentes open source self-hosted: Inter, Fraunces y JetBrains Mono (SIL Open Font License). Se incluyen los archivos `woff2` y la licencia en `wwwroot/fonts/LICENSE.txt`.
+- Fuentes open source self-hosted: Poppins, Oswald y JetBrains Mono (SIL Open Font License). Se incluyen los archivos `woff2` y la licencia en `wwwroot/fonts/LICENSE.txt`.
 - Si se decide usar un paquete de Markdown o sanitización, justificarlo en el PR; la preferencia es texto plano y cero dependencias nuevas.
 
 ## Accesibilidad
@@ -821,8 +836,9 @@ Enlaces a revisar: `Dashboard.razor`, `NavMenu.razor`, `Login.cshtml.cs`, `Compr
 - `AsistenteEndpointTests` cubre 404 deshabilitado, 400 sin antiforgery, 403 por `Origin` ausente o distinto, 400 por mensaje vacío, campo desconocido, rol `system` o body > 8 KB, 200 con proveedor falso, 503 amable sin stack trace, 429 al séptimo mensaje con `Retry-After` y no filtración de la key ni del `Origin`.
 - `AsistentePoliticaTests` cubre RT-32.01 a RT-32.10 y RT-32.13, incluida la inyección en base64 y con caracteres invisibles; `AsistenteLimitesTests` cubre rate limits, presupuesto diario, requests diarios y circuit breaker; `AsistenteOptionsTests` valida el arranque con `Asistente:Habilitado=true` sin key.
 - QA Playwright contra el portal en `http://localhost:5116` con el asistente habilitado y un proveedor inalcanzable a propósito: CP-32.01, CP-32.02, CP-32.03 (302), CP-32.05, CP-32.06, CP-32.07 (oscuro + recarga sin flash + `aria-pressed`), CP-32.08 (system con `emulateMedia`), CP-32.09 (375 px sin scroll horizontal, menú con teclado y Escape), CP-32.10 (skip link como primer foco; `main` con `tabindex="-1"`), CP-32.12 (abre, foco en input, Escape cierra y devuelve foco), CP-32.20 (XSS como texto, 0 `<img>`), CP-32.23 (wordmark textual, sin imagen rota) y CP-32.24 (`noindex` en login/admin/activar).
-- QA responsive en 375, 768, 1280 y 1440 px sin scroll horizontal. Asistente: quick replies visibles, disclaimer, contador, envío con Enter, 503 amable con “Reintentar” y enlaces a FAQ/formulario, sin stack trace; el tema claro/oscuro/sistema persiste en `localStorage`.
+- QA responsive en 375, 768, 1280 y 1440 px sin scroll horizontal. El rediseño Perspective se verificó en claro y oscuro, con foco visible por teclado, menú móvil y capturas regeneradas. Asistente: quick replies visibles, disclaimer, contador, envío con Enter, 503 amable con “Reintentar” y enlaces a FAQ/formulario, sin stack trace; el tema claro/oscuro/sistema persiste en `localStorage`.
 - Capturas en `docs/capturas/us-32/`: `landing-claro-desktop.png`, `landing-oscuro-desktop.png`, `landing-claro-movil.png`, `landing-oscuro-movil.png`, `asistente-desktop.png` y `asistente-movil.png` (las 6 existen y pesan más de 0 bytes).
+- Contraste WCAG de los pares de tokens principales medido con fórmula de luminancia relativa: texto/fondo 17.18:1 en claro y 17.38:1 en oscuro; texto atenuado 6.13:1/10.03:1; acento 5.60:1/12.67:1; texto sobre primario 6.88:1/8.84:1; texto sobre el labio del primario 4.62:1/5.18:1. Todos los pares de texto superan 4.5:1.
 - Verificación de tamaño: CSS de la landing 4,6 KB gzip (`tokens.css` + `public.css`); JS propio 5,7 KB gzip (`theme.js` + `asistente.js`), por debajo de los límites de la historia.
 - Persistencia: el asistente no accede a MongoDB ni escribe el texto de los mensajes; solo metadatos y categoría.
 
@@ -832,7 +848,7 @@ Enlaces a revisar: `Dashboard.razor`, `NavMenu.razor`, `Login.cshtml.cs`, `Compr
 - axe: no hay herramienta de auditoría de accesibilidad disponible.
 - Respuesta real de Groq: no hay API key; solo se probó con proveedor falso y fallback 503.
 - QA manual contra Groq real de CP-32.11, CP-32.13/14/15/16/17/18 y CP-32.21 (revisión de logs en runtime); CP-32.22 ya está cubierto por test automático.
-- Contraste WCAG medido con herramienta en ambos temas.
+- Contraste WCAG a nivel de componente con axe o medidor sobre la UI renderizada; los pares de tokens principales ya se midieron y superan 4.5:1 en ambos temas.
 - Tema claro/oscuro/system en login, alta, activación, verificación y shell del portal (el QA se hizo en la landing).
 - Assets de marca `wwwroot/brand/*.png` y `og-image.png`: los sube el usuario; el código degrada a wordmark textual y las metas referencian la ruta.
 - Imágenes con dimensiones explícitas y `loading="lazy"`: depende de los assets de marca.
