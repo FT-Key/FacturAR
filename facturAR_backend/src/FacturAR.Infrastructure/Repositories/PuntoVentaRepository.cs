@@ -26,4 +26,14 @@ public sealed class PuntoVentaRepository : IPuntoVentaRepository
 
         return await _sesion.Find(_context.PuntosVenta, filtro).FirstOrDefaultAsync(ct);
     }
+
+    public async Task<IReadOnlyList<PuntoVenta>> ListarPorContribuyenteAsync(
+        Guid contribuyenteId,
+        CancellationToken ct = default)
+    {
+        var filtro = Builders<PuntoVenta>.Filter.Eq(p => p.ContribuyenteId, contribuyenteId);
+        var orden = Builders<PuntoVenta>.Sort.Ascending(p => p.Numero);
+
+        return await _sesion.Find(_context.PuntosVenta, filtro).Sort(orden).ToListAsync(ct);
+    }
 }
