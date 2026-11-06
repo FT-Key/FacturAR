@@ -151,7 +151,7 @@ Hay dos mecanismos, según quién consume la API.
 Header:
 
 ```http
-X-Api-Key: fak_9f3a1c7b2e40_<secreto>
+X-Api-Key: fak_<prefijo>_<secreto>
 ```
 
 Formato exacto: `fak_` + `prefix` (12 caracteres hexadecimales) + `_` + `secret` (43 caracteres base64url, resultado de 32 bytes aleatorios). La expresión regular de validación es `^fak_[0-9a-f]{12}_[A-Za-z0-9_-]{43}$`.
