@@ -16,6 +16,7 @@
     </script>
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["css/tokens.css"]" />
+    <link rel="stylesheet" href="@Assets["css/asistente.css"]" />
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["FacturAR.Web.styles.css"]" />
@@ -28,11 +29,13 @@
     <CascadingAuthenticationState>
         <Routes />
     </CascadingAuthenticationState>
+    <AntiforgeryToken />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@Assets["js/theme.js"]"></script>
     <script type="module" src="@Assets["js/api-keys.js"]"></script>
     <script src="@Assets["js/emision-manual.js"]"></script>
+    <script src="@Assets["js/asistente.js"]"></script>
 </body>
 
 </html>
