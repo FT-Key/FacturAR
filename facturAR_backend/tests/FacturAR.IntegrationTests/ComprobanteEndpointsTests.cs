@@ -517,6 +517,7 @@ public sealed class ComprobanteApiKeyFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Development");
         builder.UseSetting("Mongo:InitializeIndexes", "false");
+        builder.UseSetting("Outbox:Habilitado", "false");
         builder.UseSetting("ApiKeys:ActualizarUltimoUso", "false");
         builder.UseSetting("Seed:Enabled", "false");
         builder.UseSetting("BootstrapAdmin:Email", string.Empty);

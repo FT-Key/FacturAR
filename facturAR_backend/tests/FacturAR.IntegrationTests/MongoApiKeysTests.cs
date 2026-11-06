@@ -63,6 +63,7 @@ public sealed class MongoApiKeysTests : IAsyncLifetime
                 builder.UseSetting("Mongo:ConnectionString", MongoTestSettings.GetConnectionStringWithTimeout());
                 builder.UseSetting("Mongo:DatabaseName", _databaseName);
                 builder.UseSetting("Mongo:InitializeIndexes", "true");
+                builder.UseSetting("Outbox:Habilitado", "false");
                 builder.UseSetting("Auth:Login:RateLimitPorIp", "1000");
                 builder.UseSetting("Auth:PasswordHashIterations", "1000");
                 builder.UseSetting("BootstrapAdmin:Email", string.Empty);
@@ -371,9 +372,9 @@ public sealed class MongoApiKeysTests : IAsyncLifetime
             .ToListAsync();
 
         Assert.Equal(3, eventos.Count);
-        Assert.Contains(eventos, e => e.Accion == "apikey.creada");
-        Assert.Contains(eventos, e => e.Accion == "apikey.revocada");
-        Assert.Contains(eventos, e => e.Accion == "apikey.regenerada");
+        Assert.Contains(eventos, e => e.Accion == "ApiKeyCreada");
+        Assert.Contains(eventos, e => e.Accion == "ApiKeyRevocada");
+        Assert.Contains(eventos, e => e.Accion == "ApiKeyRegenerada");
         Assert.All(eventos, e => Assert.Equal(_contribuyenteA!.Id, e.ContribuyenteId));
 
         var datos = string.Join('\n', eventos.Select(e => e.Datos ?? string.Empty));

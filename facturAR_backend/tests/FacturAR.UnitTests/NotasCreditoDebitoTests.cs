@@ -96,7 +96,7 @@ public sealed class NotasCreditoDebitoTests
         Assert.Null(guardada.ImporteOriginalAjustado);
 
         var evento = Assert.Single(ctx.Eventos.Eventos, e => e.EntidadId == nota.Id.ToString());
-        Assert.Equal("comprobante.emitido", evento.Accion);
+        Assert.Equal("NotaEmitida", evento.Accion);
         Assert.Contains(factura.Id.ToString(), evento.Datos);
     }
 

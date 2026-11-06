@@ -15,6 +15,7 @@ public sealed class ConfiguredWebApplicationFactory : WebApplicationFactory<Prog
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Mongo:InitializeIndexes", "false");
+        builder.UseSetting("Outbox:Habilitado", "false");
 
         foreach (var setting in _settings)
         {

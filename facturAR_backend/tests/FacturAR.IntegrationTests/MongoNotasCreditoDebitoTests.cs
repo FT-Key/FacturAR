@@ -46,6 +46,7 @@ public sealed class MongoNotasCreditoDebitoTests : IAsyncLifetime
                 builder.UseSetting("Mongo:ConnectionString", MongoTestSettings.GetConnectionStringWithTimeout());
                 builder.UseSetting("Mongo:DatabaseName", _databaseName);
                 builder.UseSetting("Mongo:InitializeIndexes", "true");
+                builder.UseSetting("Outbox:Habilitado", "false");
                 builder.UseSetting("ApiKeys:ActualizarUltimoUso", "false");
                 builder.UseSetting("Seed:Enabled", "false");
                 builder.UseSetting("BootstrapAdmin:Email", string.Empty);
@@ -132,7 +133,7 @@ public sealed class MongoNotasCreditoDebitoTests : IAsyncLifetime
         Assert.Equal(1, secuencia.UltimoNumero);
 
         Assert.Equal(1, await Coleccion<EventoAuditoria>(MongoCollections.Eventos)
-            .CountDocumentsAsync(e => e.EntidadId == nota.Id.ToString() && e.Accion == "comprobante.emitido"));
+            .CountDocumentsAsync(e => e.EntidadId == nota.Id.ToString() && e.Accion == "NotaEmitida"));
     }
 
     [MongoFact]

@@ -38,7 +38,8 @@ internal sealed class ComprobanteContexto
             Idempotencia,
             Eventos,
             Transaccion,
-            Parametros);
+            Parametros,
+            Tenant);
     }
 
     public Contribuyente Emisor { get; } = new()
@@ -63,6 +64,8 @@ internal sealed class ComprobanteContexto
 
     public ComprobanteParametrosFake Parametros { get; } = new();
 
+    public ComprobanteTenantFake Tenant { get; } = new();
+
     public IIdempotenciaService Idempotencia { get; }
 
     public EmitirComprobanteService Servicio { get; }
@@ -76,7 +79,8 @@ internal sealed class ComprobanteContexto
             new IdempotenciaService(comprobantes),
             Eventos,
             Transaccion,
-            Parametros);
+            Parametros,
+            Tenant);
 
     public EmitirComprobanteRequest FacturaA(
         decimal? importeTotal = 12100m,
@@ -374,6 +378,13 @@ internal sealed class ComprobanteTransaccionFake : ITransaccionMongo
         Ejecuciones++;
         return operacion(ct);
     }
+}
+
+internal sealed class ComprobanteTenantFake : ITenantContext
+{
+    public Guid? ContribuyenteId { get; set; }
+    public Guid? UsuarioId { get; set; }
+    public Guid? AdministradorId { get; set; }
 }
 
 internal sealed class ComprobanteParametrosFake : IParametrosResolver

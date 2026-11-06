@@ -1,6 +1,7 @@
 using FacturAR.Application.Abstractions;
 using FacturAR.Application.Comprobantes;
 using FacturAR.Contracts.Comprobantes;
+using FacturAR.Domain;
 using FacturAR.Domain.Entities;
 using FacturAR.Domain.Enums;
 using FacturAR.Domain.Exceptions;
@@ -347,14 +348,34 @@ public sealed class EmitirComprobanteServiceTests
         Assert.Equal(10000m, item.Subtotal);
 
         var evento = Assert.Single(contexto.Eventos.Eventos);
-        Assert.Equal("comprobante.emitido", evento.Accion);
+        Assert.Equal("ComprobanteEmitido", evento.Accion);
         Assert.Equal("Comprobante", evento.Entidad);
         Assert.Equal(guardado.Id.ToString(), evento.EntidadId);
         Assert.Equal(contexto.Emisor.Id, evento.ContribuyenteId);
         Assert.Null(evento.UsuarioId);
-        Assert.Equal("Empresa", evento.ActorTipo);
+        Assert.Equal(ActorTipos.Sistema, evento.ActorTipo);
         Assert.Contains(resultado.Comprobante.Cae, evento.Datos ?? string.Empty, StringComparison.Ordinal);
         Assert.Contains("\"numero\":\"42\"", evento.Datos ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CP1702_EmisionConUsuarioDeEmpresa_RegistraActorEmpresa()
+    {
+        var contexto = new ComprobanteContexto();
+        contexto.Tenant.ContribuyenteId = contexto.Emisor.Id;
+        contexto.Tenant.UsuarioId = Guid.NewGuid();
+
+        await contexto.Servicio.EmitirAsync(
+            contexto.Emisor.Id,
+            "Emisor",
+            contexto.FacturaA(),
+            "idem-cp1702");
+
+        var evento = Assert.Single(contexto.Eventos.Eventos);
+        Assert.Equal(ActorTipos.Empresa, evento.ActorTipo);
+        Assert.Equal(contexto.Emisor.Id, evento.ContribuyenteId);
+        Assert.Equal(contexto.Tenant.UsuarioId, evento.UsuarioId);
+        Assert.Null(evento.AdministradorId);
     }
 
     [Fact]

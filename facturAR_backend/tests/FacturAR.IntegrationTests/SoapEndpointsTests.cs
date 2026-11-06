@@ -739,6 +739,7 @@ public sealed class SoapApiFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Development");
         builder.UseSetting("Mongo:InitializeIndexes", "false");
+        builder.UseSetting("Outbox:Habilitado", "false");
         builder.UseSetting("Seed:Enabled", "false");
         builder.UseSetting("ApiKeys:ActualizarUltimoUso", "false");
         builder.UseSetting("BootstrapAdmin:Email", string.Empty);
@@ -776,6 +777,7 @@ public sealed class SoapDeshabilitadoFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Development");
         builder.UseSetting("Mongo:InitializeIndexes", "false");
+        builder.UseSetting("Outbox:Habilitado", "false");
         builder.UseSetting("Seed:Enabled", "false");
         builder.UseSetting("BootstrapAdmin:Email", string.Empty);
         builder.UseSetting("Soap:Habilitado", "false");

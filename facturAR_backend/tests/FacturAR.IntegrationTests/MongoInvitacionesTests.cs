@@ -154,7 +154,7 @@ public sealed class MongoInvitacionesTests : IAsyncLifetime
         Assert.NotNull(usada.UsadaAt);
 
         var evento = await Coleccion<EventoAuditoria>(MongoCollections.Eventos)
-            .Find(e => e.Accion == "cuenta.activada").SingleAsync();
+            .Find(e => e.Accion == "CuentaActivada").SingleAsync();
         Assert.Equal(usuario.Id, evento.UsuarioId);
         Assert.Equal(_contribuyente.Id, evento.ContribuyenteId);
 
@@ -290,6 +290,7 @@ public sealed class MongoInvitacionesTests : IAsyncLifetime
                 builder.UseSetting("Mongo:ConnectionString", MongoTestSettings.GetConnectionStringWithTimeout());
                 builder.UseSetting("Mongo:DatabaseName", _databaseName);
                 builder.UseSetting("Mongo:InitializeIndexes", "true");
+                builder.UseSetting("Outbox:Habilitado", "false");
                 builder.UseSetting("Auth:Login:RateLimitPorIp", "1000");
                 builder.UseSetting("Auth:PasswordHashIterations", "1000");
                 builder.UseSetting("BootstrapAdmin:Email", string.Empty);

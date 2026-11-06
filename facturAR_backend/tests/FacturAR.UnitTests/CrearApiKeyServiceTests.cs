@@ -156,6 +156,7 @@ public sealed class CrearApiKeyServiceTests
         Assert.Equal(respuesta.Id.ToString(), evento.EntidadId);
         Assert.Equal("Empresa", evento.ActorTipo);
         Assert.Contains("Ecommerce", evento.Datos ?? string.Empty, StringComparison.Ordinal);
-        Assert.Contains(ctx.ApiKeys.ApiKeys.Single().Prefix, evento.Datos ?? string.Empty, StringComparison.Ordinal);
+        Assert.DoesNotContain(ctx.ApiKeys.ApiKeys.Single().Prefix, evento.Datos ?? string.Empty, StringComparison.Ordinal);
+        Assert.DoesNotContain("prefix", evento.Datos ?? string.Empty, StringComparison.OrdinalIgnoreCase);
     }
 }

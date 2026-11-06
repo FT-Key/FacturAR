@@ -569,6 +569,7 @@ public sealed class MongoComprobantesTests : IAsyncLifetime
                 builder.UseSetting("Mongo:ConnectionString", MongoTestSettings.GetConnectionStringWithTimeout());
                 builder.UseSetting("Mongo:DatabaseName", _databaseName);
                 builder.UseSetting("Mongo:InitializeIndexes", "true");
+                builder.UseSetting("Outbox:Habilitado", "false");
                 builder.UseSetting("ApiKeys:ActualizarUltimoUso", "false");
                 builder.UseSetting("Seed:Enabled", "false");
                 builder.UseSetting("BootstrapAdmin:Email", string.Empty);
