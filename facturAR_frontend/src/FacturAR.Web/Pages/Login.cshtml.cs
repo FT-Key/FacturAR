@@ -1,3 +1,4 @@
+using FacturAR.Web.Auth;
 using FacturAR.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -8,10 +9,12 @@ namespace FacturAR.Web.Pages;
 public sealed class LoginModel : PageModel
 {
     private readonly FacturarApiClient _api;
+    private readonly IConfiguration _configuration;
 
-    public LoginModel(FacturarApiClient api)
+    public LoginModel(FacturarApiClient api, IConfiguration configuration)
     {
         _api = api;
+        _configuration = configuration;
     }
 
     [BindProperty]
@@ -27,12 +30,18 @@ public sealed class LoginModel : PageModel
 
     public bool CuentaActivada => string.Equals(Exito, "cuenta-activada", StringComparison.Ordinal);
 
-    public void OnGet()
-    {
-    }
+    public IActionResult OnGet()
+        => User.Identity?.IsAuthenticated == true
+            ? Redirect(SesionPortal.PanelUrl(User))
+            : Page();
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return Redirect(SesionPortal.PanelUrl(User));
+        }
+
         if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrEmpty(Password))
         {
             Error = "Ingresá tu email y tu contraseña.";
@@ -55,6 +64,11 @@ public sealed class LoginModel : PageModel
             Error = "Email o contraseña incorrectos.";
             return Page();
         }
+
+        SesionPortal.EliminarCookiesDeSesion(
+            Response,
+            _configuration,
+            SesionPortal.NombreAdmin(_configuration));
 
         RelaySetCookies(cookies);
         return Redirect("/dashboard");

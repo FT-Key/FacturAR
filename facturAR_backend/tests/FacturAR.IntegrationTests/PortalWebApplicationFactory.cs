@@ -59,7 +59,7 @@ public sealed class PortalWebApplicationFactory : WebApplicationFactory<WebProgr
         });
     }
 
-    private static string ObtenerContentRoot()
+    internal static string ObtenerContentRoot()
     {
         var directorio = new DirectoryInfo(AppContext.BaseDirectory);
         while (directorio is not null)

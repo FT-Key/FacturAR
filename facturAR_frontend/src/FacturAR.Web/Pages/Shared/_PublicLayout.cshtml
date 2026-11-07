@@ -2,6 +2,9 @@
     var titulo = ViewData["Title"] as string ?? "FacturAR";
     var descripcion = ViewData["Description"] as string
         ?? "Simulador de facturación electrónica argentina con API REST y SOAP.";
+    var autenticado = User.Identity?.IsAuthenticated == true;
+    var esAdmin = User.HasClaim("plano", "Administrador");
+    var panelUrl = autenticado ? FacturAR.Web.Auth.SesionPortal.PanelUrl(User) : "/login";
 }
 <!DOCTYPE html>
 <html lang="es-AR">
@@ -46,8 +49,17 @@
                 </ul>
                 <div class="site-nav__actions">
                     <partial name="_ThemeToggle" />
-                    <a class="btn btn--ghost" href="/login">Ingresar</a>
-                    <a class="btn btn--primary" href="/solicitar-alta">Solicitar alta</a>
+                    @if (autenticado)
+                    {
+                        <span class="site-nav__sesion" title="Sesión iniciada">@User.Identity?.Name</span>
+                        <a class="btn btn--ghost" href="@panelUrl">@(esAdmin ? "Consola global" : "Ir al panel")</a>
+                        <a class="btn btn--primary" href="/logout">Cerrar sesión</a>
+                    }
+                    else
+                    {
+                        <a class="btn btn--ghost" href="/login">Ingresar</a>
+                        <a class="btn btn--primary" href="/solicitar-alta">Solicitar alta</a>
+                    }
                 </div>
             </nav>
         </div>
@@ -86,8 +98,16 @@
                     <h2 class="footer-col__title">Legal</h2>
                     <ul>
                         <li><span>Simulación sin validez fiscal</span></li>
-                        <li><a href="/login">Acceso de empresa</a></li>
-                        <li><a href="/admin/login">Consola global</a></li>
+                        @if (autenticado)
+                        {
+                            <li><a href="@panelUrl">Panel</a></li>
+                            <li><a href="/logout">Cerrar sesión</a></li>
+                        }
+                        else
+                        {
+                            <li><a href="/login">Acceso de empresa</a></li>
+                            <li><a href="/admin/login">Consola global</a></li>
+                        }
                     </ul>
                 </div>
             </div>

@@ -65,7 +65,14 @@ function manejarEnvio(evento) {
     if (!(formulario instanceof HTMLFormElement)) return;
     if (!formulario.closest('.js-contenedor-api-keys')) return;
     const boton = evento.submitter;
-    if (boton) boton.disabled = true;
+    if (boton) {
+        const texto = boton.getAttribute('data-envio-texto');
+        if (texto) {
+            boton.setAttribute('data-texto-original', boton.textContent.trim());
+            boton.textContent = texto;
+        }
+        boton.disabled = true;
+    }
     origenFoco = evento.submitter?.id ?? origenFoco;
     document.querySelector('.js-contenedor-api-keys')?.setAttribute('aria-busy', 'true');
 }
@@ -83,6 +90,11 @@ function manejarCancelacion(evento) {
 function alActualizar() {
     for (const boton of document.querySelectorAll('.js-contenedor-api-keys button:disabled')) {
         boton.disabled = false;
+        const original = boton.getAttribute('data-texto-original');
+        if (original !== null) {
+            boton.textContent = original;
+            boton.removeAttribute('data-texto-original');
+        }
     }
     const abierto = abrirPendientes();
     if (!abierto) {

@@ -1,0 +1,40 @@
+<dialog id="@Id"
+        class="js-dialogo-confirmacion facturar-modal"
+        data-variante="@Variante"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="@($"{Id}-titulo")">
+    <div class="facturar-modal__contenido">
+        <div class="facturar-modal__encabezado">
+            <span class="facturar-modal__icono" aria-hidden="true">@Icono</span>
+            <div class="facturar-modal__texto">
+                <h2 id="@($"{Id}-titulo")" class="h5">@Titulo</h2>
+                <p class="mb-0">@Mensaje</p>
+            </div>
+        </div>
+        <div class="facturar-modal__acciones">
+            <button type="button" class="btn btn-outline-secondary js-cerrar-dialogo">Cancelar</button>
+            <button type="button" class="btn btn-@Variante" data-confirmar-envio="@Id">@TextoConfirmar</button>
+        </div>
+    </div>
+</dialog>
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Titulo { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Mensaje { get; set; } = string.Empty;
+
+    [Parameter]
+    public string TextoConfirmar { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Variante { get; set; } = "danger";
+
+    [Parameter]
+    public string Icono { get; set; } = "!";
+}
