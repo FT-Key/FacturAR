@@ -26,10 +26,10 @@ La sección API keys consume los endpoints de US-02. El valor completo se muestr
 - [x] Se puede revocar una key con confirmación.
 - [x] Se puede regenerar una key con confirmación y se muestra el nuevo valor una vez.
 - [x] La lista se actualiza después de crear, revocar o regenerar.
-- [ ] Un usuario de otra empresa no puede ver ni modificar keys ajenas.
-- [ ] La UI muestra estados de carga, vacío y error.
-- [ ] La sección es responsive y accesible por teclado.
-- [ ] Hay una prueba manual del flujo completo.
+- [x] Un usuario de otra empresa no puede ver ni modificar keys ajenas.
+- [x] La UI muestra estados de carga, vacío y error.
+- [x] La sección es responsive y accesible por teclado.
+- [x] Hay una prueba manual del flujo completo.
 
 ## Escenarios Gherkin
 
@@ -79,15 +79,15 @@ Scenario: Usuario Consulta
 - [x] Crear el modal de valor único con botón de copiar.
 - [x] Agregar confirmaciones de revocación y regeneración.
 - [x] Aplicar autorización por rol.
-- [ ] Agregar estados de carga, vacío y error.
-- [ ] Agregar prueba manual y, si es posible, test de integración del endpoint.
+- [x] Agregar estados de carga, vacío y error.
+- [x] Agregar prueba manual y, si es posible, test de integración del endpoint.
 - [x] Enlazar el manual de integración.
 
 ## Definition of Done
 
 - [x] El flujo crear → copiar → revocar funciona desde el portal.
 - [x] El valor completo no se puede recuperar después del alta.
-- [ ] La sección está aislada por empresa y rol.
+- [x] La sección está aislada por empresa y rol.
 - [x] `dotnet test FacturAR.slnx` pasa.
 - [x] La historia está enlazada desde el índice y el manual.
 

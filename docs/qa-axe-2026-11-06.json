@@ -1,0 +1,22 @@
+{
+  "fecha": "2026-11-06",
+  "commitProduccion": "c4c59443f39d28029120b1cdff43fc55926fb2e1",
+  "urls": {
+    "portal": "https://facturar-web-utn-frt-gjbhdhb3bjgggxfg.brazilsouth-01.azurewebsites.net",
+    "api": "https://facturar-api-utn-frt-gncabkgzghh2gbf2.brazilsouth-01.azurewebsites.net"
+  },
+  "herramienta": "axe-core 4 inyectado con Playwright (Chromium 156), viewport 1280x1000",
+  "temas": ["claro", "oscuro"],
+  "resultados": [
+    { "route": "/", "theme": "claro", "violations": [{ "id": "scrollable-region-focusable", "impact": "serious", "nodes": 1, "target": "#codigo-curl" }] },
+    { "route": "/", "theme": "oscuro", "violations": [{ "id": "scrollable-region-focusable", "impact": "serious", "nodes": 1, "target": "#codigo-curl" }] },
+    { "route": "/login", "theme": "claro", "violations": [] },
+    { "route": "/login", "theme": "oscuro", "violations": [] },
+    { "route": "/solicitar-alta", "theme": "claro", "violations": [{ "id": "label-content-name-mismatch", "impact": "serious", "nodes": 1, "target": "#asistente-toggle" }, { "id": "region", "impact": "moderate", "nodes": 1 }] },
+    { "route": "/solicitar-alta", "theme": "oscuro", "violations": [{ "id": "label-content-name-mismatch", "impact": "serious", "nodes": 1, "target": "#asistente-toggle" }, { "id": "region", "impact": "moderate", "nodes": 1 }, { "id": "scrollable-region-focusable", "impact": "serious", "nodes": 1, "target": "#asistente-mensajes" }] },
+    { "route": "/verificar", "theme": "claro", "violations": [] },
+    { "route": "/verificar", "theme": "oscuro", "violations": [] },
+    { "route": "/activar", "theme": "claro", "violations": [{ "id": "document-title", "impact": "serious", "nodes": 1 }, { "id": "page-has-heading-one", "impact": "moderate", "nodes": 1 }, { "id": "region", "impact": "moderate", "nodes": 1 }] },
+    { "route": "/activar", "theme": "oscuro", "violations": [{ "id": "document-title", "impact": "serious", "nodes": 1 }, { "id": "page-has-heading-one", "impact": "moderate", "nodes": 1 }, { "id": "region", "impact": "moderate", "nodes": 1 }] }
+  ]
+}

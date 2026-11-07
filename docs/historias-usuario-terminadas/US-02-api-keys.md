@@ -24,7 +24,7 @@ fak_<prefijo>_<secreto>
 
 ## Criterios de aceptación
 
-- [ ] Solo un usuario con rol `Administrador` de la empresa puede crear, listar, revocar y regenerar API keys.
+- [x] Solo un usuario con rol `Administrador` de la empresa puede crear, listar, revocar y regenerar API keys.
 - [x] El `ContribuyenteId` se toma de la sesión autenticada, nunca del body.
 - [x] El nombre de la key es obligatorio, descriptivo y tiene un límite de longitud.
 - [x] Al crear una key se devuelve el valor completo una única vez.
@@ -33,13 +33,13 @@ fak_<prefijo>_<secreto>
 - [x] La key completa tiene suficiente entropía y no se puede adivinar.
 - [x] Listar keys no expone el hash, el secreto ni el valor completo.
 - [x] La lista muestra nombre, prefijo, estado, fecha de creación y último uso.
-- [ ] Revocar una key la marca como inactiva y deja de autenticar de inmediato.
+- [x] Revocar una key la marca como inactiva y deja de autenticar de inmediato.
 - [x] Regenerar una key invalida la anterior y devuelve el nuevo valor completo una única vez.
 - [x] Un usuario de otra empresa no puede listar, revocar ni regenerar una key ajena.
 - [x] Las operaciones de creación, revocación y regeneración registran auditoría.
-- [ ] Se puede tener más de una key activa por empresa.
+- [x] Se puede tener más de una key activa por empresa.
 - [x] No se permite crear una key para un contribuyente inactivo.
-- [ ] La UI muestra el valor completo con una advertencia de copia única.
+- [x] La UI muestra el valor completo con una advertencia de copia única.
 
 ## Escenarios Gherkin
 
@@ -104,16 +104,16 @@ Scenario: Usuario Consulta no administra keys
 - [x] Crear la sección API keys en el portal.
 - [x] Registrar auditoría.
 - [x] Agregar tests de creación, listado, revocación, regeneración y aislamiento.
-- [ ] Documentar endpoints y formato de key.
+- [x] Documentar endpoints y formato de key.
 
 ## Definition of Done
 
 - [x] El valor completo no se puede recuperar después del alta.
-- [ ] La key revocada o regenerada deja de autenticar inmediatamente.
+- [x] La key revocada o regenerada deja de autenticar inmediatamente.
 - [x] El aislamiento entre empresas está cubierto por tests.
-- [ ] La sección del portal funciona en desktop y mobile.
+- [x] La sección del portal funciona en desktop y mobile.
 - [x] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el manual.
+- [x] La historia está enlazada desde el índice y el manual.
 
 ## Evidencia
 

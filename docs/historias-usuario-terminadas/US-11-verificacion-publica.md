@@ -22,7 +22,7 @@ La verificación es anónima. Solo expone datos fiscales no sensibles. El CAE de
 - [x] Un CAE con formato inválido devuelve `400`.
 - [x] Un CAE inexistente devuelve `404`.
 - [x] La respuesta no expone datos internos ni credenciales.
-- [ ] La página `/verificar` permite ingresar el CAE y muestra el resultado con un comprobante existente.
+- [x] La página `/verificar` permite ingresar el CAE y muestra el resultado con un comprobante existente.
 - [x] La búsqueda usa el índice único por CAE.
 - [x] Un CAE con espacios o separadores se normaliza antes de validar.
 
@@ -66,15 +66,15 @@ Scenario: Verificación desde el portal
 - [x] Validar y normalizar el formato del CAE.
 - [x] Agregar tests del caso de uso.
 - [x] Agregar un test de integración con MongoDB.
-- [ ] Probar el flujo completo desde `/verificar` con un CAE existente.
+- [x] Probar el flujo completo desde `/verificar` con un CAE existente.
 - [x] Documentar códigos de error.
 
 ## Definition of Done
 
-- [ ] La verificación funciona desde el portal y por API con un comprobante real.
+- [x] La verificación funciona desde el portal y por API con un comprobante real.
 - [x] Los códigos de error están documentados.
 - [x] El endpoint es anónimo y no filtra datos internos.
-- [ ] La historia está enlazada desde el índice y el manual.
+- [x] La historia está enlazada desde el índice y el manual.
 
 ## Evidencia
 

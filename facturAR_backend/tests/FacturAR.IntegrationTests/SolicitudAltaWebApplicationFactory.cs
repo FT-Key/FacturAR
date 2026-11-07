@@ -19,6 +19,8 @@ public sealed class SolicitudAltaWebApplicationFactory : WebApplicationFactory<P
 
     public FakeEmailSender Emails { get; } = new();
 
+    public FakeOutboxRepository Outbox { get; } = new();
+
     public string AdminNotificationEmail { get; set; } = string.Empty;
 
     public bool ConfiarEnProxy { get; set; }
@@ -44,6 +46,9 @@ public sealed class SolicitudAltaWebApplicationFactory : WebApplicationFactory<P
 
             services.RemoveAll<IEmailSender>();
             services.AddSingleton<IEmailSender>(Emails);
+
+            services.RemoveAll<IOutboxRepository>();
+            services.AddSingleton<IOutboxRepository>(Outbox);
         });
     }
 }
@@ -176,4 +181,45 @@ public sealed class FakeEmailSender : IEmailSender
         Enviados.Add(mensaje);
         return Task.FromResult(EmailResult.Ok(DateTime.UtcNow));
     }
+}
+
+public sealed class FakeOutboxRepository : IOutboxRepository
+{
+    public List<OutboxMessage> Encolados { get; } = [];
+
+    public Task<OutboxMessage> EncolarAsync(
+        string tipo,
+        string payload,
+        CancellationToken ct = default)
+    {
+        var mensaje = new OutboxMessage { Tipo = tipo, Payload = payload };
+        Encolados.Add(mensaje);
+        return Task.FromResult(mensaje);
+    }
+
+    public Task<IReadOnlyList<OutboxMessage>> ReclamarPendientesAsync(
+        int lote,
+        IReadOnlyCollection<Guid>? excluir = null,
+        CancellationToken ct = default)
+        => throw new NotSupportedException();
+
+    public Task MarcarProcesadoAsync(Guid id, CancellationToken ct = default)
+        => throw new NotSupportedException();
+
+    public Task MarcarFallidoAsync(Guid id, string error, CancellationToken ct = default)
+        => throw new NotSupportedException();
+
+    public Task DevolverAPendienteAsync(Guid id, string? error, CancellationToken ct = default)
+        => throw new NotSupportedException();
+
+    public Task<OutboxMessage?> ConsultarAsync(Guid id, CancellationToken ct = default)
+        => throw new NotSupportedException();
+
+    public Task<IReadOnlyList<OutboxMessage>> ListarPorEstadoAsync(
+        string estado,
+        DateTime? desde,
+        DateTime? hasta,
+        int limite,
+        CancellationToken ct = default)
+        => throw new NotSupportedException();
 }

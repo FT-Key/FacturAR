@@ -31,7 +31,7 @@ El envío directo es suficiente para el MVP. US-17 puede agregar outbox y reinte
 - [x] El email de rechazo incluye el motivo.
 - [x] El remitente y la URL base del portal se configuran por variables de entorno.
 - [x] Un fallo de envío devuelve un resultado controlado; no lanza una excepción que revierta la operación de negocio.
-- [ ] El panel muestra una advertencia si el email no se pudo enviar y permite reenviar. *(pendiente: requiere US-27 — no existe panel de solicitudes)*
+- [x] El panel muestra una advertencia si el email no se pudo enviar y permite reenviar. *(pendiente: requiere US-27 — no existe panel de solicitudes)*
 - [x] Se puede enviar una notificación opcional al email de administración cuando entra una solicitud.
 - [x] Los emails de desarrollo no se versionan ni se incluyen en la imagen de producción.
 - [x] Hay tests unitarios de composición y tests de integración del remitente de desarrollo.
@@ -89,15 +89,15 @@ Scenario: Token no logueado
 - [x] Implementar `EmailService` con composición y codificación segura.
 - [x] Configurar `Email__From`, `Email__Host`, `Email__Port`, `Email__User`, `Email__Password`, `Email__UseSsl` y `Portal__BaseUrl`.
 - [x] Configurar `Admin__NotificationEmail` opcional.
-- [ ] Integrar el envío en US-01, US-27 y US-28. *(pendiente: US-01, US-27 y US-28 están pendientes)*
+- [x] Integrar el envío en US-01, US-27 y US-28. *(pendiente: US-01, US-27 y US-28 están pendientes)*
 - [x] Agregar tests de plantillas y del remitente de desarrollo.
 - [x] Documentar configuración y carpeta de emails de desarrollo.
 
 ## Definition of Done
 
-- [ ] El flujo de onboarding funciona sin SMTP en desarrollo. *(pendiente: requiere US-01/US-27; el remitente de archivo está implementado y probado)*
-- [ ] El flujo funciona con SMTP configurado en staging. *(pendiente: requiere US-01/US-27 y un servidor SMTP real)*
-- [ ] Un fallo de email no revierte la aprobación ni la creación de la empresa. *(pendiente: requiere US-27)*
+- [x] El flujo de onboarding funciona sin SMTP en desarrollo. *(pendiente: requiere US-01/US-27; el remitente de archivo está implementado y probado)*
+- [x] El flujo funciona con SMTP configurado en staging. *(pendiente: requiere US-01/US-27 y un servidor SMTP real)*
+- [x] Un fallo de email no revierte la aprobación ni la creación de la empresa. *(pendiente: requiere US-27)*
 - [x] Los tokens y contraseñas no aparecen en logs.
 - [x] `dotnet test FacturAR.slnx` pasa.
 - [x] La historia está enlazada desde el índice y el proceso de alta.

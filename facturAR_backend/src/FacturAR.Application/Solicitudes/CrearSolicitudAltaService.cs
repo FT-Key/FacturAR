@@ -2,6 +2,7 @@ using System.Text.Json;
 using FacturAR.Application.Abstractions;
 using FacturAR.Application.Auditoria;
 using FacturAR.Application.Notificaciones;
+using FacturAR.Application.Outbox;
 using FacturAR.Contracts.Solicitudes;
 using FacturAR.Domain;
 using FacturAR.Domain.Entities;
@@ -18,27 +19,28 @@ public sealed class CrearSolicitudAltaService
 
     private const string AccionSolicitudCreada = AccionesAuditoria.SolicitudCreada;
     private const string AccionCuitRegistrado = AccionesAuditoria.SolicitudCuitRegistrado;
-    private const string AccionEmailEnviado = AccionesAuditoria.EmailEnviado;
-    private const string AccionEmailFallido = AccionesAuditoria.EmailFallido;
     private const string Entidad = EntidadesAuditoria.SolicitudAltaEmpresa;
 
     private readonly ISolicitudAltaRepository _solicitudes;
     private readonly IContribuyenteRepository _contribuyentes;
     private readonly IEventoAuditoriaRepository _eventos;
-    private readonly EmailService _email;
+    private readonly IOutboxRepository _outbox;
+    private readonly NotificacionesOptions _notificaciones;
     private readonly ILogger<CrearSolicitudAltaService> _logger;
 
     public CrearSolicitudAltaService(
         ISolicitudAltaRepository solicitudes,
         IContribuyenteRepository contribuyentes,
         IEventoAuditoriaRepository eventos,
-        EmailService email,
+        IOutboxRepository outbox,
+        NotificacionesOptions notificaciones,
         ILogger<CrearSolicitudAltaService> logger)
     {
         _solicitudes = solicitudes;
         _contribuyentes = contribuyentes;
         _eventos = eventos;
-        _email = email;
+        _outbox = outbox;
+        _notificaciones = notificaciones;
         _logger = logger;
     }
 
@@ -76,51 +78,40 @@ public sealed class CrearSolicitudAltaService
             () => AuditarSolicitudCreadaAsync(solicitud, ct),
             ct);
 
-        var recibida = await EnviarAsync(
-            PlantillasEmail.NombreSolicitudRecibida,
-            solicitud.Id,
-            () => _email.EnviarSolicitudRecibidaAsync(solicitud, ct),
-            ct);
-        await AuditarEmailAsync(solicitud, PlantillasEmail.NombreSolicitudRecibida, recibida, ct);
+        await EncolarAsync(TiposMensajeOutbox.EmailSolicitudRecibida, solicitud.Id, ct);
 
-        if (_email.NotificacionAdministracionConfigurada)
+        if (NotificacionAdministracionConfigurada)
         {
-            var nueva = await EnviarAsync(
-                PlantillasEmail.NombreNuevaSolicitud,
-                solicitud.Id,
-                () => _email.EnviarNuevaSolicitudAsync(solicitud, ct),
-                ct);
-            await AuditarEmailAsync(solicitud, PlantillasEmail.NombreNuevaSolicitud, nueva, ct);
+            await EncolarAsync(TiposMensajeOutbox.EmailNuevaSolicitud, solicitud.Id, ct);
         }
 
         return Respuesta();
     }
 
+    private bool NotificacionAdministracionConfigurada
+        => !string.IsNullOrWhiteSpace(_notificaciones.AdminNotificationEmail);
+
     private static SolicitudAltaResponse Respuesta()
         => new(CodigoSolicitudRecibida, MensajeSolicitudRecibida);
 
-    private async Task AuditarEmailAsync(
-        SolicitudAltaEmpresa solicitud,
-        string plantilla,
-        EmailResult resultado,
-        CancellationToken ct)
+    private async Task EncolarAsync(string tipo, Guid solicitudId, CancellationToken ct)
     {
-        var accion = resultado.Exitoso ? AccionEmailEnviado : AccionEmailFallido;
-
-        await BestEffortAsync(
-            accion,
-            solicitud.Id,
-            () => _eventos.AddAsync(
-                new EventoAuditoria
-                {
-                    Accion = accion,
-                    Entidad = Entidad,
-                    EntidadId = solicitud.Id.ToString(),
-                    ActorTipo = ActorSistema,
-                    Datos = Datos(solicitud.Cuit, plantilla)
-                },
-                ct),
-            ct);
+        try
+        {
+            await _outbox.EncolarAsync(tipo, PayloadEmailSolicitud.Crear(solicitudId), ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Falló el encolado del mensaje {Tipo} para la solicitud {SolicitudId}.",
+                tipo,
+                solicitudId);
+        }
     }
 
     private Task AuditarSolicitudCreadaAsync(SolicitudAltaEmpresa solicitud, CancellationToken ct)
@@ -131,7 +122,7 @@ public sealed class CrearSolicitudAltaService
                 Entidad = Entidad,
                 EntidadId = solicitud.Id.ToString(),
                 ActorTipo = ActorSistema,
-                Datos = Datos(solicitud.Cuit, null)
+                Datos = Datos(solicitud.Cuit)
             },
             ct);
 
@@ -142,56 +133,12 @@ public sealed class CrearSolicitudAltaService
                 Accion = AccionCuitRegistrado,
                 Entidad = Entidad,
                 ActorTipo = ActorSistema,
-                Datos = Datos(solicitud.Cuit, null)
+                Datos = Datos(solicitud.Cuit)
             },
             ct);
 
-    private static string Datos(string cuit, string? plantilla)
-    {
-        var datos = new Dictionary<string, string> { ["cuit"] = cuit };
-        if (plantilla is not null)
-        {
-            datos["plantilla"] = plantilla;
-        }
-
-        return JsonSerializer.Serialize(datos);
-    }
-
-    private async Task<EmailResult> EnviarAsync(
-        string plantilla,
-        Guid solicitudId,
-        Func<Task<EmailResult>> enviar,
-        CancellationToken ct)
-    {
-        try
-        {
-            var resultado = await enviar();
-            if (!resultado.Exitoso)
-            {
-                _logger.LogWarning(
-                    "Falló el envío de email {Accion} con la plantilla {Plantilla} para la solicitud {SolicitudId}.",
-                    AccionEmailFallido,
-                    plantilla,
-                    solicitudId);
-            }
-
-            return resultado;
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(
-                ex,
-                "Falló el envío de email {Accion} con la plantilla {Plantilla} para la solicitud {SolicitudId}.",
-                AccionEmailFallido,
-                plantilla,
-                solicitudId);
-            return EmailResult.Fallido("Error de envío.");
-        }
-    }
+    private static string Datos(string cuit)
+        => JsonSerializer.Serialize(new Dictionary<string, string> { ["cuit"] = cuit });
 
     private async Task BestEffortAsync(
         string accion,

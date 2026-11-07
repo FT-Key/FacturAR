@@ -90,6 +90,11 @@ a,
     --bs-table-hover-color: var(--color-text);
 }
 
+.table-responsive {
+    position: relative;
+    min-width: 0;
+}
+
 .form-control,
 .form-select {
     color: var(--color-text);
@@ -137,6 +142,7 @@ a,
 }
 
 .content {
+    min-width: 0;
     padding-top: 1.1rem;
 }
 

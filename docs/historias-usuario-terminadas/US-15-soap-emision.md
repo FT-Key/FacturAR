@@ -26,7 +26,7 @@ El SOAP es una fachada del mismo caso de uso de emisión. No duplica reglas ni a
 - [x] La respuesta incluye `Cae`, `CaeFchVto`, `Resultado` y observaciones.
 - [x] Un error de validación devuelve un `Fault` o un resultado `R` con mensaje claro.
 - [x] Un cliente no puede emitir para otra empresa.
-- [ ] La numeración y el CAE son los mismos que en REST.
+- [x] La numeración y el CAE son los mismos que en REST.
 - [x] El WSDL está disponible y documentado.
 - [x] Hay tests de request exitoso, error y aislamiento.
 - [x] El SOAP no omite autenticación ni validaciones.
@@ -72,9 +72,9 @@ Scenario: Aislamiento SOAP
 
 ## Definition of Done
 
-- [ ] `FECAESolicitar` emite un comprobante válido.
-- [ ] El SOAP y el REST producen el mismo resultado funcional.
-- [ ] El WSDL se puede consumir desde SoapUI o Postman.
+- [x] `FECAESolicitar` emite un comprobante válido.
+- [x] El SOAP y el REST producen el mismo resultado funcional.
+- [x] El WSDL se puede consumir desde SoapUI o Postman.
 - [x] `dotnet test FacturAR.slnx` pasa.
 - [x] La historia está enlazada desde el índice y el manual.
 

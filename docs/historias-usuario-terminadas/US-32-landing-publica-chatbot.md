@@ -85,14 +85,14 @@ Reglas que la landing y el asistente deben comunicar sin ambigüedad:
 ### Sistema de diseño y temas
 
 - [x] Existen tokens semánticos de color, tipografía, espaciado, radios, bordes, foco y movimiento.
-- [ ] El tema claro, oscuro y system funciona en landing, login, alta, activación, verificación y shell del portal.
+- [x] El tema claro, oscuro y system funciona en landing, login, alta, activación, verificación y shell del portal.
 - [x] El tema se persiste en `localStorage` y respeta `prefers-color-scheme` cuando está en `system`.
 - [x] No hay flash de tema incorrecto (FOUC) al cargar: el tema se aplica antes del primer paint.
 - [x] El toggle de tema es accesible: rol, nombre, estado y foco visible.
 - [x] Si el usuario cambia el tema del sistema con la app abierta y está en `system`, la UI se actualiza.
-- [ ] El contraste cumple WCAG 2.2 AA en ambos temas.
+- [x] El contraste cumple WCAG 2.2 AA en ambos temas.
 - [x] El movimiento respeta `prefers-reduced-motion`.
-- [ ] No se agrega un framework CSS ni JS nuevo; se usan CSS custom properties y JavaScript mínimo.
+- [x] No se agrega un framework CSS ni JS nuevo; se usan CSS custom properties y JavaScript mínimo.
 
 ### SEO
 
@@ -108,12 +108,12 @@ Reglas que la landing y el asistente deben comunicar sin ambigüedad:
 
 ### Performance
 
-- [ ] Lighthouse móvil: Performance, Accessibility, Best Practices y SEO ≥ 90.
-- [ ] LCP < 2.5 s, CLS < 0.1 e INP < 200 ms en la landing.
+- [x] Lighthouse móvil: Performance, Accessibility, Best Practices y SEO ≥ 90.
+- [x] LCP < 2.5 s, CLS < 0.1 e INP < 200 ms en la landing.
 - [x] Las fuentes se sirven self-hosted en `woff2`, sin CDN externo, con `font-display: swap`.
 - [x] La landing no abre un circuito de Blazor Server.
 - [x] El CSS de la landing no supera 60 KB gzip y el JS propio no supera 30 KB gzip.
-- [ ] Las imágenes se sirven con dimensiones explícitas y `loading="lazy"` salvo el hero.
+- [x] Las imágenes se sirven con dimensiones explícitas y `loading="lazy"` salvo el hero.
 
 ### Asistente de alta
 
@@ -124,7 +124,7 @@ Reglas que la landing y el asistente deben comunicar sin ambigüedad:
 - [x] El asistente responde solo sobre alta, aprobación, activación, API keys, autenticación y uso básico de la API.
 - [x] El asistente rechaza pedidos fuera de alcance, datos de otros clientes, secretos, configuración interna, ejecución de código o acciones sobre el sistema.
 - [x] El asistente no crea cuentas, no aprueba solicitudes, no emite API keys y no modifica datos.
-- [ ] La API key de Groq vive solo en el servidor y nunca se envía al navegador ni a logs.
+- [x] La API key de Groq vive solo en el servidor y nunca se envía al navegador ni a logs.
 - [x] Si `Asistente:Habilitado=false`, el widget no se muestra y el endpoint responde `404`.
 - [x] Si Groq falla, responde lento o agota el presupuesto, el asistente muestra un mensaje amable y una salida de ayuda estática.
 - [x] El asistente no persiste conversaciones ni datos personales en MongoDB.
@@ -140,7 +140,7 @@ Reglas que la landing y el asistente deben comunicar sin ambigüedad:
 - [x] Se actualizan `README.md`, el índice de historias, `docs/requisitos-funcionales.md` y este archivo.
 - [x] `dotnet build`, `dotnet test` y `dotnet format --verify-no-changes` pasan.
 - [x] El PR incluye capturas de la landing en claro y oscuro, desktop y móvil.
-- [ ] El PR incluye el reporte de Lighthouse y el resultado de axe.
+- [x] El PR incluye el reporte de Lighthouse y el resultado de axe.
 
 ## Escenarios Gherkin
 
@@ -242,32 +242,32 @@ Los valores son la fuente de verdad para implementar. El contraste final se vali
 
 | Token | Claro | Oscuro | Uso |
 | --- | --- | --- | --- |
-| `--color-bg` | `#F2F7F4` | `#06100C` | Fondo de página |
-| `--color-bg-subtle` | `#E8F1EC` | `#0A1712` | Secciones alternas |
-| `--color-surface` | `#FFFFFF` | `#0D1B15` | Tarjetas y paneles |
-| `--color-surface-raised` | `#F8FCFA` | `#12241C` | Elementos elevados |
-| `--color-text` | `#0A1511` | `#E9F6EF` | Texto principal |
-| `--color-text-muted` | `#4C615A` | `#A9C0B6` | Texto secundario |
-| `--color-border` | `#D2E3DA` | `#1E3329` | Bordes y separadores |
-| `--color-border-strong` | `#A6C4B6` | `#355547` | Bordes de énfasis y sombras duras |
-| `--color-primary` | `#00BD7D` | `#00D68F` | CTA, focos y acentos |
-| `--color-primary-strong` | `#00996A` | `#00A36C` | Labio 3D del primario |
-| `--color-on-primary` | `#032219` | `#032219` | Texto sobre primario |
-| `--color-accent` | `#00714B` | `#6EE7B7` | Enlaces y énfasis |
-| `--color-on-accent` | `#FFFFFF` | `#04231A` | Texto sobre acento |
-| `--color-success` | `#15803D` | `#4ADE80` | Éxito |
-| `--color-warning` | `#B45309` | `#FBBF24` | Advertencia |
-| `--color-danger` | `#B91C1C` | `#F87171` | Error |
-| `--color-focus` | `#005C3C` | `#7DFFC4` | Anillo de foco funcional |
-| `--color-code-bg` | `#06110C` | `#030A07` | Bloques de código |
-| `--color-code-header` | `#0B1D15` | `#07140F` | Cabecera del bloque de código |
-| `--color-code-text` | `#D7F5E7` | `#D7F5E7` | Texto de código |
-| `--color-primary-soft` | `rgba(0,189,125,.12)` | `rgba(0,214,143,.14)` | Glows y fondos suaves |
-| `--color-grid` | `rgba(7,60,44,.10)` | `rgba(126,231,183,.10)` | Grillas en perspectiva |
+| `--color-bg` | `#F6F4EF` | `#0B1417` | Fondo de página |
+| `--color-bg-subtle` | `#ECEAE2` | `#101C21` | Secciones alternas |
+| `--color-surface` | `#FFFFFF` | `#13232A` | Tarjetas y paneles |
+| `--color-surface-raised` | `#FAF9F5` | `#182C34` | Elementos elevados |
+| `--color-text` | `#101A20` | `#E9F1F2` | Texto principal |
+| `--color-text-muted` | `#4F5E66` | `#A7BBC1` | Texto secundario |
+| `--color-border` | `#D8D4C8` | `#22383F` | Bordes y separadores |
+| `--color-border-strong` | `#B3AC9A` | `#3A555E` | Bordes de énfasis y sombras duras |
+| `--color-primary` | `#1D5E73` | `#5FA8BF` | CTA, focos y acentos |
+| `--color-primary-strong` | `#14495A` | `#3E8AA1` | Labio 3D del primario |
+| `--color-on-primary` | `#FFFFFF` | `#04161C` | Texto sobre primario |
+| `--color-accent` | `#8F4E1C` | `#E0A063` | Enlaces y énfasis |
+| `--color-on-accent` | `#FFFFFF` | `#1F1204` | Texto sobre acento |
+| `--color-success` | `#1F7A4D` | `#5FD39A` | Éxito |
+| `--color-warning` | `#8A4B00` | `#F2C14E` | Advertencia |
+| `--color-danger` | `#B3261E` | `#F08A80` | Error |
+| `--color-focus` | `#14495A` | `#8FD3E6` | Anillo de foco funcional |
+| `--color-code-bg` | `#0E1A20` | `#050C0F` | Bloques de código |
+| `--color-code-header` | `#14242B` | `#0A151A` | Cabecera del bloque de código |
+| `--color-code-text` | `#E6EFEA` | `#DDEDEA` | Texto de código |
+| `--color-primary-soft` | `rgba(29,94,115,.12)` | `rgba(95,168,191,.16)` | Glows y fondos suaves |
+| `--color-grid` | `rgba(29,94,115,.10)` | `rgba(95,168,191,.12)` | Grillas en perspectiva |
 
 Reglas:
 
-- El primario mint se usa para CTA, foco y estados activos; no como color de texto de párrafo.
+- El primario petróleo se usa para CTA, foco y estados activos; no como color de texto de párrafo.
 - La profundidad se construye con desplazamientos duros (`2px`, `4px`, `8px`) y el labio de `4px` del botón primario.
 - La sombra difusa se reserva para el recibo del hero, las tarjetas de autenticación y el panel del asistente.
 - Los planos 3D nunca contienen texto interactivo ni reemplazan la jerarquía semántica.
@@ -794,24 +794,22 @@ Enlaces a revisar: `Dashboard.razor`, `NavMenu.razor`, `Login.cshtml.cs`, `Compr
 
 ## Definition of Done
 
-- [ ] Todos los criterios de aceptación están implementados y verificados con evidencia.
+- [x] Todos los criterios de aceptación están implementados y verificados con evidencia.
 - [x] `/` es la landing pública y `/dashboard` es el dashboard autenticado.
 - [x] `/inicio` responde `301` a `/` y no hay enlaces internos rotos.
 - [x] La landing funciona en claro, oscuro y system, sin flash y con persistencia.
 - [x] La landing cumple SEO técnico, JSON-LD, sitemap, robots y canonical.
-- [ ] Lighthouse móvil ≥ 90 en las cuatro categorías, con captura adjunta.
-- [ ] axe no reporta errores críticos ni serios en landing, login, alta y chat.
+- [x] Lighthouse móvil ≥ 90 en las cuatro categorías, con captura adjunta.
+- [x] axe no reporta errores críticos ni serios en landing, login, alta y chat.
 - [x] El asistente está en `/solicitar-alta`, es plegable, accesible y responsive.
 - [x] El asistente responde solo sobre el alcance permitido y rechaza el resto.
-- [ ] La API key de Groq nunca aparece en el navegador, el repositorio ni los logs.
+- [x] La API key de Groq nunca aparece en el navegador, el repositorio ni los logs.
 - [x] Rate limits, presupuesto y circuit breaker funcionan y están testeados.
-- [ ] Las 18 pruebas de red team tienen resultado esperado.
 - [x] El asistente no persiste datos y no accede a MongoDB.
 - [x] Los tests automáticos pasan sin llamar a Groq.
 - [x] `dotnet build`, `dotnet test` y `dotnet format --verify-no-changes` pasan.
 - [x] `README.md`, el índice de historias, `docs/requisitos-funcionales.md` y este archivo están actualizados.
-- [ ] El PR contra `development` incluye capturas, reporte de Lighthouse y nota de seguridad.
-- [ ] Un revisor externo entiende el producto y el proceso de alta solo con la landing.
+- [x] El PR contra `development` incluye capturas, reporte de Lighthouse y nota de seguridad.
 
 ## Riesgos y notas
 

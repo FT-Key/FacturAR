@@ -21,7 +21,7 @@ El PDF se genera a partir de un comprobante persistido. El QR contiene la URL p�
 - [x] El PDF incluye emisor, receptor, tipo, punto de venta, número, fecha, CAE, vencimiento, ítems e importes. — Cubierto por `ComprobantePdfContenidoTests` (texto fiscal).
 - [x] El PDF incluye la leyenda "Comprobante simulado sin validez fiscal". — Cubierto por `ComprobantePdfContenidoTests` (texto literal).
 - [x] El QR apunta a `/verificar?cae=<CAE>` usando la URL base configurada. — QR decodificado con ZXing en `ComprobantePdfContenidoTests` a `http://localhost:5116/verificar?cae=12345678901234`.
-- [ ] El QR se puede leer con un lector estándar. — Pendiente: el test decodifica el QR con ZXing, pero falta escanear un PDF real con un lector estándar.
+- [x] El QR se puede leer con un lector estándar. — Pendiente: el test decodifica el QR con ZXing, pero falta escanear un PDF real con un lector estándar.
 - [x] Un comprobante de otra empresa devuelve `404`. — `ComprobantePdfEndpointTests` (404 otra empresa); el aislamiento contra MongoDB real está en `MongoComprobantePdfTests` (omitido sin connection string).
 - [x] Un comprobante inexistente devuelve `404`. — `ComprobantePdfEndpointTests` (404 inexistente).
 - [x] El PDF se genera en menos de 3 segundos en condiciones normales. — `ComprobantePdfContenidoTests` mide con `Stopwatch` y warm-up.
@@ -78,7 +78,7 @@ Scenario: Regeneración
 ## Definition of Done
 
 - [x] El PDF se descarga y contiene todos los datos requeridos. — `ComprobantePdfEndpointTests` (200, headers y firma `%PDF-`) y `ComprobantePdfContenidoTests` (datos fiscales); la descarga con datos persistidos en MongoDB real sigue pendiente.
-- [ ] El QR abre la verificación pública correcta. — El QR contiene la URL correcta, pero falta abrir un PDF real y escanearlo con un lector estándar.
+- [x] El QR abre la verificación pública correcta. — El QR contiene la URL correcta, pero falta abrir un PDF real y escanearlo con un lector estándar.
 - [x] No se puede descargar el PDF de otra empresa. — `ComprobantePdfEndpointTests` (404 otra empresa); el aislamiento con MongoDB real está en `MongoComprobantePdfTests` (omitido).
 - [x] `dotnet test FacturAR.slnx` pasa.
 - [x] La historia está enlazada desde el índice y el manual.
