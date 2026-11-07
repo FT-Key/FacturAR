@@ -2,7 +2,6 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using FacturAR.Web.Services;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 
 namespace FacturAR.Web.Auth;
@@ -11,8 +10,16 @@ public sealed class SesionApiAuthenticationHandler : AuthenticationHandler<Authe
 {
     public const string SchemeName = "SesionApi";
 
-    private const string NombreAdminPorDefecto = ".FacturAR.Admin";
-    private const string NombreContribuyentePorDefecto = ".FacturAR.Contribuyente";
+    private static readonly string[] PrefijosEstaticos =
+    [
+        "/_blazor",
+        "/_framework",
+        "/css",
+        "/js",
+        "/lib",
+        "/fonts",
+        "/brand"
+    ];
 
     private readonly FacturarApiClient _api;
     private readonly string _cookieAdmin;
@@ -27,13 +34,13 @@ public sealed class SesionApiAuthenticationHandler : AuthenticationHandler<Authe
         : base(options, logger, encoder)
     {
         _api = api;
-        _cookieAdmin = configuration["Auth:Cookie:NombreAdmin"] ?? NombreAdminPorDefecto;
-        _cookieContribuyente = configuration["Auth:Cookie:NombreContribuyente"] ?? NombreContribuyentePorDefecto;
+        _cookieAdmin = SesionPortal.NombreAdmin(configuration);
+        _cookieContribuyente = SesionPortal.NombreContribuyente(configuration);
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (Context.GetEndpoint()?.Metadata.GetMetadata<IAuthorizeData>() is null)
+        if (EsRecursoEstatico(Request.Path))
         {
             return AuthenticateResult.NoResult();
         }
@@ -51,12 +58,19 @@ public sealed class SesionApiAuthenticationHandler : AuthenticationHandler<Authe
             return AuthenticateResult.NoResult();
         }
 
+        var rutaAdmin = SesionPortal.EsRutaAdmin(Request.Path);
+        var usarAdmin = haySesionAdmin && (rutaAdmin || !haySesionEmpresa);
+        var usarEmpresa = haySesionEmpresa && !usarAdmin;
+
+        using var tiempoValidacion = CancellationTokenSource.CreateLinkedTokenSource(Context.RequestAborted);
+        tiempoValidacion.CancelAfter(TimeSpan.FromSeconds(3));
+
         var claims = new List<Claim>();
         try
         {
-            if (haySesionEmpresa)
+            if (usarEmpresa)
             {
-                var empresa = await _api.GetMeEmpresaAsync(cookie, Context.RequestAborted);
+                var empresa = await _api.GetMeEmpresaAsync(cookie, tiempoValidacion.Token);
                 if (empresa is not null)
                 {
                     claims.Add(new Claim(ClaimTypes.NameIdentifier, empresa.UsuarioId.ToString()));
@@ -67,10 +81,9 @@ public sealed class SesionApiAuthenticationHandler : AuthenticationHandler<Authe
                     claims.Add(new Claim("plano", "Empresa"));
                 }
             }
-
-            if (haySesionAdmin)
+            else if (usarAdmin)
             {
-                var admin = await _api.GetMeAdminAsync(cookie, Context.RequestAborted);
+                var admin = await _api.GetMeAdminAsync(cookie, tiempoValidacion.Token);
                 if (admin is not null)
                 {
                     claims.Add(new Claim(ClaimTypes.NameIdentifier, admin.AdministradorId.ToString()));
@@ -95,6 +108,11 @@ public sealed class SesionApiAuthenticationHandler : AuthenticationHandler<Authe
         var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, Scheme.Name));
         return AuthenticateResult.Success(new AuthenticationTicket(principal, Scheme.Name));
     }
+
+    private static bool EsRecursoEstatico(PathString path)
+        => System.IO.Path.HasExtension(path.Value ?? string.Empty)
+            || PrefijosEstaticos.Any(prefijo =>
+                path.StartsWithSegments(prefijo, StringComparison.OrdinalIgnoreCase));
 
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)
         => RedirigirAsync();

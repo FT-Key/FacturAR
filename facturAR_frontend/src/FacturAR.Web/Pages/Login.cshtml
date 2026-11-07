@@ -30,7 +30,7 @@
                 </div>
             }
 
-            <form method="post">
+            <form method="post" data-envio>
                 <div class="field">
                     <label for="email">Email</label>
                     <input id="email" name="Email" value="@Model.Email" type="email"
@@ -41,7 +41,7 @@
                     <input id="password" name="Password" type="password"
                            autocomplete="current-password" required maxlength="128" />
                 </div>
-                <button type="submit" class="btn btn--primary">Ingresar</button>
+                <button type="submit" class="btn btn--primary" data-envio-texto="Ingresando…">Ingresar</button>
             </form>
 
             <p class="auth-switch">¿Todavía no tenés cuenta? <a href="/solicitar-alta">Solicitá el alta</a>.</p>

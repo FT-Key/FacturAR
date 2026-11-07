@@ -3,6 +3,13 @@
 @{
     ViewData["Title"] = Model.Titulo;
     ViewData["Description"] = Model.Description;
+    var autenticado = User.Identity?.IsAuthenticated == true;
+    var esAdmin = User.HasClaim("plano", "Administrador");
+    var panelUrl = autenticado ? FacturAR.Web.Auth.SesionPortal.PanelUrl(User) : "/dashboard";
+    var etiquetaPanel = esAdmin ? "Ir a la consola global" : "Ir a mi panel";
+    var urlCta = autenticado ? panelUrl : "/solicitar-alta";
+    var textoCta = autenticado ? etiquetaPanel : "Empezar la solicitud";
+    var textoCtaFinal = autenticado ? etiquetaPanel : "Solicitar alta de empresa";
 }
 
 @section Head {
@@ -39,8 +46,16 @@
                 <li class="seal">PDF con QR</li>
             </ul>
             <div class="hero__actions">
-                <a class="btn btn--primary" href="/solicitar-alta">Solicitar alta de empresa</a>
-                <a class="btn btn--secondary" href="#como-funciona">Ver cómo funciona</a>
+                @if (autenticado)
+                {
+                    <a class="btn btn--primary" href="@panelUrl">@etiquetaPanel</a>
+                    <a class="btn btn--secondary" href="/verificar">Verificar un comprobante</a>
+                }
+                else
+                {
+                    <a class="btn btn--primary" href="/solicitar-alta">Solicitar alta de empresa</a>
+                    <a class="btn btn--secondary" href="#como-funciona">Ver cómo funciona</a>
+                }
             </div>
         </div>
         <aside class="hero__panel" aria-hidden="true">
@@ -142,7 +157,7 @@
             <strong>Para usar la API tenés que registrar tu empresa y esperar la aprobación.</strong>
             <p>El formulario de alta no crea la cuenta: la cuenta se crea cuando activás la invitación.</p>
         </div>
-        <a class="btn btn--primary" href="/solicitar-alta">Empezar la solicitud</a>
+        <a class="btn btn--primary" href="@urlCta">@textoCta</a>
     </div>
 </section>
 
@@ -258,9 +273,16 @@
         <h2 id="empezar" class="section__title">¿Listo para emitir?</h2>
         <p class="section__lead">Solicitá el alta de tu empresa y probá el circuito completo con CAE simulado.</p>
         <div class="hero__actions">
-            <a class="btn btn--primary" href="/solicitar-alta">Solicitar alta de empresa</a>
+            <a class="btn btn--primary" href="@urlCta">@textoCtaFinal</a>
             <a class="btn btn--secondary" href="/verificar">Verificar un comprobante</a>
         </div>
-        <p class="auth-switch">¿Ya tenés cuenta? <a href="/login">Ingresá</a>. ¿Todavía no? <a href="/solicitar-alta">Solicitá el alta</a>.</p>
+        @if (autenticado)
+        {
+            <p class="auth-switch">Sesión iniciada como <strong>@User.Identity?.Name</strong>. <a href="/logout">Cerrar sesión</a>.</p>
+        }
+        else
+        {
+            <p class="auth-switch">¿Ya tenés cuenta? <a href="/login">Ingresá</a>. ¿Todavía no? <a href="/solicitar-alta">Solicitá el alta</a>.</p>
+        }
     </div>
 </section>
