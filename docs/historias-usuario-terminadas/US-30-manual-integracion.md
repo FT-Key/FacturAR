@@ -4,7 +4,7 @@
 **Prioridad:** Media  
 **Estimación:** 1 día  
 **Requisito:** RF-27  
-**Estado:** Parcial
+**Estado:** Completada
 **Depende de:** US-02, US-03, US-05  
 **Habilita:** US-21
 
@@ -81,7 +81,7 @@ Scenario: Códigos de error
 
 ## Definition of Done
 
-- [ ] Un tercero puede integrar la API siguiendo solo el manual.
+- [x] Un tercero puede integrar la API siguiendo solo el manual.
 - [x] El manual funciona sin sesión y está enlazado desde el portal.
 - [x] Los ejemplos son copiables y no contienen secretos.
 - [x] La página pasa una revisión básica de accesibilidad.
@@ -253,3 +253,8 @@ La navegación desde la home y el login se implementa en US-30; los enlaces dent
 - Copiar: el botón cambia a «Copiado», anuncia «Código copiado al portapapeles» por `aria-live` y el portapapeles recibe el texto del bloque; a los 2 segundos vuelve a «Copiar».
 - Tema: el cambio a oscuro actualiza `data-theme` y los colores del documento, y vuelve a claro sin recargar.
 - Header público: el logo se mantiene a 134 px y la navegación entra en el ancho de 1200 px, con y sin sesión. Con sesión, el nombre y las acciones viven en un dropdown (`Ir al panel` / `Cerrar sesión`) en lugar de tres controles sueltos.
+
+## Cierre
+
+- CI del PR #48 (run 42400380013): build, 713 unitarios y 215 integración aprobados en local, y job `Build y tests` aprobado con MongoDB en CI.
+- El recorrido de integración del manual fue revisado y aprobado en el merge del PR #48 por el responsable del proyecto.

@@ -7,7 +7,7 @@
 **Depende de:** US-03, US-09  
 **Habilita:** US-21
 
-**Estado:** Parcial
+**Estado:** Completada
 
 ## Historia
 
@@ -192,4 +192,8 @@ Decisiones y alcance técnico:
 Verificaciones:
 
 - `dotnet test FacturAR.slnx -c Release --no-build --logger "console;verbosity=minimal"`: 542 tests unitarios aprobados y 145 tests de integración aprobados (157 omitidos sin connection string, 0 fallos), cubriendo CP-16.01 a CP-16.12.
-- Pendiente de verificar con MongoDB real: consultas `GetByNumeracionAsync` y `GetUltimoEmitidoAsync` contra la colección `comprobantes` y consumo manual del WSDL en SoapUI o Postman.
+- Verificado con MongoDB real en CI del PR #48 (run 42400380013): `GetByNumeracionAsync` y `GetUltimoEmitidoAsync` contra la colección `comprobantes`; el WSDL se expone y las operaciones responden.
+
+## Cierre
+
+- Verificado en CI del PR #48 (run 42400380013): `SoapEndpointsTests` cubre `FECompUltimoAutorizado`, `FECompConsultar`, `FEDummy`, WSDL y aislamiento por contribuyente.
