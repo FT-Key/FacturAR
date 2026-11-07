@@ -271,6 +271,16 @@ html[data-theme="dark"] .brand-logo--oscuro {
     gap: var(--space-3);
 }
 
+.site-nav__sesion {
+    max-width: 14rem;
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .nav-toggle {
     display: none;
     align-items: center;
@@ -1517,6 +1527,10 @@ html[data-theme="dark"] .brand-logo--oscuro {
         flex-wrap: wrap;
         padding-top: var(--space-4);
         border-top: 1px solid var(--color-border);
+    }
+
+    .site-nav__sesion {
+        display: none;
     }
 }
 

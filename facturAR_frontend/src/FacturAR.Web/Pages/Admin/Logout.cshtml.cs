@@ -1,3 +1,4 @@
+using FacturAR.Web.Auth;
 using FacturAR.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -8,10 +9,12 @@ namespace FacturAR.Web.Pages.Admin;
 public sealed class AdminLogoutModel : PageModel
 {
     private readonly FacturarApiClient _api;
+    private readonly IConfiguration _configuration;
 
-    public AdminLogoutModel(FacturarApiClient api)
+    public AdminLogoutModel(FacturarApiClient api, IConfiguration configuration)
     {
         _api = api;
+        _configuration = configuration;
     }
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
@@ -36,6 +39,12 @@ public sealed class AdminLogoutModel : PageModel
         catch (HttpRequestException)
         {
         }
+
+        SesionPortal.EliminarCookiesDeSesion(
+            Response,
+            _configuration,
+            SesionPortal.NombreContribuyente(_configuration),
+            SesionPortal.NombreAdmin(_configuration));
 
         return Redirect("/admin/login");
     }
