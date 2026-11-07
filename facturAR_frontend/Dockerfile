@@ -8,6 +8,8 @@ RUN dotnet restore facturAR_frontend/src/FacturAR.Web/FacturAR.Web.csproj
 
 COPY facturAR_backend/src/FacturAR.Contracts/ facturAR_backend/src/FacturAR.Contracts/
 COPY facturAR_frontend/src/FacturAR.Web/ facturAR_frontend/src/FacturAR.Web/
+COPY docs/manual-integracion.md docs/manual-integracion.md
+COPY docs/postman/FacturAR.postman_collection.json docs/postman/FacturAR.postman_collection.json
 
 RUN dotnet publish facturAR_frontend/src/FacturAR.Web/FacturAR.Web.csproj \
     -c Release \

@@ -189,6 +189,9 @@
     function conectarCopiar() {
         var botones = document.querySelectorAll('[data-copiar]');
         for (var i = 0; i < botones.length; i += 1) {
+            if (botones[i].hasAttribute('data-copiar-manual')) {
+                continue;
+            }
             (function (boton) {
                 boton.addEventListener('click', function () {
                     var objetivoId = boton.getAttribute('data-copiar-target');

@@ -4,6 +4,7 @@
 **Prioridad:** Media  
 **Estimación:** 1 día  
 **Requisito:** RF-27  
+**Estado:** Parcial
 **Depende de:** US-02, US-03, US-05  
 **Habilita:** US-21
 
@@ -17,21 +18,21 @@ El manual debe ser público o accesible desde el portal y estar enlazado desde l
 
 ## Criterios de aceptación
 
-- [ ] Existe una página `/manual` accesible sin autenticación.
-- [ ] El manual explica el proceso de solicitud, aprobación y activación.
-- [ ] El manual explica cómo crear, listar, revocar y regenerar una API key.
-- [ ] El manual explica el header `X-Api-Key` y el formato de la key.
-- [ ] El manual incluye ejemplos de emisión en `curl`, JavaScript y C#.
-- [ ] El manual incluye ejemplos de consulta y verificación pública.
-- [ ] El manual explica la idempotencia y el header `Idempotency-Key`.
-- [ ] El manual lista los códigos de error y su significado.
-- [ ] El manual incluye buenas prácticas de seguridad.
-- [ ] El manual aclara que el CAE es simulado y no tiene validez fiscal.
-- [ ] El manual enlaza a OpenAPI y a la colección Postman.
-- [ ] El manual tiene fecha de última actualización y versión del contrato.
-- [ ] La página es responsive y navegable con teclado.
-- [ ] Los ejemplos no contienen API keys reales.
-- [ ] El contenido se mantiene sincronizado con `docs/manual-integracion.md`.
+- [x] Existe una página `/manual` accesible sin autenticación.
+- [x] El manual explica el proceso de solicitud, aprobación y activación.
+- [x] El manual explica cómo crear, listar, revocar y regenerar una API key.
+- [x] El manual explica el header `X-Api-Key` y el formato de la key.
+- [x] El manual incluye ejemplos de emisión en `curl`, JavaScript y C#.
+- [x] El manual incluye ejemplos de consulta y verificación pública.
+- [x] El manual explica la idempotencia y el header `Idempotency-Key`.
+- [x] El manual lista los códigos de error y su significado.
+- [x] El manual incluye buenas prácticas de seguridad.
+- [x] El manual aclara que el CAE es simulado y no tiene validez fiscal.
+- [x] El manual enlaza a OpenAPI y a la colección Postman.
+- [x] El manual tiene fecha de última actualización y versión del contrato.
+- [x] La página es responsive y navegable con teclado.
+- [x] Los ejemplos no contienen API keys reales.
+- [x] El contenido se mantiene sincronizado con `docs/manual-integracion.md`.
 
 ## Escenarios Gherkin
 

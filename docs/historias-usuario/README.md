@@ -46,7 +46,7 @@ La columna **Orden** es la posición dentro del sprint. La columna **Contrato** 
 | 18 | [US-15](../historias-usuario-terminadas/US-15-soap-emision.md) | SOAP de emisión | Interoperabilidad | 6 | Alta | 2 | RF-15 | Completada | Sí |
 | 19 | [US-16](US-16-soap-consultas.md) | SOAP de consultas | Interoperabilidad | 6 | Media | 1 | RF-16 | Parcial | Sí |
 | 20 | [US-17](../historias-usuario-terminadas/US-17-auditoria-outbox.md) | Auditoría y outbox | Operación | 6 | Media | 2 | RF-17 | Completada | Sí |
-| 21 | [US-30](US-30-manual-integracion.md) | Manual online de integración | Portal | 6 | Media | 1 | RF-27 | Pendiente | Sí |
+| 21 | [US-30](US-30-manual-integracion.md) | Manual online de integración | Portal | 6 | Media | 1 | RF-27 | Parcial | Sí |
 | 22 | [US-21](US-21-tests-documentacion.md) | Tests, Postman y documentación | Calidad | 6 | Alta | 2 | RNF-13/17/18 | Parcial | Sí |
 | 23 | [US-11](../historias-usuario-terminadas/US-11-verificacion-publica.md) | Verificación pública por CAE | Consultas | 6 | Alta | 2 | RF-10 | Completada | Sí |
 | 24 | [US-32](../historias-usuario-terminadas/US-32-landing-publica-chatbot.md) | Landing pública, sistema de diseño y asistente de alta | Portal | 6 | Alta | 5 | RF-28 | Completada | Sí |

@@ -1,5 +1,7 @@
 # Manual de integración
 
+Versión del contrato: `0.1.0` | Última actualización: `2026-11-07`
+
 ## Estado de la API
 
 > **Estado del manual.** Este documento describe el contrato del MVP y marca el estado real de cada ruta. Lo que ya tiene historia implementada responde hoy y figura en "Endpoints disponibles hoy"; lo que sigue especificado sin implementación responde `404`.
@@ -131,7 +133,7 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 | US-28 | §2 Activar la cuenta: invitación por token | Completada |
 | US-29 | Emails de onboarding de §1 y §2 | Pendiente |
 | US-21 | Veracidad documental de este manual | Parcial |
-| US-30 | Publicación del manual online en el portal | Pendiente |
+| US-30 | Publicación del manual online en el portal | Completada |
 
 ## Qué es FacturAR
 
@@ -900,7 +902,7 @@ La respuesta no expone datos internos, secretos ni API keys.
 
 ## 9. Ejemplos
 
-> **Disponible — US-05.** Los ejemplos de emisión funcionan contra `POST /v1/comprobantes`; aceptan API key o cookie de empresa con rol `Administrador` o `Emisor`, e `Idempotency-Key`.
+> **Disponible — US-05, US-09 y US-11.** Los ejemplos de emisión (`POST /v1/comprobantes`), consulta (`GET /v1/comprobantes`) y verificación pública (`GET /v1/comprobantes/verificar/{cae}`) están listos para copiar y ejecutar.
 
 ### curl
 
@@ -927,12 +929,17 @@ curl -X POST "http://localhost:5171/v1/comprobantes" \
       }
     ]
   }'
+
+curl -X GET "http://localhost:5171/v1/comprobantes?page=1&pageSize=20" \
+  -H "X-Api-Key: fak_<prefijo>_<secreto>"
+
+curl -X GET "http://localhost:5171/v1/comprobantes/verificar/12345678901234"
 ```
 
 ### JavaScript
 
 ```javascript
-const response = await fetch("http://localhost:5171/v1/comprobantes", {
+const emitirResponse = await fetch("http://localhost:5171/v1/comprobantes", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -951,15 +958,23 @@ const response = await fetch("http://localhost:5171/v1/comprobantes", {
     items: [
       {
         descripcion: "Curso de programación",
-        cantidad: 1,
-        precioUnitario: 10000,
-        alicuotaIva: 21
+        "cantidad": 1,
+        "precioUnitario": 10000,
+        "alicuotaIva": 21
       }
     ]
   })
 });
 
-const comprobante = await response.json();
+const comprobante = await emitirResponse.json();
+
+const listadoResponse = await fetch("http://localhost:5171/v1/comprobantes?page=1&pageSize=20", {
+  headers: { "X-Api-Key": process.env.FACTURAR_API_KEY }
+});
+const listado = await listadoResponse.json();
+
+const verificacionResponse = await fetch(`http://localhost:5171/v1/comprobantes/verificar/${comprobante.cae}`);
+const verificacion = await verificacionResponse.json();
 ```
 
 ### C#
@@ -998,6 +1013,13 @@ var response = await client.PostAsJsonAsync(
 
 response.EnsureSuccessStatusCode();
 var comprobante = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+var listado = await client.GetFromJsonAsync<JsonElement>(
+    "http://localhost:5171/v1/comprobantes?page=1&pageSize=20");
+
+var cae = comprobante.GetProperty("cae").GetString();
+var verificacion = await client.GetFromJsonAsync<JsonElement>(
+    $"http://localhost:5171/v1/comprobantes/verificar/{cae}");
 ```
 
 ## 10. Errores

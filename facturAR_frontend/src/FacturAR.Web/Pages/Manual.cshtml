@@ -1,0 +1,85 @@
+@page "/manual"
+@model FacturAR.Web.Pages.ManualModel
+@{
+    ViewData["Title"] = "Manual de integración — FacturAR";
+    ViewData["Description"] = "Guía de integración con la API de FacturAR: solicitud de alta, activación, API keys, emisión con idempotencia, consultas, PDF, SOAP y verificación pública por CAE.";
+}
+
+<section class="manual-page" aria-labelledby="manual-titulo">
+    <div class="container">
+        <header class="manual-header">
+            <div class="manual-header__top">
+                <p class="eyebrow">Documentación para integradores · CAE simulado sin validez fiscal</p>
+                <h1 id="manual-titulo" class="manual-header__title">Manual de integración</h1>
+                <p class="section__lead">
+                    Recorrido de punta a punta para solicitar acceso, activar tu empresa, gestionar API keys, emitir y consultar comprobantes por REST o SOAP y verificar un CAE.
+                </p>
+            </div>
+
+            <div class="manual-meta" aria-label="Metadatos del manual">
+                <div class="manual-meta__item">
+                    <span class="manual-meta__label">Versión del contrato</span>
+                    <code class="manual-meta__value" data-manual-version>@Model.VersionContrato</code>
+                </div>
+                <div class="manual-meta__item">
+                    <span class="manual-meta__label">Última actualización</span>
+                    <time class="manual-meta__value" datetime="@Model.FechaActualizacion" data-manual-fecha>@Model.FechaActualizacion</time>
+                </div>
+                <div class="manual-meta__item">
+                    <span class="manual-meta__label">Fuente única</span>
+                    <a class="manual-meta__link" href="@Model.RepositorioManualUrl" target="_blank" rel="noopener noreferrer">docs/manual-integracion.md</a>
+                </div>
+            </div>
+
+            <div class="manual-resources" aria-label="Recursos de integración">
+                <a class="btn btn--secondary" href="@Model.PostmanUrl" download="FacturAR.postman_collection.json">
+                    Descargar colección Postman
+                </a>
+
+                @if (Model.EsDevelopment)
+                {
+                    <a class="btn btn--secondary" href="@Model.OpenApiUrl" target="_blank" rel="noopener noreferrer" data-openapi-link>
+                        Especificación OpenAPI (@Model.OpenApiUrl)
+                    </a>
+                }
+                else
+                {
+                    <p class="manual-openapi-note" data-openapi-nota>
+                        La especificación OpenAPI (<code>@Model.OpenApiUrl</code>) solo se publica en el entorno <strong>Development</strong>.
+                        En este entorno podés consultar el <a href="@Model.RepositorioContratoUrl" target="_blank" rel="noopener noreferrer">contrato versionado de la API</a>.
+                    </p>
+                }
+
+                <a class="btn btn--ghost" href="/verificar">Verificar un CAE</a>
+                <a class="btn btn--ghost" href="/solicitar-alta">Solicitar alta de empresa</a>
+            </div>
+        </header>
+
+        <div class="manual-layout">
+            <aside class="manual-toc" aria-label="Tabla de contenidos del manual">
+                <details class="manual-toc__details" open>
+                    <summary class="manual-toc__summary">Tabla de contenidos</summary>
+                    <nav aria-label="Secciones del manual">
+                        <ol class="manual-toc__list">
+                            @foreach (var seccion in Model.TablaContenidos)
+                            {
+                                <li class="manual-toc__item manual-toc__item--level-@seccion.Nivel">
+                                    <a class="manual-toc__link" href="#@seccion.Id">@seccion.Titulo</a>
+                                </li>
+                            }
+                        </ol>
+                    </nav>
+                </details>
+            </aside>
+
+            <article id="manual-contenido" class="manual-content" tabindex="-1">
+                @Html.Raw(Model.HtmlContenido)
+            </article>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/js/manual.js" defer></script>
+}
+
