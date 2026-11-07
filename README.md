@@ -5,7 +5,7 @@
 
 Simulador de facturación electrónica de AFIP/ARCA para el Trabajo Final Integrador de la carrera. Incluye onboarding de empresas con solicitud pública, aprobación por administrador global e invitación por email, además de emisión, consultas, API keys, portal y verificación pública de un CAE.
 
-> Estado actual: MVP completo con API, portal Blazor/Razor, MongoDB, onboarding de empresas, emisión REST y SOAP de facturas y notas, consultas, PDF con QR, dashboard, verificación pública por CAE, manual de integración, landing pública, Docker y CI/CD. 26 de las 27 historias obligatorias están completadas y verificadas con MongoDB real en CI; la única activa es **US-21** (tests, Postman y documentación), a la que le quedan la colección Postman de API keys/SOAP y la validación de un tercero siguiendo el README. Las US-22 a US-26 quedan fuera de alcance.
+> Estado actual: MVP completo con API, portal Blazor/Razor, MongoDB, onboarding de empresas, emisión REST y SOAP de facturas y notas, consultas, PDF con QR, dashboard, verificación pública por CAE, manual de integración, landing pública, Docker y CI/CD. 26 de las 27 historias obligatorias están completadas y verificadas con MongoDB real en CI; la única activa es **US-21** (tests, Postman y documentación), a la que le quedan la colección Postman de API keys/SOAP y la validación de un tercero siguiendo el README. Las US-22 a US-25 quedan fuera de alcance.
 >
 > Planificación: las historias están refinadas con **contrato técnico** (modelo de datos, endpoints, validaciones y casos de prueba) contra el [contrato transversal de la API](docs/contratos-api.md), y el [plan de implementación](docs/plan-implementacion.md) fija el orden de ejecución.
 
