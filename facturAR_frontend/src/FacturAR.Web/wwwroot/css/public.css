@@ -233,12 +233,14 @@ html[data-theme="dark"] .brand-logo--oscuro {
 
 .site-nav__links a {
     position: relative;
+    display: inline-block;
     color: var(--color-text-muted);
     font-size: var(--text-xs);
     font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     text-decoration: none;
+    white-space: nowrap;
 }
 
 .site-nav__links a::after {
@@ -1474,7 +1476,7 @@ html[data-theme="dark"] .brand-logo--oscuro {
     margin: 0;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1240px) {
     .nav-toggle {
         display: inline-flex;
     }
@@ -1516,7 +1518,9 @@ html[data-theme="dark"] .brand-logo--oscuro {
         padding-top: var(--space-4);
         border-top: 1px solid var(--color-border);
     }
+}
 
+@media (max-width: 900px) {
     .hero__grid {
         grid-template-columns: 1fr;
         gap: var(--space-7);
