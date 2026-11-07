@@ -176,7 +176,7 @@
             <pre id="codigo-curl"
                  tabindex="0"
                  role="region"
-                 aria-label="Ejemplo de emisión de comprobante con cURL"><code>curl -X POST "http://localhost:5171/v1/comprobantes" \
+                 aria-label="Ejemplo de emisión de comprobante con cURL"><code>curl -X POST "@Model.ApiBaseUrl/v1/comprobantes" \
   -H "X-Api-Key: fak_reemplazar_por_tu_api_key" \
   -H "Idempotency-Key: 00000000-0000-4000-8000-000000000000" \
   -H "Content-Type: application/json" \

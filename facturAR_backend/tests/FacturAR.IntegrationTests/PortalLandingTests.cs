@@ -44,6 +44,19 @@ public sealed class PortalLandingTests
     }
 
     [Fact]
+    public async Task Raiz_MuestraElEjemploCurlConLaUrlConfiguradaDeLaApi()
+    {
+        using var factory = new PortalWebApplicationFactory()
+            .Configurar("Api:BaseUrl", "https://api.facturar.test/");
+        using var client = factory.CrearCliente();
+
+        var html = WebUtility.HtmlDecode(await client.GetStringAsync("/"));
+
+        Assert.Contains("https://api.facturar.test/v1/comprobantes", html);
+        Assert.DoesNotContain("localhost:5171", html);
+    }
+
+    [Fact]
     public async Task Raiz_TieneUnSoloH1()
     {
         using var factory = new PortalWebApplicationFactory();
