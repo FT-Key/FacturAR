@@ -28,7 +28,7 @@ El manual debe ser público o accesible desde el portal y estar enlazado desde l
 - [x] El manual lista los códigos de error y su significado.
 - [x] El manual incluye buenas prácticas de seguridad.
 - [x] El manual aclara que el CAE es simulado y no tiene validez fiscal.
-- [x] El manual enlaza a OpenAPI y a la colección Postman.
+- [x] El manual enlaza la colección Postman; el OpenAPI y el contrato se entregan al equipo de integración.
 - [x] El manual tiene fecha de última actualización y versión del contrato.
 - [x] La página es responsive y navegable con teclado.
 - [x] Los ejemplos no contienen API keys reales.
@@ -73,7 +73,7 @@ Scenario: Códigos de error
 - [x] Agregar navegación desde la home, login y sección API keys.
 - [x] Agregar tabla de contenidos y anclas.
 - [x] Incluir bloques de código con botón de copiar.
-- [x] Enlazar OpenAPI y Postman.
+- [x] Enlazar la colección Postman y reservar OpenAPI/contrato para el equipo de integración.
 - [x] Revisar accesibilidad y responsive.
 - [x] Agregar un test de que la página responde `200`.
 - [x] Verificar que los ejemplos coincidan con los contratos implementados.
@@ -102,7 +102,7 @@ El portal solo lee ese archivo. No hay copia del texto en el código: si el manu
 | --- | --- | --- | --- | --- | --- |
 | Manual online | `GET /manual` | **Ninguna**. Página pública | — | HTML con el contenido renderizado del manual, tabla de contenidos y bloques de código con botón de copiar | `404` si el archivo fuente no está disponible en el build |
 | Colección de Postman | `GET /downloads/FacturAR.postman_collection.json` | Ninguna | — | Archivo JSON de la colección | `404` |
-| OpenAPI | `GET {Api:BaseUrl}/openapi/v1.json` | Ninguna | — | Documento OpenAPI de la API | `404` fuera de Development |
+| OpenAPI | `GET {Api:BaseUrl}/openapi/v1.json` | Ninguna | — | Documento OpenAPI de la API | `404` fuera de Development. No se enlaza desde `/manual`; se entrega al equipo. |
 
 La página `/manual` es una **Razor Page** (`Pages/Manual.cshtml` + `Manual.cshtml.cs`) porque el contenido es estático y no necesita estado de componentes. El portal ya usa Razor Pages para `Pages/Verificar.cshtml` y componentes Blazor para las pantallas interactivas.
 
@@ -116,7 +116,7 @@ El contenido se **genera desde** `docs/manual-integracion.md` en tiempo de build
 2. **Render.** La Razor Page lee el Markdown y lo convierte a HTML al construir la respuesta.
 3. **Tabla de contenidos.** Se genera a partir de los encabezados `##` y `###` del Markdown. Cada encabezado recibe un `id` estable y la tabla de contenidos lista esos `id` como enlaces internos.
 4. **Bloques de código.** Cada bloque cercado se renderiza como `<pre><code class="language-{lenguaje}">` y se le agrega un botón de copiar.
-5. **Enlaces a OpenAPI y Postman.** La página agrega, fuera del Markdown, dos enlaces contextuales: al spec de la API (`{Api:BaseUrl}/openapi/v1.json`) y a la colección de Postman servida por el portal.
+5. **Recursos.** La página enlaza la colección de Postman servida por el portal. El OpenAPI y el contrato detallado se entregan al equipo de integración y no se enlazan desde la página pública. La operación interna, los endpoints de administración, el seed y la infraestructura viven en `docs/manual-operacion.md`, que no se renderiza en `/manual`.
 
 **Markdown → HTML.** Se usa `Markdig` (BSD-3-Clause). Es un **paquete NuGet nuevo** y su necesidad se justifica así: sin un renderer, el texto del manual habría que duplicar en HTML dentro del portal, y cualquier corrección quedaría desactualizada en uno de los dos lugares, que es exactamente lo que el criterio "El contenido se mantiene sincronizado con `docs/manual-integracion.md`" busca evitar. Alternativas descartadas:
 
@@ -134,7 +134,6 @@ Markdig se agrega **solo** al proyecto `FacturAR.Web`. Se usa con la extensión 
 | `ManualRenderer` | `FacturAR.Web/Services` | Lee el Markdown, lo convierte a HTML con Markdig, extrae los encabezados para la tabla de contenidos y envuelve los bloques de código con su botón de copiar |
 | `ManualPageModel` (`Pages/Manual.cshtml.cs`) | `FacturAR.Web/Pages` | Orquesta la carga del archivo y entrega a la vista el HTML, la tabla de contenidos y los metadatos (fecha de actualización, versión del contrato) |
 | `wwwroot/js/manual.js` | `FacturAR.Web` | Comportamiento del botón de copiar con `navigator.clipboard.writeText` y realimentación accesible |
-| `Api:BaseUrl` | `facturAR_frontend/src/FacturAR.Web/appsettings.json` | Base de la API para armar el enlace a `/openapi/v1.json`. Ya existe y se reutiliza |
 
 El portal **no** accede a MongoDB: el manual se arma con archivos locales y configuración.
 
@@ -142,13 +141,12 @@ El portal **no** accede a MongoDB: el manual se arma con archivos locales y conf
 
 | Clave | Tipo | Default | Uso |
 | --- | --- | --- | --- |
-| `Manual__RutaArchivo` | `string` | `Content/manual-integracion.md` | Ubicación del Markdown dentro del output del portal |
+| `Manual__RutaArchivo` | `string` | `Content/manual-integracion.md` | Ubicación del Markdown público dentro del output del portal |
+| `Manual__RutaColeccionPostman` | `string` | `Content/FacturAR.postman_collection.json` | Colección Postman descargable |
 | `Manual__VersionContrato` | `string` | Sin valor | Override opcional. Si está vacío, la versión se detecta del Markdown y, si no aparece, cae en `0.1.0` |
 | `Manual__FechaActualizacion` | `string` | Sin valor | Override opcional. Si está vacío, la fecha se detecta del Markdown y, si no aparece, cae en `2026-11-07` |
 
-`Api:BaseUrl` ya está configurado (`http://localhost:5171` en local) y se reutiliza para el enlace a OpenAPI.
-
-El enlace a `/openapi/v1.json` solo resuelve en Development, porque el spec se publica únicamente en ese ambiente. En otros ambientes la página muestra una nota que aclara que el spec solo se publica en Development y enlaza al contrato versionado, para no dejar un enlace roto.
+La página pública **no** enlaza OpenAPI ni el contrato detallado: se entregan al equipo de integración. La operación interna, los endpoints de administración y el seed se documentan en `docs/manual-operacion.md`, fuera de `/manual`.
 
 ### UI
 
@@ -244,6 +242,7 @@ La navegación desde la home y el login se implementa en US-30; los enlaces dent
 - No implementa documentación interactiva generada desde OpenAPI.
 - No reemplaza OpenAPI; lo complementa con una guía de uso.
 - No incluye ejemplos de AFIP real.
+- La página pública no expone endpoints de administración, la consola global, el seed, la configuración operativa ni los detalles de salud/versión. Esa información vive en `docs/manual-operacion.md` y no se renderiza en `/manual`.
 
 ## Evidencia
 
@@ -253,6 +252,7 @@ La navegación desde la home y el login se implementa en US-30; los enlaces dent
 - Copiar: el botón cambia a «Copiado», anuncia «Código copiado al portapapeles» por `aria-live` y el portapapeles recibe el texto del bloque; a los 2 segundos vuelve a «Copiar».
 - Tema: el cambio a oscuro actualiza `data-theme` y los colores del documento, y vuelve a claro sin recargar.
 - Header público: el logo se mantiene a 134 px y la navegación entra en el ancho de 1200 px, con y sin sesión. Con sesión, el nombre y las acciones viven en un dropdown (`Ir al panel` / `Cerrar sesión`) en lugar de tres controles sueltos.
+- Separación público/interno: `Manual_NoExponeRutasDeAdministracionNiDetallesInternos` verifica que `/manual` y el Markdown no contengan `/v1/admin`, `/admin/solicitudes`, `cookies.admin`, `Seed__`, `MONGO_NO_DISPONIBLE` ni enlaces al contrato interno.
 
 ## Cierre
 
