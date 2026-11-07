@@ -23,6 +23,18 @@ public sealed class OutboxIntegrationTests
     }
 
     [Fact]
+    public void LosHandlersDeEmailDeSolicitudQuedanRegistrados()
+    {
+        using var factory = new CustomWebApplicationFactory();
+        using var scope = factory.Services.CreateScope();
+
+        var resolver = scope.ServiceProvider.GetRequiredService<OutboxHandlerResolver>();
+
+        Assert.NotNull(resolver.Obtener(TiposMensajeOutbox.EmailSolicitudRecibida));
+        Assert.NotNull(resolver.Obtener(TiposMensajeOutbox.EmailNuevaSolicitud));
+    }
+
+    [Fact]
     public async Task Emitir_RegistraElEventoComprobanteEmitido()
     {
         using var factory = new ComprobanteApiKeyFactory();

@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using FacturAR.Application.Outbox;
 using FacturAR.Contracts.Solicitudes;
 using FacturAR.Domain.Enums;
 using MongoDB.Bson;
@@ -52,8 +53,10 @@ public sealed class SolicitudAltaEndpointsTests
         Assert.True(solicitud.AceptaTerminos);
         Assert.Equal(DateTimeKind.Utc, solicitud.CreatedAt.Kind);
 
-        var mensaje = Assert.Single(factory.Emails.Enviados);
-        Assert.Equal(EmailValido, mensaje.Para);
+        var mensaje = Assert.Single(factory.Outbox.Encolados);
+        Assert.Equal(TiposMensajeOutbox.EmailSolicitudRecibida, mensaje.Tipo);
+        Assert.Equal($"{{\"solicitudId\":\"{solicitud.Id}\"}}", mensaje.Payload);
+        Assert.Empty(factory.Emails.Enviados);
     }
 
     [Fact]

@@ -160,6 +160,8 @@ builder.Services.AddScoped<IContribuyenteRepository, ContribuyenteRepository>();
 builder.Services.AddScoped<IEventoAuditoriaRepository, EventoAuditoriaRepository>();
 builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
 builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
+builder.Services.AddScoped<IOutboxHandler, EmailSolicitudRecibidaOutboxHandler>();
+builder.Services.AddScoped<IOutboxHandler, EmailNuevaSolicitudOutboxHandler>();
 builder.Services.AddScoped<OutboxHandlerResolver>();
 builder.Services.AddSingleton<OutboxBackoff>();
 builder.Services.AddHostedService<OutboxWorker>();
