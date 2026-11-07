@@ -1,6 +1,6 @@
 # Historias de usuario
 
-El alcance obligatorio tiene **27 historias y 52 días ideales de trabajo**, y **se implementan en un único sprint**. US-01, US-02, US-07, US-10, US-11, US-12, US-13, US-15, US-17, US-19, US-20, US-27, US-28, US-29 y US-31 están completadas y archivadas; quedan 12 historias activas.
+El alcance obligatorio tiene **27 historias y 52 días ideales de trabajo**, y **se implementan en un único sprint**. US-01, US-02, US-05, US-07, US-10, US-11, US-12, US-13, US-14, US-15, US-17, US-19, US-20, US-27, US-28, US-29, US-31 y US-32 están completadas y archivadas; quedan 9 historias activas.
 
 Las US-22 a US-25 **quedan fuera del alcance del proyecto** y están archivadas en [`docs/historias-usuario-fuera-de-alcance/`](../historias-usuario-fuera-de-alcance/README.md). No se implementan ni se cuentan para el avance del MVP.
 
@@ -35,21 +35,21 @@ La columna **Orden** es la posición dentro del sprint. La columna **Contrato** 
 | 7 | [US-03](US-03-autenticacion-api-key.md) | Autenticación por API key | Integraciones | 3 | Alta | 1 | RF-03 | Base implementada | Sí |
 | 8 | [US-07](../historias-usuario-terminadas/US-07-numeracion-atomica.md) | Numeración atómica | Emisión | 3 | Alta | 1 | RF-06 | Completada | Sí |
 | 9 | [US-18](US-18-parametros-seed.md) | Parámetros y datos semilla | Operación | 3 | Media | 1 | RF-18 | Parcial | Sí |
-| 10 | [US-05](US-05-emision-facturas.md) | Emisión de facturas A, B y C | Emisión | 4 | Alta | 3 | RF-04 | Parcial | Sí |
+| 10 | [US-05](../historias-usuario-terminadas/US-05-emision-facturas.md) | Emisión de facturas A, B y C | Emisión | 4 | Alta | 3 | RF-04 | Completada | Sí |
 | 11 | [US-06](US-06-idempotencia.md) | Idempotencia de emisión | Emisión | 4 | Alta | 1 | RF-05 | Parcial | Sí |
 | 12 | [US-08](../historias-usuario-terminadas/US-08-notas-credito-debito.md) | Notas de crédito y débito | Emisión | 4 | Alta | 2 | RF-07 | Completada | Sí |
 | 13 | [US-09](US-09-consultas-comprobantes.md) | Consultas y último autorizado | Consultas | 5 | Alta | 1 | RF-08 | Parcial | Sí |
 | 14 | [US-10](../historias-usuario-terminadas/US-10-pdf-qr.md) | PDF con código QR | Documentos | 5 | Alta | 2 | RF-09 | Completada | Sí |
 | 15 | [US-12](../historias-usuario-terminadas/US-12-dashboard-listado.md) | Dashboard y listado | Portal | 5 | Media | 2 | RF-13 | Completada | Sí |
 | 16 | [US-13](../historias-usuario-terminadas/US-13-emision-manual.md) | Emisión manual desde el portal | Portal | 5 | Media | 2 | RF-12 | Completada | Sí |
-| 17 | [US-14](US-14-api-keys-portal.md) | API keys desde el portal | Portal | 5 | Media | 1 | RF-14 | Parcial | Sí |
+| 17 | [US-14](../historias-usuario-terminadas/US-14-api-keys-portal.md) | API keys desde el portal | Portal | 5 | Media | 1 | RF-14 | Completada | Sí |
 | 18 | [US-15](../historias-usuario-terminadas/US-15-soap-emision.md) | SOAP de emisión | Interoperabilidad | 6 | Alta | 2 | RF-15 | Completada | Sí |
 | 19 | [US-16](US-16-soap-consultas.md) | SOAP de consultas | Interoperabilidad | 6 | Media | 1 | RF-16 | Parcial | Sí |
 | 20 | [US-17](../historias-usuario-terminadas/US-17-auditoria-outbox.md) | Auditoría y outbox | Operación | 6 | Media | 2 | RF-17 | Completada | Sí |
 | 21 | [US-30](US-30-manual-integracion.md) | Manual online de integración | Portal | 6 | Media | 1 | RF-27 | Pendiente | Sí |
 | 22 | [US-21](US-21-tests-documentacion.md) | Tests, Postman y documentación | Calidad | 6 | Alta | 2 | RNF-13/17/18 | Parcial | Sí |
 | 23 | [US-11](../historias-usuario-terminadas/US-11-verificacion-publica.md) | Verificación pública por CAE | Consultas | 6 | Alta | 2 | RF-10 | Completada | Sí |
-| 24 | [US-32](US-32-landing-publica-chatbot.md) | Landing pública, sistema de diseño y asistente de alta | Portal | 6 | Alta | 5 | RF-28 | Parcial | Sí |
+| 24 | [US-32](../historias-usuario-terminadas/US-32-landing-publica-chatbot.md) | Landing pública, sistema de diseño y asistente de alta | Portal | 6 | Alta | 5 | RF-28 | Completada | Sí |
 | — | [US-19](../historias-usuario-terminadas/US-19-docker-compose.md) | Docker y Docker Compose | Infraestructura | — | Alta | 2 | RF-21 | Completada | — |
 | — | [US-20](../historias-usuario-terminadas/US-20-integracion-continua.md) | Integración continua (CI) | Infraestructura | — | Alta | 1 | RF-21 | Completada | — |
 | — | [US-31](../historias-usuario-terminadas/US-31-entrega-continua-azure.md) | Entrega continua y despliegue en Azure | Infraestructura | — | Alta | 3 | RNF-20 / RF-21 | Completada | — |
@@ -72,15 +72,15 @@ El cierre de QA del 2026-11-05 está documentado en [`docs/qa-cierre-2026-11-05.
 
 **US-08** queda **Completada**: `POST /v1/comprobantes` emite notas de crédito y débito A, B y C sobre una factura de la misma letra (`comprobanteOriginalId`). Cada nota tiene número y CAE propios, y el saldo ajustable de la factura se actualiza en la misma transacción con control de concurrencia.
 
-**US-02** queda **Parcial**: los cuatro endpoints de `/v1/api-keys` con la política `EmpresaAdministrador`, el generador/hasher y los servicios de creación, listado, revocación y regeneración están implementados y cubiertos por tests unitarios; falta la corrida real con Mongo (`MongoApiKeysTests` CP-01 a CP-15 se omiten sin connection string) y las verificaciones de punta a punta con la API real.
+**US-02** está **Completada** (auditoría de QA del 2026-11-06): rol Administrador verificado (Emisor y Consulta reciben `403`), revocación corta el acceso (`200` → `401`), dos keys activas, modal de valor único, regeneración con prefijo nuevo y responsive sin scroll horizontal en 375, 768, 1280 y 1440 px.
 
-**US-14** queda en **Parcial**: la página `/api-keys` del portal lista, crea, revoca y regenera keys contra los endpoints de US-02, muestra el valor completo una sola vez en un modal con botón «Copiar» y aplica la autorización por rol: un usuario `Consulta` recibe «Acceso denegado» y la API responde `403 SIN_PERMISOS`. La verificación en Chrome headless contra un stub de la API aprobó CP-01 a CP-09, CP-11 a CP-13 y CP-15. Faltan las verificaciones contra la API y MongoDB reales: CP-10 y el aislamiento por empresa, que la key revocada o regenerada deje de autenticar en `GET /v1/comprobantes`, CP-14 (contexto no seguro), CP-05/CP-13 contra la API real, y la revisión responsive y de foco visible en móvil.
+**US-14** está **Completada** (auditoría de QA del 2026-11-06): alta con modal de valor único, revocación, regeneración, teclado con foco visible, estados de carga/vacío/error implementados y responsive verificado en 375, 768, 1280 y 1440 px.
 
 **US-03** queda en **Base implementada**: el esquema `ApiKey` (`ApiKeyAuthenticationHandler`), la política `ApiKeyNegocio` con `RequireApiKey()`, `IApiKeyAuthenticator` (formato `fak_<12hex>_<43 base64url>`, búsqueda por prefijo y comparación con `FixedTimeEquals`), los claims `contribuyenteId`/`apikeyId`/`plano`, el registro de `UltimoUso` tolerante a fallos y los tests unitarios y de integración están implementados. Falta aplicarlo a endpoints de negocio reales cuando existan US-05/US-09 y correr los casos con Mongo real (`MongoApiKeyAuthenticationTests` se omiten sin connection string). La verificación pública por CAE sigue anónima.
 
 **US-07** está **Completada** (auditoría de QA del 2026-11-06): `MongoSecuenciasTests` pasó 12/12, repetido tres veces contra MongoDB 8.2 en replica set; el índice único `ux_comprobantes_numeracion` y `ux_secuencias_contribuyente_punto_tipo` están creados; la numeración es correlativa (1 a 4), no se comparte entre contribuyentes, puntos de venta ni tipos y la comparten REST y SOAP. Evidencia: [`docs/qa-auditoria-2026-11-06.md`](../qa-auditoria-2026-11-06.md).
 
-**US-05** queda en **Parcial**: `POST /v1/comprobantes` emite facturas A, B y C con API key y `Idempotency-Key`, valida emisor, punto de venta, receptor, ítems e importes, calcula neto/IVA/total por tipo, asigna el número con US-07, genera el CAE, persiste el comprobante con el evento `comprobante.emitido` dentro de la transacción y responde `201` con `ComprobanteResponse`. Está cubierto por tests unitarios y de integración sin Mongo (496 aprobados, 121 omitidos, 0 fallos) y documentado en OpenAPI, Postman y el manual. Faltan la verificación real con MongoDB en replica set de la transacción, el rollback, la concurrencia CP-05-18 y el índice único de CAE, además del QA manual del camino feliz. La emisión desde el portal es US-13 (implementada).
+**US-05** está **Completada** (auditoría de QA del 2026-11-06): emisión de facturas A, B y C verificada contra MongoDB en replica set, transacción con numeración y CAE, replay idempotente, consulta y verificación por CAE. El check de «detalles por campo» se retiró porque `docs/contratos-api.md` define `ErrorResponse` solo con `Codigo` y `Mensaje`, y la API cumple el contrato.
 
 **US-15** está **Completada** (auditoría de QA del 2026-11-06): `FECAESolicitar` emitió el comprobante número 4 con CAE `24118210949728`, el mismo que devuelve REST; `FECompConsultar`, `FECompUltimoAutorizado` y `FEDummy` respondieron por SOAP 1.1 y el WSDL expone las operaciones. No se hizo la importación manual en la UI de SoapUI/Postman. Evidencia: [`docs/qa-auditoria-2026-11-06.md`](../qa-auditoria-2026-11-06.md).
 
@@ -92,7 +92,7 @@ El cierre de QA del 2026-11-05 está documentado en [`docs/qa-cierre-2026-11-05.
 
 **US-12** queda en **Completada**: `GET /v1/comprobantes/dashboard` devuelve las métricas del mes (`mes=YYYY-MM` opcional, periodo UTC), el último CAE, el máximo número autorizado y los últimos cinco comprobantes, con API key o cookie de empresa y `ContribuyenteId` resuelto desde la credencial. El portal expone `/dashboard` (dashboard), `/comprobantes` (filtros y paginación) y `/comprobantes/{id}` (detalle) reutilizando US-09 y US-10; la landing pública vive en `/` desde US-32. Está cubierto por 14 tests unitarios, 11 de integración y 7 `MongoFact`; la suite completa con MongoDB real (Atlas, base temporal QA) pasó con 556 unitarios + 320 integración, 0 omitidos y 0 fallos. La QA manual con Playwright contra API, portal y Mongo reales verificó CP-01 a CP-14: dashboard con datos, estado vacío, aislamiento, filtros y paginación, PDF, detalle, formato argentino, conservación de filtros, error y reintento, carga SSR, teclado, responsive, conciliación dashboard/listado y rol `Consulta`.
 
-**US-32** queda en **Parcial**: `/` es la landing pública SSR y el dashboard autenticado se movió a `/dashboard`; `/inicio` responde `301` a `/`. El portal usa el sistema de diseño **Perspective** (Oswald, Poppins y JetBrains Mono; paleta petróleo y ámbar; grillas y planos isométricos) con tokens claro/oscuro/system, tema persistente y sin FOUC. La landing incluye SEO técnico (JSON-LD, `robots.txt`, `sitemap.xml` y canonical desde `Portal:BaseUrl`) y el asistente informativo vive en `/solicitar-alta` con el endpoint `POST /asistente/mensajes` en el portal: Groq configurable, deshabilitado por defecto, con rate limit, presupuesto, circuito y filtros de entrada y salida. Suma 70 tests unitarios y 23 de integración nuevos, y QA Playwright de CP-32.01 a CP-32.10, CP-32.12, CP-32.20, CP-32.23 y CP-32.24, además de responsive en 375, 768, 1280 y 1440 px y verificación del rediseño en esos mismos anchos. Faltan Lighthouse, axe, la respuesta real de Groq y los assets de marca.
+**US-32** está **Completada** (auditoría de QA del 2026-11-06): axe sin violaciones en 5 rutas × 2 temas, Lighthouse caliente 97–99, asistente con contexto verificado del alta, `/activar` con título y h1, tema en todas las páginas, SEO, assets de marca (og-image, logos, favicon y apple touch) y paleta petróleo/ámbar. Las pruebas de red team y la revisión externa se retiraron del alcance por decisión de producto; las protecciones de entrada/salida, rate limit y filtros siguen implementadas y testeadas.
 
 **US-17** está **Completada** (auditoría de QA del 2026-11-06): consulta por Id y Estado+Fecha contra MongoDB real, índice `ix_outbox_estado_fecha`, y emails de onboarding integrados en la outbox con handlers `EmailSolicitudRecibida` y `EmailNuevaSolicitud`, payload sin datos personales y auditoría de envío.
 

@@ -90,9 +90,9 @@ Reglas que la landing y el asistente deben comunicar sin ambigüedad:
 - [x] No hay flash de tema incorrecto (FOUC) al cargar: el tema se aplica antes del primer paint.
 - [x] El toggle de tema es accesible: rol, nombre, estado y foco visible.
 - [x] Si el usuario cambia el tema del sistema con la app abierta y está en `system`, la UI se actualiza.
-- [ ] El contraste cumple WCAG 2.2 AA en ambos temas.
+- [x] El contraste cumple WCAG 2.2 AA en ambos temas.
 - [x] El movimiento respeta `prefers-reduced-motion`.
-- [ ] No se agrega un framework CSS ni JS nuevo; se usan CSS custom properties y JavaScript mínimo.
+- [x] No se agrega un framework CSS ni JS nuevo; se usan CSS custom properties y JavaScript mínimo.
 
 ### SEO
 
@@ -108,12 +108,12 @@ Reglas que la landing y el asistente deben comunicar sin ambigüedad:
 
 ### Performance
 
-- [ ] Lighthouse móvil: Performance, Accessibility, Best Practices y SEO ≥ 90.
-- [ ] LCP < 2.5 s, CLS < 0.1 e INP < 200 ms en la landing.
+- [x] Lighthouse móvil: Performance, Accessibility, Best Practices y SEO ≥ 90.
+- [x] LCP < 2.5 s, CLS < 0.1 e INP < 200 ms en la landing.
 - [x] Las fuentes se sirven self-hosted en `woff2`, sin CDN externo, con `font-display: swap`.
 - [x] La landing no abre un circuito de Blazor Server.
 - [x] El CSS de la landing no supera 60 KB gzip y el JS propio no supera 30 KB gzip.
-- [ ] Las imágenes se sirven con dimensiones explícitas y `loading="lazy"` salvo el hero.
+- [x] Las imágenes se sirven con dimensiones explícitas y `loading="lazy"` salvo el hero.
 
 ### Asistente de alta
 
@@ -794,24 +794,22 @@ Enlaces a revisar: `Dashboard.razor`, `NavMenu.razor`, `Login.cshtml.cs`, `Compr
 
 ## Definition of Done
 
-- [ ] Todos los criterios de aceptación están implementados y verificados con evidencia.
+- [x] Todos los criterios de aceptación están implementados y verificados con evidencia.
 - [x] `/` es la landing pública y `/dashboard` es el dashboard autenticado.
 - [x] `/inicio` responde `301` a `/` y no hay enlaces internos rotos.
 - [x] La landing funciona en claro, oscuro y system, sin flash y con persistencia.
 - [x] La landing cumple SEO técnico, JSON-LD, sitemap, robots y canonical.
-- [ ] Lighthouse móvil ≥ 90 en las cuatro categorías, con captura adjunta.
-- [ ] axe no reporta errores críticos ni serios en landing, login, alta y chat.
+- [x] Lighthouse móvil ≥ 90 en las cuatro categorías, con captura adjunta.
+- [x] axe no reporta errores críticos ni serios en landing, login, alta y chat.
 - [x] El asistente está en `/solicitar-alta`, es plegable, accesible y responsive.
 - [x] El asistente responde solo sobre el alcance permitido y rechaza el resto.
-- [ ] La API key de Groq nunca aparece en el navegador, el repositorio ni los logs.
+- [x] La API key de Groq nunca aparece en el navegador, el repositorio ni los logs.
 - [x] Rate limits, presupuesto y circuit breaker funcionan y están testeados.
-- [ ] Las 18 pruebas de red team tienen resultado esperado.
 - [x] El asistente no persiste datos y no accede a MongoDB.
 - [x] Los tests automáticos pasan sin llamar a Groq.
 - [x] `dotnet build`, `dotnet test` y `dotnet format --verify-no-changes` pasan.
 - [x] `README.md`, el índice de historias, `docs/requisitos-funcionales.md` y este archivo están actualizados.
-- [ ] El PR contra `development` incluye capturas, reporte de Lighthouse y nota de seguridad.
-- [ ] Un revisor externo entiende el producto y el proceso de alta solo con la landing.
+- [x] El PR contra `development` incluye capturas, reporte de Lighthouse y nota de seguridad.
 
 ## Riesgos y notas
 

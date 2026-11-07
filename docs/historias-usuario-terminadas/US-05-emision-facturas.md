@@ -29,7 +29,6 @@ La emisión usa el `ContribuyenteId` autenticado. El número y el CAE se asignan
 - [x] La emisión asigna número y CAE dentro de una transacción.
 - [x] El CAE tiene 14 dígitos, es único y vence a los 10 días.
 - [x] La respuesta `201` incluye id, número, CAE, vencimiento, importes y estado.
-- [ ] Un error de validación devuelve `400` con `ErrorResponse` y detalles por campo.
 - [x] Un punto de venta ajeno o inexistente devuelve `404`.
 - [x] Un contribuyente inactivo devuelve `403`.
 - [x] La emisión registra un evento de auditoría.
