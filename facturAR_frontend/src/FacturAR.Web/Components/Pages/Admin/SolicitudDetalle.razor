@@ -52,7 +52,7 @@
 
                     @if (pendiente && _esSuperAdmin)
                     {
-                        <EditForm Model="Edicion" FormName="editar" OnValidSubmit="EditarAsync" Enhance>
+                        <EditForm Model="Edicion" FormName="editar" OnValidSubmit="EditarAsync" Enhance data-envio>
                             <DataAnnotationsValidator />
                             <div class="row g-3">
                                 <div class="col-12 col-md-6">
@@ -85,7 +85,7 @@
                                     <ValidationMessage For="() => Edicion!.Domicilio" class="text-danger small" />
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-outline-primary btn-sm mt-3">Guardar cambios</button>
+                            <button type="submit" class="btn btn-outline-primary btn-sm mt-3" data-envio-texto="Guardando…">Guardar cambios</button>
                         </EditForm>
                     }
                     else
@@ -167,11 +167,13 @@
                                 Crea la empresa, el punto de venta 1 «Casa Central» y una invitación de 48 horas para
                                 <strong>@_detalle.Email</strong>.
                             </p>
-                            <form method="post" @formname="aprobar" @onsubmit="AprobarAsync" data-enhance>
+                            <form method="post" @formname="aprobar" data-enhance data-envio>
                                 <AntiforgeryToken />
+                                <input type="hidden" name="Accion" value="aprobar" />
                                 <button type="submit"
                                         class="btn btn-success"
-                                        onclick="return confirm('¿Aprobar la solicitud y enviar la invitación?')">
+                                        data-envio-texto="Aprobando…"
+                                        data-confirmar-dialogo="confirmar-aprobar">
                                     Aprobar solicitud
                                 </button>
                             </form>
@@ -181,12 +183,16 @@
                     <section class="card border-danger" aria-labelledby="titulo-rechazar">
                         <div class="card-body">
                             <h2 id="titulo-rechazar" class="h5">Rechazar</h2>
-                            <EditForm Model="Rechazo" FormName="rechazar" OnValidSubmit="RechazarAsync" Enhance>
+                            <EditForm Model="Rechazo" FormName="rechazar" OnValidSubmit="RechazarAsync" Enhance data-envio>
                                 <DataAnnotationsValidator />
                                 <label class="form-label" for="motivo">Motivo (se envía al solicitante)</label>
                                 <InputTextArea id="motivo" class="form-control" rows="3" @bind-Value="Rechazo!.Motivo" />
                                 <ValidationMessage For="() => Rechazo!.Motivo" class="text-danger small" />
-                                <button type="submit" class="btn btn-outline-danger mt-2">Rechazar solicitud</button>
+                                <button type="submit" class="btn btn-outline-danger mt-2"
+                                        data-envio-texto="Rechazando…"
+                                        data-confirmar-dialogo="confirmar-rechazar">
+                                    Rechazar solicitud
+                                </button>
                             </EditForm>
                         </div>
                     </section>
@@ -223,11 +229,13 @@
                                     }
                                 </dd>
                             </dl>
-                            <form method="post" @formname="reenviar" @onsubmit="ReenviarAsync" data-enhance>
+                            <form method="post" @formname="reenviar" data-enhance data-envio>
                                 <AntiforgeryToken />
+                                <input type="hidden" name="Accion" value="reenviar" />
                                 <button type="submit"
                                         class="btn btn-outline-primary btn-sm"
-                                        onclick="return confirm('Se revoca el link anterior y se envía uno nuevo. ¿Continuar?')">
+                                        data-envio-texto="Reenviando…"
+                                        data-confirmar-dialogo="confirmar-reenviar">
                                     Reenviar invitación
                                 </button>
                             </form>
@@ -242,6 +250,26 @@
         </div>
     </div>
 }
+
+<ConfirmarEnvioModal Id="confirmar-aprobar"
+                     Titulo="Aprobar solicitud"
+                     Mensaje="Se crea la empresa, el punto de venta 1 «Casa Central» y una invitación de 48 horas. ¿Querés continuar?"
+                     TextoConfirmar="Sí, aprobar y enviar invitación"
+                     Variante="success"
+                     Icono="✓" />
+
+<ConfirmarEnvioModal Id="confirmar-rechazar"
+                     Titulo="Rechazar solicitud"
+                     Mensaje="La solicitud quedará rechazada y el motivo se enviará al solicitante. ¿Querés continuar?"
+                     TextoConfirmar="Sí, rechazar la solicitud"
+                     Variante="danger" />
+
+<ConfirmarEnvioModal Id="confirmar-reenviar"
+                     Titulo="Reenviar invitación"
+                     Mensaje="Se revoca el link anterior y se envía uno nuevo por email. ¿Querés continuar?"
+                     TextoConfirmar="Sí, reenviar la invitación"
+                     Variante="primary"
+                     Icono="↻" />
 
 @code {
     private static readonly (int Valor, string Texto)[] CondicionesIva =
@@ -290,6 +318,17 @@
         Edicion ??= new EdicionModelo();
         Rechazo ??= new RechazoModelo();
 
+        if (HttpContext is { } contexto && HttpMethods.IsPost(contexto.Request.Method))
+        {
+            var formulario = await contexto.Request.ReadFormAsync();
+            var accion = formulario["Accion"].ToString();
+            if (accion.Length > 0)
+            {
+                await ProcesarAccionAsync(accion);
+                return;
+            }
+        }
+
         await CargarAsync();
 
         if (_detalle is not null && HttpMethods.IsGet(HttpContext?.Request.Method ?? HttpMethods.Get))
@@ -308,6 +347,30 @@
         if (Manejar(resultado))
         {
             _detalle = resultado.Valor;
+        }
+    }
+
+    private async Task ProcesarAccionAsync(string accion)
+    {
+        if (accion is "aprobar" or "rechazar" && !_esSuperAdmin)
+        {
+            _error = "Tu rol de Soporte no permite aprobar ni rechazar solicitudes.";
+            await CargarAsync();
+            return;
+        }
+
+        switch (accion)
+        {
+            case "aprobar":
+                await AprobarAsync();
+                break;
+            case "reenviar":
+                await ReenviarAsync();
+                break;
+            default:
+                _error = "La acción solicitada no es válida.";
+                await CargarAsync();
+                break;
         }
     }
 

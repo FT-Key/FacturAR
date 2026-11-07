@@ -1,13 +1,25 @@
-<dialog id="@Id" class="js-dialogo-confirmacion api-key-dialogo" role="dialog" aria-modal="true" aria-labelledby="@($"{Id}-titulo")">
-    <div class="api-key-dialogo-contenido">
-        <h2 id="@($"{Id}-titulo")" class="h5">@Titulo</h2>
-        <p>@Mensaje</p>
-        <div class="d-flex flex-wrap justify-content-end align-items-center gap-2">
+<dialog id="@Id"
+        class="js-dialogo-confirmacion facturar-modal"
+        data-variante="@Variante"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="@($"{Id}-titulo")">
+    <div class="facturar-modal__contenido">
+        <div class="facturar-modal__encabezado">
+            <span class="facturar-modal__icono" aria-hidden="true">!</span>
+            <div class="facturar-modal__texto">
+                <h2 id="@($"{Id}-titulo")" class="h5">@Titulo</h2>
+                <p class="mb-0">@Mensaje</p>
+            </div>
+        </div>
+        <div class="facturar-modal__acciones">
             <button type="button" class="btn btn-outline-secondary js-cerrar-dialogo">Cancelar</button>
             <form method="post" data-enhance @formname="@($"accion-{Id}")">
                 <AntiforgeryToken />
                 <input type="hidden" name="Accion" value="@Accion" />
-                <button type="submit" class="btn btn-@Variante">@TextoConfirmar</button>
+                <button type="submit" class="btn btn-@Variante" data-envio-texto="@TextoConfirmando">
+                    @TextoConfirmar
+                </button>
             </form>
         </div>
     </div>
@@ -25,6 +37,9 @@
 
     [Parameter]
     public string TextoConfirmar { get; set; } = string.Empty;
+
+    [Parameter]
+    public string TextoConfirmando { get; set; } = string.Empty;
 
     [Parameter]
     public string Accion { get; set; } = string.Empty;

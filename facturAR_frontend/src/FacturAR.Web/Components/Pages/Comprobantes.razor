@@ -43,6 +43,7 @@ else
           action="/comprobantes"
           class="row g-2 align-items-end mb-3"
           data-enhance-nav="false"
+          data-envio
           aria-busy="@(Cargando ? "true" : "false")">
         <input type="hidden" name="page" value="1" />
 
@@ -103,7 +104,7 @@ else
         </div>
 
         <div class="col-12 col-md-2 d-flex gap-2">
-            <button type="submit" class="btn btn-primary btn-sm" disabled="@Cargando">Filtrar</button>
+            <button type="submit" class="btn btn-primary btn-sm" data-envio-texto="Filtrando…" disabled="@Cargando">Filtrar</button>
             <a class="btn btn-link btn-sm" href="/comprobantes">Limpiar</a>
         </div>
     </form>

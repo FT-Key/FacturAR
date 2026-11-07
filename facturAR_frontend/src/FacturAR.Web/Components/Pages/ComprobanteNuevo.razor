@@ -214,7 +214,7 @@ else
                     value="emitir"
                     data-emitir="true"
                     disabled="@(_cargando || _enviando || !_puntosVenta.Any(p => p.Activo))">
-                Emitir comprobante
+                @(_enviando ? "Emitiendo…" : "Emitir comprobante")
             </button>
         </fieldset>
     </EditForm>
@@ -410,51 +410,63 @@ else
 
     private async Task EmitirAsync()
     {
+        if (_enviando)
+        {
+            return;
+        }
+
         _errorGeneral = null;
-        await CalcularPresupuestoAsync();
-
-        if (_accesoDenegado)
-        {
-            return;
-        }
-
-        _errores = ValidarLocal();
-
-        if (_errores.Count > 0)
-        {
-            return;
-        }
-
-        var request = CrearRequest();
-        AsegurarClave(request);
-
         _enviando = true;
-        var resultado = await ApiClient.EmitirComprobanteAsync(
-            Cookie,
-            request,
-            Modelo.ClaveIdempotencia,
-            Token);
-        _enviando = false;
 
-        if (resultado.SinSesion)
+        try
         {
-            Navigation.NavigateTo("/login");
-            return;
-        }
+            await CalcularPresupuestoAsync();
 
-        if (resultado.Status == HttpStatusCode.Forbidden)
+            if (_accesoDenegado)
+            {
+                return;
+            }
+
+            _errores = ValidarLocal();
+
+            if (_errores.Count > 0)
+            {
+                return;
+            }
+
+            var request = CrearRequest();
+            AsegurarClave(request);
+
+            var resultado = await ApiClient.EmitirComprobanteAsync(
+                Cookie,
+                request,
+                Modelo.ClaveIdempotencia,
+                Token);
+
+            if (resultado.SinSesion)
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+
+            if (resultado.Status == HttpStatusCode.Forbidden)
+            {
+                _accesoDenegado = true;
+                return;
+            }
+
+            if (!resultado.Exitoso || resultado.Valor is null)
+            {
+                _errorGeneral = FormatearError(resultado);
+                return;
+            }
+
+            _resultado = resultado.Valor;
+        }
+        finally
         {
-            _accesoDenegado = true;
-            return;
+            _enviando = false;
         }
-
-        if (!resultado.Exitoso || resultado.Valor is null)
-        {
-            _errorGeneral = FormatearError(resultado);
-            return;
-        }
-
-        _resultado = resultado.Valor;
     }
 
     private EmitirComprobanteRequest CrearRequest()

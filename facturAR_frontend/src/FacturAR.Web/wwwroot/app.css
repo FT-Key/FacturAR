@@ -194,6 +194,112 @@ h1:focus {
     box-shadow: var(--elevation-3), var(--shadow-lift);
 }
 
+.facturar-modal {
+    max-width: 32rem;
+    width: calc(100% - 2rem);
+    padding: 0;
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-strong);
+    border-top: 4px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+    box-shadow: var(--elevation-3), var(--shadow-lift);
+}
+
+.facturar-modal[data-variante="danger"] {
+    border-top-color: var(--color-danger);
+}
+
+.facturar-modal[data-variante="primary"] {
+    border-top-color: var(--color-primary);
+}
+
+.facturar-modal[data-variante="success"] {
+    border-top-color: var(--color-success);
+}
+
+.facturar-modal::backdrop {
+    background: rgba(4, 12, 16, 0.62);
+    backdrop-filter: blur(2px);
+}
+
+.facturar-modal__contenido {
+    padding: 1.5rem;
+}
+
+.facturar-modal__encabezado {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.facturar-modal__icono {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    color: var(--color-on-primary);
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 700;
+    background: var(--color-primary);
+    border-radius: 50%;
+}
+
+.facturar-modal[data-variante="danger"] .facturar-modal__icono {
+    background: var(--color-danger);
+}
+
+.facturar-modal[data-variante="success"] .facturar-modal__icono {
+    background: var(--color-success);
+}
+
+.facturar-modal__texto {
+    min-width: 0;
+}
+
+.facturar-modal__texto p {
+    margin-top: 0.35rem;
+    color: var(--color-text-muted);
+}
+
+.facturar-modal__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.facturar-modal__acciones form {
+    margin: 0;
+}
+
+.alert-light {
+    color: var(--color-text);
+    background-color: var(--color-surface-raised);
+    border-color: var(--color-border);
+}
+
+.alert-success {
+    color: var(--color-text);
+    background-color: var(--color-surface-raised);
+    border-color: var(--color-success);
+}
+
+.alert-danger {
+    color: var(--color-text);
+    background-color: var(--color-surface-raised);
+    border-color: var(--color-danger);
+}
+
+.alert-warning {
+    color: var(--color-text);
+    background-color: var(--color-surface-raised);
+    border-color: var(--color-warning);
+}
+
 .api-key-dialogo::backdrop {
     background: rgba(0, 0, 0, 0.5);
 }
