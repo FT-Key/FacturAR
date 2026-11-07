@@ -2,7 +2,7 @@
 
 ## Estado del documento
 
-> **Diseño objetivo del MVP.** Este documento describe el onboarding profesional simulado de FacturAR: **solicitud → aprobación → invitación → activación**. La solicitud pública (US-01) está implementada y probada automáticamente, pero falta verificar la persistencia con Mongo real. La revisión y aprobación (US-27) y la activación por invitación (US-28) están implementadas.
+> **Diseño implementado del MVP.** Este documento describe el onboarding profesional simulado de FacturAR: **solicitud → aprobación → invitación → activación**. La solicitud pública (US-01), la revisión y aprobación (US-27), la activación por invitación (US-28) y los emails transaccionales (US-29) están implementados y verificados con MongoDB real en CI.
 
 Qué describe este documento: el flujo de alta de una empresa, los actores, los estados de la solicitud y de la invitación, los emails transaccionales y los endpoints previstos de la consola global.
 
@@ -32,15 +32,15 @@ Ningún otro endpoint del onboarding existe hoy: `/v1/admin/solicitudes/**`, `/v
 
 | Historia | Qué parte del documento describe | Estado |
 | --- | --- | --- |
-| US-01 | §1 Solicitud pública de alta | Parcial |
-| US-04 | §4 Login de empresa y sesión | Base implementada |
-| US-02 | §4 Gestión de API keys desde el portal | Parcial |
-| US-14 | §4 Gestión de API keys desde el portal (pantalla `/api-keys`) | Parcial |
+| US-01 | §1 Solicitud pública de alta | Completada |
+| US-04 | §4 Login de empresa y sesión | Completada |
+| US-02 | §4 Gestión de API keys desde el portal | Completada |
+| US-14 | §4 Gestión de API keys desde el portal (pantalla `/api-keys`) | Completada |
 | US-27 | §2 Revisión y aprobación del administrador global | Completada |
 | US-28 | §3 Invitación y activación de la cuenta | Completada |
-| US-29 | Emails transaccionales del onboarding | Parcial |
-| US-30 | §5 Manual de integración online | Pendiente |
-| US-17 | Auditoría de las acciones del onboarding | Pendiente |
+| US-29 | Emails transaccionales del onboarding | Completada |
+| US-30 | §5 Manual de integración online | Completada |
+| US-17 | Auditoría de las acciones del onboarding | Completada |
 | US-21 | Veracidad documental de este documento | Parcial |
 
 ## Objetivo
@@ -95,15 +95,15 @@ Etapas y su estado:
 
 | Etapa | Qué pasa | Historia | Estado |
 | --- | --- | --- | --- |
-| 1. Solicitud pública | El solicitante completa el formulario y la solicitud queda `Pendiente`. | US-01, US-29 | Parcial |
+| 1. Solicitud pública | El solicitante completa el formulario y la solicitud queda `Pendiente`. | US-01, US-29 | Completada |
 | 2. Revisión del administrador global | El administrador consulta, corrige, aprueba o rechaza. | US-27 | Completada |
 | 3. Invitación y activación | El solicitante acepta la invitación y define su contraseña. | US-28, US-29 | Completada |
-| 4. Login y API key | El usuario de empresa inicia sesión y crea su API key. | US-04, US-02 | Parcial |
-| 5. Manual de integración | El integrador lee la guía y consume la API. | US-30 | Pendiente |
+| 4. Login y API key | El usuario de empresa inicia sesión y crea su API key. | US-04, US-02 | Completada |
+| 5. Manual de integración | El integrador lee la guía y consume la API. | US-30 | Completada |
 
 ### 1. Solicitud pública
 
-> **Estado — US-01 y US-29.** `POST /v1/solicitudes-alta` está implementado y probado automáticamente, y la página `/solicitar-alta` existe en el portal. Falta verificar la persistencia contra MongoDB real y el envío del email de confirmación en un entorno con la base disponible.
+> **Estado — US-01 y US-29 (Completadas).** `POST /v1/solicitudes-alta` y `/solicitar-alta` están implementados, verificados con MongoDB real y con el email de confirmación encolado en la outbox. Evidencia: `docs/qa-auditoria-2026-11-06.md`.
 
 El visitante completa:
 
@@ -186,7 +186,7 @@ Errores del flujo: `404 INVITACION_NO_ENCONTRADA`, `410 INVITACION_VENCIDA`, `40
 
 ### 4. Login y API key
 
-> **US-04, US-02 y US-14.** El login de empresa y global, `POST /v1/auth/login`, `POST /v1/auth/logout`, `GET /v1/auth/me` y sus equivalentes en `/v1/admin/auth` **están implementados**. Los cuatro endpoints de `/v1/api-keys` **también están implementados** (US-02) y el portal los consume en `/api-keys` (US-14); queda pendiente la verificación con MongoDB real.
+> **US-04, US-02 y US-14 (Completadas).** El login de empresa y global, `POST /v1/auth/login`, `POST /v1/auth/logout`, `GET /v1/auth/me` y sus equivalentes en `/v1/admin/auth` están implementados y verificados con MongoDB real en CI. Los cuatro endpoints de `/v1/api-keys` también están implementados (US-02) y el portal los consume en `/api-keys` (US-14).
 
 El usuario de empresa inicia sesión en `/login`. La sesión usa cookie `HttpOnly`, `Secure` en producción y `SameSite=Lax`, con expiración absoluta de 8 horas. Las acciones que modifican datos requieren antiforgery.
 
@@ -287,7 +287,7 @@ En desarrollo se usa un remitente que escribe el email completo en un archivo lo
 
 ## Endpoints previstos
 
-Todos los endpoints de esta tabla están **especificados**. La columna Estado indica si ya están implementados o si responden `404` hasta que su historia se complete.
+Todos los endpoints de esta tabla están implementados y verificados con MongoDB real en CI.
 
 | Método | Ruta | Acceso | Historia | Estado |
 | --- | --- | --- | --- | --- |
@@ -310,7 +310,7 @@ Todos los endpoints de esta tabla están **especificados**. La columna Estado in
 | `DELETE` | `/v1/api-keys/{id}` | Administrador de empresa. | US-02 | Implementado |
 | `POST` | `/v1/api-keys/{id}/regenerar` | Administrador de empresa. | US-02 | Implementado |
 
-Estos endpoints se implementan en US-01, US-02, US-03, US-04, US-27, US-28 y US-29. `POST /v1/solicitudes-alta` ya está implementado; el resto de los que figuran como no implementados responden `404` hasta que su historia se complete, y el manual y las historias siguen siendo la referencia de contrato.
+Estos endpoints se implementaron en US-01, US-02, US-03, US-04, US-27, US-28 y US-29. El manual y las historias siguen siendo la referencia de contrato.
 
 ## Relación con AFIP real
 

@@ -427,18 +427,18 @@ Errores:
 
 Implementado en esta base:
 
-- Entidades y enums existentes: `Contribuyente`, `Usuario`, `ApiKey`, `PuntoVenta`, `Secuencia`, `Comprobante`, `ComprobanteItem`, `OutboxMessage`, `EventoAuditoria`; enums `CondicionIva`, `EstadoComprobante`, `RolUsuario` y `TipoComprobante`.
+- Entidades y enums existentes: `Contribuyente`, `Usuario`, `ApiKey`, `PuntoVenta`, `Secuencia`, `Comprobante`, `ComprobanteItem`, `OutboxMessage`, `EventoAuditoria`, `AdministradorFacturar`, `SolicitudAltaEmpresa`, `Invitacion` y `EmailMessage`; enums `CondicionIva`, `EstadoComprobante`, `RolUsuario`, `TipoComprobante`, `RolGlobal`, `EstadoSolicitud` y `EstadoInvitacion`.
 - Validación de CUIT y CAE.
 - Generación de CAE simulado.
 - Colecciones, índices y repositorio de comprobantes.
 - Verificación pública por CAE.
-
-Documentado y pendiente de implementación:
-
-- `AdministradorFacturar`, `SolicitudAltaEmpresa`, `Invitacion`, `EmailMessage` y `Webhook`/`WebhookEntrega` (US-23, fuera de alcance).
-- Enums `RolGlobal`, `EstadoSolicitud` y `EstadoInvitacion`.
-- Solicitud pública, aprobación, invitación, activación y emails.
+- Solicitud pública, aprobación, invitación, activación y emails transaccionales.
 - Autenticación de empresa y administrador global.
 - API keys, emisión con transacción, idempotencia y numeración atómica.
 - Notas de crédito/débito.
 - PDF, SOAP, auditoría y outbox.
+- Parámetros y seed de demostración.
+
+Documentado y fuera de alcance del MVP:
+
+- `Webhook` y `WebhookEntrega` (US-23).

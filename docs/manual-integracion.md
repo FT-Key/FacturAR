@@ -143,27 +143,28 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 | US-27 | §1 Revisión y aprobación del administrador global | Completada |
 | US-28 | §2 Activar la cuenta: invitación por token | Completada |
 | US-29 | Emails de onboarding de §1 y §2 | Completada |
-| US-04 | §2 Activar la cuenta: login de empresa y roles | Base implementada |
+| US-04 | §2 Activar la cuenta: login de empresa y roles | Completada |
 | US-02 | §3 Crear una API key | Completada |
 | US-14 | §3 Gestión de API keys desde el portal | Completada |
-| US-03 | §4 Autenticar requests con API key | Base implementada |
+| US-03 | §4 Autenticar requests con API key | Completada |
 | US-05 | §5 Emitir una factura | Completada |
 | US-08 | §5 Notas de crédito y débito | Completada |
 | US-07 | Numeración correlativa del comprobante (reglas de §5) | Completada |
-| US-06 | §6 Idempotencia | Parcial |
-| US-09 | §7 Consultar comprobantes | Parcial |
+| US-06 | §6 Idempotencia | Completada |
+| US-09 | §7 Consultar comprobantes | Completada |
 | US-10 | §7.4 Descarga del PDF (`GET /v1/comprobantes/{id}/pdf`) | Completada |
 | US-11 | §8 Verificar un comprobante por CAE | Completada |
 | US-12 | §7.6 Dashboard (`GET /v1/comprobantes/dashboard`) | Completada |
 | US-13 | §5.2 Emisión manual desde el portal | Completada |
 | US-15 | §5.1 Emitir por SOAP | Completada |
-| US-16 | §7.5 Consultar por SOAP (`FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy`) | Parcial |
+| US-16 | §7.5 Consultar por SOAP (`FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy`) | Completada |
+| US-18 | Parámetros y seed de demostración | Completada |
 | US-21 | Veracidad documental de este manual | Parcial |
-| US-30 | Publicación del manual online en el portal | Parcial |
+| US-30 | Publicación del manual online en el portal | Completada |
 
 ## Qué es FacturAR
 
-FacturAR es un simulador de facturación electrónica argentina. Hoy el recorrido completo está implementado: solicitud y aprobación del alta, invitación y activación, login de empresa, gestión de API keys, emisión REST y SOAP de facturas y notas, consultas, PDF, dashboard y verificación pública por CAE. Los estados `Parcial` corresponden a verificaciones con MongoDB real y QA manual pendientes en US-06, US-09, US-16 y US-30; US-03 y US-04 están en `Base implementada` porque su alcance se completa con los endpoints de negocio. Ver [Estado de la API](#estado-de-la-api).
+FacturAR es un simulador de facturación electrónica argentina. Hoy el recorrido completo está implementado: solicitud y aprobación del alta, invitación y activación, login de empresa, gestión de API keys, emisión REST y SOAP de facturas y notas, consultas, PDF, dashboard y verificación pública por CAE. US-01 a US-18, US-27 a US-32, US-19, US-20 y US-31 están completadas y verificadas con MongoDB real en CI. Solo US-21 queda en `Parcial` por la validación externa del README y la colección Postman. Ver [Estado de la API](#estado-de-la-api).
 
 > Importante: el CAE es simulado y los comprobantes no tienen validez fiscal. No se realizan llamadas reales a AFIP/ARCA.
 
@@ -243,7 +244,7 @@ La key pertenece a una única empresa. No se comparte entre empresas ni se enví
 
 ## 4. Autenticar requests
 
-> **Base implementada — US-03.** El esquema `ApiKey`, la política `ApiKeyNegocio` y el registro de `UltimoUso` están implementados y probados. `POST /v1/comprobantes` (US-05), las consultas de comprobantes (US-09) y la fachada SOAP de emisión y consultas (US-15 y US-16) ya consumen el esquema.
+> **Completada - US-03.** El esquema `ApiKey`, la política `ApiKeyNegocio` y el registro de `UltimoUso` están implementados y probados. `POST /v1/comprobantes` (US-05), las consultas de comprobantes (US-09) y la fachada SOAP de emisión y consultas (US-15 y US-16) ya consumen el esquema.
 
 Enviar la API key en el header `X-Api-Key`. El nombre del header es configurable con `ApiKeys__HeaderName` (default `X-Api-Key`):
 
@@ -577,7 +578,7 @@ Respuesta `200`:
 
 ## 6. Idempotencia
 
-> **Parcial — US-06.** El comportamiento idempotente está implementado y verificado en CI con MongoDB en replica set (concurrencia, rollback de secuencia, reintentos y no expiración). El QA manual de replay y conflicto contra la API real sigue pendiente.
+> **Completada - US-06.** El comportamiento idempotente está implementado y verificado en CI con MongoDB en replica set (concurrencia, rollback de secuencia, reintentos y no expiración). La clave solo se lee en `POST /v1/comprobantes`.
 
 Enviar un header `Idempotency-Key` único por operación:
 
@@ -605,7 +606,7 @@ Comportamiento por request:
 
 ## 7. Consultar comprobantes
 
-> **Implementado — US-09 (Parcial).** Los tres endpoints están implementados y aceptan API key o cookie de empresa. Están cubiertos por tests unitarios y de integración sin Mongo; faltan la corrida con MongoDB real (aislamiento, filtros, paginación, orden, índice y último autorizado contra `secuencias`) y el QA manual.
+> **Implementado - US-09.** Los tres endpoints están implementados y aceptan API key o cookie de empresa. Están cubiertos por tests unitarios, integración y `MongoConsultasComprobantesTests` con MongoDB real en CI (aislamiento, filtros, paginación, orden, índice y último autorizado contra `secuencias`).
 
 Los tres endpoints aceptan **API key** (`X-Api-Key`) para integraciones o la **cookie de empresa** (`cookies.contribuyente`) del portal, con rol `Administrador`, `Emisor` o `Consulta`. El `ContribuyenteId` sale siempre de la credencial: nunca se envía en el body ni en el query string. Un comprobante de otra empresa responde `404`, sin revelar que existe.
 
@@ -769,7 +770,7 @@ El contrato completo y los casos de prueba están en [`US-10`](historias-usuario
 
 ### 7.5 Consultar por SOAP (US-16)
 
-> **Parcial — US-16.** `FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy` comparten el endpoint `POST /soap` y el WSDL `GET /soap?wsdl` de US-15. Están cubiertas por tests unitarios y de integración sin Mongo; la verificación end-to-end con MongoDB real sigue pendiente.
+> **Completada - US-16.** `FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy` comparten el endpoint `POST /soap` y el WSDL `GET /soap?wsdl` de US-15. Están cubiertas por `SoapEndpointsTests` y verificadas con MongoDB real en CI.
 
 Las tres operaciones usan SOAP 1.1 y el namespace `http://ar.gov.afip.dif.FEV1Service/`. La API key viaja en `X-Api-Key` o en `Auth/Token` dentro del sobre. El `ContribuyenteId` sale siempre de la API key: nunca del cuerpo.
 
@@ -825,7 +826,7 @@ La respuesta `200` replica los campos del detalle de US-09: `Cuit`, `PtoVta`, `T
 SOAPAction: http://ar.gov.afip.dif.FEV1Service/FEDummy
 ```
 
-Los errores de negocio viajan con HTTP `200`, `Resultado = "R"` y `Observaciones = "<CODIGO>: <mensaje>"`. Los errores de autenticación o protocolo viajan como `SOAP Fault` con HTTP `401`/`400`, y `MONGO_NO_DISPONIBLE` como `503`. El detalle está en [`docs/contratos-api.md`](contratos-api.md) §7.6 y los casos de prueba en [`US-16`](historias-usuario/US-16-soap-consultas.md).
+Los errores de negocio viajan con HTTP `200`, `Resultado = "R"` y `Observaciones = "<CODIGO>: <mensaje>"`. Los errores de autenticación o protocolo viajan como `SOAP Fault` con HTTP `401`/`400`, y `MONGO_NO_DISPONIBLE` como `503`. El detalle está en [`docs/contratos-api.md`](contratos-api.md) §7.6 y los casos de prueba en [`US-16`](historias-usuario-terminadas/US-16-soap-consultas.md).
 
 ### 7.6 Dashboard
 

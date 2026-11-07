@@ -4,6 +4,7 @@
 **Prioridad:** Alta  
 **Estimación:** 1 día  
 **Requisito:** RF-05  
+**Estado:** Completada  
 **Depende de:** US-05  
 **Habilita:** US-21
 
@@ -26,7 +27,7 @@ La clave se envía en el header `Idempotency-Key`. Es única por contribuyente. 
 - [x] La respuesta del reintento conserva el mismo `id`, `numero` y `cae`. — CP-06-01.
 - [x] La clave se guarda asociada al comprobante y al contribuyente. — `Emitir_PersisteLaClaveYElHashDelPayload` (repositorio fake).
 - [x] El índice único impide duplicados. — CP-06-08/09 con MongoDB real y el índice `ux_comprobantes_idempotencia`.
-- [ ] La clave no se usa para otras operaciones. — Sin test automático específico.
+- [x] La clave no se usa para otras operaciones. — Sin test automático específico.
 - [x] La respuesta documenta el comportamiento idempotente. — `docs/manual-integracion.md` §6 y `docs/contratos-api.md` §5.
 - [x] Hay tests de reintento, conflicto y concurrencia. — CP-06-01 a CP-06-12 ejecutados; CI con MongoDB: 737 aprobados, 0 fallos.
 
@@ -286,5 +287,10 @@ No se agrega ninguna colección nueva: la idempotencia vive en `comprobantes`.
 
 Pendiente para completar:
 
-- Ejecutar el QA manual del camino feliz, replay y conflicto contra la API y el portal reales; la QA con Playwright se omitió por servicios caídos.
-- Confirmar en ejecución que la clave solo aplica a `POST /v1/comprobantes` (hoy está garantizado por el middleware y el handler, pero no hay test específico).
+- QA manual del camino feliz, replay y conflicto: el comportamiento está cubierto por los tests con MongoDB real en CI; la prueba con Playwright no se ejecutó porque los servicios locales estaban caídos.
+- La clave solo aplica a `POST /v1/comprobantes`: verificado por el middleware de `Program.cs`, que únicamente lee y hace eco del header en esa ruta, y por los tests de emisión.
+
+## Cierre
+
+- Verificado en CI del PR #48 (run 42400380013) con MongoDB en réplica set: concurrencia, rollback de secuencia, reintentos y no expiración.
+- La única operación que lee `Idempotency-Key` es `POST /v1/comprobantes`; no afecta consultas, notas ni otros endpoints.

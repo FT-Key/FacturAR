@@ -251,7 +251,7 @@ Para la presentación y para la entrega a un grupo consumidor. Cada ítem tiene 
 
 ## 8. Checklist de cierre del proyecto
 
-- [ ] Todas las historias obligatorias están en estado `Completada` y archivadas en `docs/historias-usuario-terminadas/`.
+- [ ] Queda US-21 como única historia obligatoria activa; las otras 26 están en `Completada` y archivadas en `docs/historias-usuario-terminadas/`.
 - [ ] `dotnet build FacturAR.slnx -c Release` compila sin advertencias.
 - [ ] `dotnet test FacturAR.slnx -c Release --no-build` pasa, sin tests omitidos por falta de `MONGO_CONNECTION_STRING`.
 - [ ] `dotnet format FacturAR.slnx --verify-no-changes` pasa.

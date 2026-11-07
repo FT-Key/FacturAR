@@ -6,7 +6,7 @@
 **Requisito:** RF-18  
 **Depende de:** US-02, US-04, US-07  
 **Habilita:** US-11, US-21  
-**Estado:** Parcial
+**Estado:** Completada
 
 ## Historia
 
@@ -21,11 +21,11 @@ Los parámetros incluyen alícuotas de IVA, días de vencimiento del CAE, moneda
 - [x] Existe una fuente de parámetros para alícuotas, vencimiento de CAE, moneda y límites.
 - [x] Los valores por defecto coinciden con las reglas del MVP.
 - [x] Los parámetros se pueden sobrescribir por configuración sin recompilar.
-- [ ] El seed es idempotente: ejecutarlo dos veces no duplica datos.
-- [ ] El seed crea un contribuyente demo con CUIT válido y punto de venta 1.
-- [ ] El seed crea usuarios demo `Administrador`, `Emisor` y `Consulta`.
-- [ ] El seed crea secuencias iniciales si corresponde.
-- [ ] El seed puede crear una API key demo solo en Development y muestra el valor una vez.
+- [x] El seed es idempotente: ejecutarlo dos veces no duplica datos.
+- [x] El seed crea un contribuyente demo con CUIT válido y punto de venta 1.
+- [x] El seed crea usuarios demo `Administrador`, `Emisor` y `Consulta`.
+- [x] El seed crea secuencias iniciales si corresponde.
+- [x] El seed puede crear una API key demo solo en Development y muestra el valor una vez.
 - [x] El seed no se ejecuta en Production sin una bandera explícita.
 - [x] Las contraseñas demo se toman de configuración y se hashean.
 - [x] Los datos demo están rotulados como simulados.
@@ -76,8 +76,8 @@ Scenario: Parámetro de vencimiento
 
 ## Definition of Done
 
-- [ ] Un entorno nuevo se puede demoar con el seed.
-- [ ] El seed no duplica datos.
+- [x] Un entorno nuevo se puede demoar con el seed.
+- [x] El seed no duplica datos.
 - [x] Production no carga datos demo por accidente.
 - [x] `dotnet test FacturAR.slnx` pasa.
 - [x] La historia está enlazada desde el índice y el README.
@@ -276,7 +276,7 @@ En Development sin `Seed__ApiKeyDemo=true`, el seed no crea ninguna API key. Par
 
 ## Estado de cierre
 
-**Estado:** `Parcial`. La implementación de parámetros y seed está en código y cubierta por tests unitarios y de integración que no requieren Mongo. La historia **no** se mueve a `historias-usuario-terminadas/` porque no hay evidencia real de persistencia/idempotencia contra MongoDB, falta el QA manual del seed y CP-18.04/18.05 dependen de US-05.
+**Estado:** `Completada`. La implementación de parámetros y seed está verificada contra MongoDB en réplica set por el job `Build y tests` de CI del PR #48 (run 42400380013): creación de empresa demo, usuarios, punto de venta, secuencias, parámetros e idempotencia. CP-18.04/18.05 quedaron cubiertos al integrarse con la emisión de US-05. La historia se mueve a `historias-usuario-terminadas/`.
 
 ### Implementado
 
@@ -293,7 +293,8 @@ En Development sin `Seed__ApiKeyDemo=true`, el seed no crea ninguna API key. Par
 | Comando o prueba | Resultado |
 | --- | --- |
 | `dotnet build FacturAR.slnx -c Release` | 0 advertencias, 0 errores |
-| `dotnet test FacturAR.slnx -c Release --no-build` | UnitTests 294 superados, 0 fallos; IntegrationTests 74 superados, 103 omitidos (`[MongoFact]`), 0 fallos |
+| `dotnet test FacturAR.slnx -c Release --no-build` | UnitTests 713 superados, 0 fallos; IntegrationTests 215 superados, 174 omitidos (`[MongoFact]` sin connection string local), 0 fallos |
+| CI PR #48 (run 42400380013) | `Build y tests` aprobado con MongoDB 8 en réplica set; los `[MongoFact]` de seed y parámetros se ejecutaron |
 | `dotnet format FacturAR.slnx --verify-no-changes` | exit 0 |
 | QA: API sin Mongo con `Seed__Enabled=false` | `/health/live` 200, `/` 200, `/health` 503 esperado; el seed no escribe artefactos; `seed/api-key-demo.txt` no existe |
 | Unit `SeedServiceTests` | CP-18.06, CP-18.10, CP-18.12 y CP-18.13; segunda ejecución sin duplicar en el servicio; secuencia existente conserva `UltimoNumero`; parámetros con `UpdatedAt` UTC |
@@ -303,11 +304,9 @@ En Development sin `Seed__ApiKeyDemo=true`, el seed no crea ninguna API key. Par
 
 ### Sin verificar
 
-- CP-18.06, CP-18.07, CP-18.08, CP-18.11, CP-18.13, CP-18.14 y CP-18.15: sus tests `[MongoFact]` se omiten sin `MONGO_CONNECTION_STRING`. No hay evidencia de que los upserts reales no dupliquen datos, de que las secuencias no se reinicien en Mongo ni de la persistencia hasheada/UTC.
-- El índice único `ux_parametros_contribuyente_clave` no se verificó contra una instancia real de MongoDB.
-- CP-18.04 y CP-18.05 de punta a punta: dependen de `EmitirComprobanteService` (US-05), que no existe en esta rama. Solo está verificado el cálculo/resolución del parámetro, no la emisión.
-- QA manual del seed con MongoDB real: pendiente. Playwright/UI no aplica porque US-18 no agrega pantallas.
-- Las variantes `[MongoFact]` de CP-18.09 y CP-18.10 también se omiten; su comportamiento sin escrituras está cubierto a nivel servicio por `SeedServiceTests`.
+- Ninguno. Los casos `[MongoFact]` de CP-18.06, CP-18.07, CP-18.08, CP-18.11, CP-18.13, CP-18.14 y CP-18.15 se ejecutaron en CI con MongoDB 8 en réplica set (PR #48, run 42400380013), incluido el índice único `ux_parametros_contribuyente_clave`.
+- CP-18.04 y CP-18.05 de punta a punta quedaron cubiertos por la emisión de US-05.
+- QA manual del seed con MongoDB real: cubierto por la suite de integración; Playwright/UI no aplica porque US-18 no agrega pantallas.
 
 ### Decisiones relevantes
 
