@@ -1,4 +1,7 @@
-﻿<nav aria-label="Navegación principal">
+﻿@inject NavigationManager Navigation
+@implements IDisposable
+
+<nav aria-label="Navegación principal">
     <div class="top-row ps-3 navbar navbar-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="/">FacturAR</a>
@@ -10,22 +13,28 @@
     <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
         <div class="nav flex-column">
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+            <a class="nav-link @(Activo("/") ? "active" : null)"
+               href="/"
+               aria-current="@(Activo("/") ? "page" : null)">
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Inicio
-            </NavLink>
+            </a>
         </div>
 
         <AuthorizeView Policy="EmpresaConsulta">
             <Authorized>
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="/dashboard">
+                    <a class="nav-link @(Activo("/dashboard") ? "active" : null)"
+                       href="/dashboard"
+                       aria-current="@(Activo("/dashboard") ? "page" : null)">
                         <span class="bi bi-speedometer2-nav-menu" aria-hidden="true"></span> Dashboard
-                    </NavLink>
+                    </a>
                 </div>
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="/comprobantes">
+                    <a class="nav-link @(ActivoComprobantes() ? "active" : null)"
+                       href="/comprobantes"
+                       aria-current="@(ActivoComprobantes() ? "page" : null)">
                         <span class="bi bi-receipt-nav-menu" aria-hidden="true"></span> Comprobantes
-                    </NavLink>
+                    </a>
                 </div>
             </Authorized>
         </AuthorizeView>
@@ -33,25 +42,31 @@
         <AuthorizeView Policy="EmpresaEmisor">
             <Authorized>
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="/comprobantes/nuevo">
+                    <a class="nav-link @(Activo("/comprobantes/nuevo") ? "active" : null)"
+                       href="/comprobantes/nuevo"
+                       aria-current="@(Activo("/comprobantes/nuevo") ? "page" : null)">
                         <span class="bi bi-plus-circle-fill-nav-menu" aria-hidden="true"></span> Emitir comprobante
-                    </NavLink>
+                    </a>
                 </div>
             </Authorized>
         </AuthorizeView>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="verificar">
+            <a class="nav-link @(Activo("/verificar") ? "active" : null)"
+               href="/verificar"
+               aria-current="@(Activo("/verificar") ? "page" : null)">
                 <span class="bi bi-check2-square-nav-menu" aria-hidden="true"></span> Verificar comprobante
-            </NavLink>
+            </a>
         </div>
 
         <AuthorizeView Policy="EmpresaAdministrador">
             <Authorized>
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="api-keys">
+                    <a class="nav-link @(Activo("/api-keys") ? "active" : null)"
+                       href="/api-keys"
+                       aria-current="@(Activo("/api-keys") ? "page" : null)">
                         <span class="bi bi-key-fill-nav-menu" aria-hidden="true"></span> API keys
-                    </NavLink>
+                    </a>
                 </div>
             </Authorized>
         </AuthorizeView>
@@ -67,13 +82,45 @@
             </Authorized>
             <NotAuthorized>
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="login">Ingresar</NavLink>
+                    <a class="nav-link @(Activo("/login") ? "active" : null)" href="/login">Ingresar</a>
                 </div>
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="admin/login">Consola global</NavLink>
+                    <a class="nav-link @(Activo("/admin/login") ? "active" : null)" href="/admin/login">Consola global</a>
                 </div>
             </NotAuthorized>
         </AuthorizeView>
         </div>
     </div>
 </nav>
+
+@code {
+    private string RutaActual
+    {
+        get
+        {
+            var ruta = Navigation.ToAbsoluteUri(Navigation.Uri).AbsolutePath.TrimEnd('/');
+            return ruta.Length == 0 ? "/" : ruta;
+        }
+    }
+
+    private bool Activo(string href)
+        => string.Equals(RutaActual, href, StringComparison.OrdinalIgnoreCase);
+
+    private bool ActivoComprobantes()
+        => Activo("/comprobantes")
+            || (RutaActual.StartsWith("/comprobantes/", StringComparison.OrdinalIgnoreCase)
+                && !RutaActual.StartsWith("/comprobantes/nuevo", StringComparison.OrdinalIgnoreCase));
+
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += AlCambiarUbicacion;
+    }
+
+    private void AlCambiarUbicacion(object? sender, LocationChangedEventArgs args)
+        => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= AlCambiarUbicacion;
+    }
+}
