@@ -76,7 +76,9 @@ else
                                 }
                             </div>
                             <div class="col-12 col-md-auto">
-                                <button type="submit" id="crear-api-key" class="btn btn-primary">Crear API key</button>
+                                <button type="submit" id="crear-api-key" class="btn btn-primary" disabled="@_creando">
+                                    @(_creando ? "Creando…" : "Crear API key")
+                                </button>
                             </div>
                         </div>
                     </EditForm>
@@ -190,12 +192,14 @@ else
                                Titulo="Revocar API key"
                                Mensaje="@mensajeRevocar"
                                TextoConfirmar="Sí, revocar la API key"
+                               TextoConfirmando="Revocando…"
                                Accion="@($"revocar:{apiKey.Id}")"
                                Variante="danger" />
                 <ConfirmDialog Id="@($"confirmar-regenerar-{apiKey.Id}")"
                                Titulo="Regenerar API key"
                                Mensaje="@mensajeRegenerar"
                                TextoConfirmar="Sí, regenerar la API key"
+                               TextoConfirmando="Regenerando…"
                                Accion="@($"regenerar:{apiKey.Id}")"
                                Variante="primary" />
             }
@@ -224,6 +228,7 @@ else
     private string? _codigoError;
     private string? _errorNombre;
     private bool _accesoDenegado;
+    private bool _creando;
 
     private CancellationToken Token => HttpContext?.RequestAborted ?? CancellationToken.None;
 
@@ -314,37 +319,46 @@ else
 
     private async Task CrearAsync()
     {
-        if (Nuevo is null)
+        if (Nuevo is null || _creando)
         {
             return;
         }
 
-        var nombre = Nuevo.Nombre.Trim();
-        _errorNombre = null;
-        var resultado = await ApiClient.CrearApiKeyAsync(Cookie, new CrearApiKeyRequest(nombre), Token);
-        if (resultado.SinSesion)
-        {
-            Navigation.NavigateTo("/login");
-            return;
-        }
+        _creando = true;
 
-        if (!resultado.Exitoso || resultado.Valor is null)
+        try
         {
-            if (resultado.Codigo == "VALIDACION")
+            var nombre = Nuevo.Nombre.Trim();
+            _errorNombre = null;
+            var resultado = await ApiClient.CrearApiKeyAsync(Cookie, new CrearApiKeyRequest(nombre), Token);
+            if (resultado.SinSesion)
             {
-                _errorNombre = resultado.Mensaje;
+                Navigation.NavigateTo("/login");
                 return;
             }
 
-            RegistrarError(resultado);
-            return;
-        }
+            if (!resultado.Exitoso || resultado.Valor is null)
+            {
+                if (resultado.Codigo == "VALIDACION")
+                {
+                    _errorNombre = resultado.Mensaje;
+                    return;
+                }
 
-        _errorNombre = null;
-        _exito = "API key creada.";
-        ValorState.Mostrar(resultado.Valor.Nombre, resultado.Valor.Valor);
-        Nuevo.Nombre = string.Empty;
-        await CargarAsync();
+                RegistrarError(resultado);
+                return;
+            }
+
+            _errorNombre = null;
+            _exito = "API key creada.";
+            ValorState.Mostrar(resultado.Valor.Nombre, resultado.Valor.Valor);
+            Nuevo.Nombre = string.Empty;
+            await CargarAsync();
+        }
+        finally
+        {
+            _creando = false;
+        }
     }
 
     private async Task CargarAsync()

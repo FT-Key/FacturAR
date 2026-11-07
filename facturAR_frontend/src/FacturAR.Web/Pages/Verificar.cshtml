@@ -14,7 +14,7 @@
             <p class="section__lead">Consultá la validez de un CAE emitido por FacturAR.</p>
         </div>
 
-        <form method="get" action="/verificar" class="verify-form">
+        <form method="get" action="/verificar" class="verify-form" data-envio>
             <div class="field">
                 <label for="cae">CAE</label>
                 <input id="cae" name="cae" value="@Model.Cae"
@@ -23,7 +23,7 @@
                        aria-describedby="cae-ayuda" />
                 <span id="cae-ayuda" class="field__help">Ingresá los 14 dígitos del CAE.</span>
             </div>
-            <button type="submit" class="btn btn--primary">Verificar</button>
+            <button type="submit" class="btn btn--primary" data-envio-texto="Verificando…">Verificar</button>
         </form>
 
         @if (!string.IsNullOrWhiteSpace(Model.Error))

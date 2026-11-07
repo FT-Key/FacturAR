@@ -21,7 +21,7 @@
     <a class="btn btn-outline-secondary btn-sm" href="/admin">Volver a la consola</a>
 </div>
 
-<form method="get" action="/admin/solicitudes" class="row g-2 align-items-end mb-3" data-enhance-nav="false">
+<form method="get" action="/admin/solicitudes" class="row g-2 align-items-end mb-3" data-enhance-nav="false" data-envio>
     <div class="col-12 col-md-2">
         <label class="form-label small" for="estado">Estado</label>
         <select id="estado" name="estado" class="form-select form-select-sm">
@@ -45,7 +45,7 @@
         <input id="email" name="email" type="search" class="form-control form-control-sm" value="@Email" />
     </div>
     <div class="col-12 col-md-2 d-flex gap-2">
-        <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+        <button type="submit" class="btn btn-primary btn-sm" data-envio-texto="Filtrando…">Filtrar</button>
         <a class="btn btn-link btn-sm" href="/admin/solicitudes">Limpiar</a>
     </div>
 </form>
