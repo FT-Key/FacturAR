@@ -25,6 +25,10 @@ builder.Services.AddHttpClient<FacturarApiClient>(client =>
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
+builder.Services.AddOptions<ManualOptions>()
+    .BindConfiguration(ManualOptions.SectionName);
+builder.Services.AddSingleton<ManualRenderer>();
+
 builder.Services.AddOptions<AsistenteOptions>()
     .BindConfiguration(AsistenteOptions.SectionName)
     .Validate(
@@ -107,6 +111,7 @@ app.Use(async (context, next) =>
 app.MapStaticAssets();
 app.MapRazorPages();
 app.MapSeoEndpoints();
+app.MapManualEndpoints();
 if (builder.Configuration.GetValue<bool>($"{AsistenteOptions.SectionName}:Habilitado"))
 {
     app.MapAsistenteEndpoints();

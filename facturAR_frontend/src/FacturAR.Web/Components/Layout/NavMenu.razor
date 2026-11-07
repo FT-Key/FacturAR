@@ -1,4 +1,4 @@
-﻿@inject NavigationManager Navigation
+@inject NavigationManager Navigation
 @implements IDisposable
 
 <nav aria-label="Navegación principal">
@@ -56,6 +56,14 @@
                href="/verificar"
                aria-current="@(Activo("/verificar") ? "page" : null)">
                 <span class="bi bi-check2-square-nav-menu" aria-hidden="true"></span> Verificar comprobante
+            </a>
+        </div>
+
+        <div class="nav-item px-3">
+            <a class="nav-link @(Activo("/manual") ? "active" : null)"
+               href="/manual"
+               aria-current="@(Activo("/manual") ? "page" : null)">
+                <span class="bi bi-book-half-nav-menu" aria-hidden="true"></span> Guía de integración
             </a>
         </div>
 
