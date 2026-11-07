@@ -25,10 +25,6 @@
                     <span class="manual-meta__label">Última actualización</span>
                     <time class="manual-meta__value" datetime="@Model.FechaActualizacion" data-manual-fecha>@Model.FechaActualizacion</time>
                 </div>
-                <div class="manual-meta__item">
-                    <span class="manual-meta__label">Fuente única</span>
-                    <a class="manual-meta__link" href="@Model.RepositorioManualUrl" target="_blank" rel="noopener noreferrer">docs/manual-integracion.md</a>
-                </div>
             </div>
 
             <div class="manual-resources" aria-label="Recursos de integración">
@@ -36,19 +32,9 @@
                     Descargar colección Postman
                 </a>
 
-                @if (Model.EsDevelopment)
-                {
-                    <a class="btn btn--secondary" href="@Model.OpenApiUrl" target="_blank" rel="noopener noreferrer" data-openapi-link>
-                        Especificación OpenAPI (@Model.OpenApiUrl)
-                    </a>
-                }
-                else
-                {
-                    <p class="manual-openapi-note" data-openapi-nota>
-                        La especificación OpenAPI solo se publica en el entorno <strong>Development</strong>.
-                        En este entorno podés consultar el <a href="@Model.RepositorioContratoUrl" target="_blank" rel="noopener noreferrer">contrato versionado de la API</a>.
-                    </p>
-                }
+                <p class="manual-api-note">
+                    La especificación de la API y el contrato detallado se entregan al equipo de integración.
+                </p>
 
                 <a class="btn btn--ghost" href="/verificar">Verificar un CAE</a>
                 <a class="btn btn--ghost" href="/solicitar-alta">Solicitar alta de empresa</a>

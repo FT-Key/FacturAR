@@ -7,15 +7,11 @@ public sealed class ManualOptions
     public const string DefaultRutaColeccionPostman = "Content/FacturAR.postman_collection.json";
     public const string DefaultVersionContrato = "0.1.0";
     public const string DefaultFechaActualizacion = "2026-11-07";
-    public const string DefaultRepositorioManualUrl = "https://github.com/FT-Key/FacturAR/blob/development/docs/manual-integracion.md";
-    public const string DefaultRepositorioContratoUrl = "https://github.com/FT-Key/FacturAR/blob/development/docs/contratos-api.md";
 
     public string RutaArchivo { get; set; } = DefaultRutaArchivo;
     public string RutaColeccionPostman { get; set; } = DefaultRutaColeccionPostman;
     public string VersionContrato { get; set; } = DefaultVersionContrato;
     public string FechaActualizacion { get; set; } = DefaultFechaActualizacion;
-    public string RepositorioManualUrl { get; set; } = DefaultRepositorioManualUrl;
-    public string RepositorioContratoUrl { get; set; } = DefaultRepositorioContratoUrl;
 
     public static string? ResolverRutaFisica(
         string? rutaConfigurada,
