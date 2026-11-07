@@ -1,5 +1,5 @@
 @page "/activar"
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
 @using System.Globalization
 @using FacturAR.Contracts.Invitaciones
@@ -26,7 +26,7 @@
         <p class="small text-muted">
             Si el link venció o ya no es válido, pedile a FacturAR que te reenvíe la invitación.
         </p>
-        <a class="btn btn-outline-secondary btn-sm" href="/login">Ir a ingresar</a>
+        <a class="btn btn-outline-primary btn-sm" href="/login">Ir a ingresar</a>
     }
     else
     {
@@ -117,7 +117,10 @@
         if (resultado.Exitoso)
         {
             _invitacion = resultado.Valor;
-            Navigation.NavigateTo("/activar", replace: true);
+            if (RendererInfo.IsInteractive)
+            {
+                Navigation.NavigateTo("/activar", replace: true);
+            }
         }
         else
         {

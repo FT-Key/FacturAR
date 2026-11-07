@@ -4,6 +4,7 @@ using FacturAR.Web.Components;
 using FacturAR.Web.Endpoints;
 using FacturAR.Web.Services;
 using FacturAR.Web.Services.Asistente;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Options;
 
@@ -42,6 +43,10 @@ builder.Services.AddHttpClient<IGroqChatClient, GroqChatClient>((services, clien
 
 builder.Services.AddScoped<AuthenticationStateProvider, ApiAuthenticationStateProvider>();
 builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddAuthentication(SesionApiAuthenticationHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, SesionApiAuthenticationHandler>(
+        SesionApiAuthenticationHandler.SchemeName,
+        _ => { });
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("EmpresaAutenticado", policy => policy
@@ -85,6 +90,8 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 app.Use(async (context, next) =>
