@@ -1,3 +1,3 @@
 <script>
-(function(){try{var k='facturar-tema',v=localStorage.getItem(k),d=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches,t=v==='claro'?'light':v==='oscuro'?'dark':(d?'dark':'light'),p=v==='claro'||v==='oscuro'?v:'system';document.documentElement.setAttribute('data-theme',t);document.documentElement.setAttribute('data-theme-preference',p);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+(function(){try{var k='facturar-tema',v=localStorage.getItem(k),d=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches,t=v==='claro'?'light':v==='oscuro'?'dark':(d?'dark':'light'),p=v==='claro'||v==='oscuro'?v:'system',r=document.documentElement;r.setAttribute('data-theme',t);r.setAttribute('data-bs-theme',t);r.setAttribute('data-theme-preference',p);}catch(e){var r=document.documentElement;r.setAttribute('data-theme','light');r.setAttribute('data-bs-theme','light');}})();
 </script>

@@ -36,6 +36,10 @@
             window.localStorage.setItem(CLAVE, preferencia);
         } catch (error) {
         }
+        try {
+            document.cookie = CLAVE + '=' + preferencia + '; path=/; max-age=31536000; samesite=lax';
+        } catch (error) {
+        }
     }
 
     function actualizarBotones(preferencia) {
@@ -49,7 +53,9 @@
 
     function aplicar(preferencia) {
         var normalizada = normalizar(preferencia);
-        raiz.setAttribute('data-theme', resolver(normalizada));
+        var resuelto = resolver(normalizada);
+        raiz.setAttribute('data-theme', resuelto);
+        raiz.setAttribute('data-bs-theme', resuelto);
         raiz.setAttribute('data-theme-preference', normalizada);
         actualizarBotones(normalizada);
     }
@@ -63,12 +69,19 @@
     function conectarTema() {
         var botones = document.querySelectorAll('[data-theme-option]');
         for (var i = 0; i < botones.length; i += 1) {
-            botones[i].addEventListener('click', function (evento) {
+            var boton = botones[i];
+            if (boton.getAttribute('data-tema-conectado') === 'true') {
+                continue;
+            }
+
+            boton.setAttribute('data-tema-conectado', 'true');
+            boton.addEventListener('click', function (evento) {
                 cambiar(evento.currentTarget.getAttribute('data-theme-option'));
             });
         }
 
-        if (window.matchMedia) {
+        if (window.matchMedia && !window.facturarTemaMediaConectada) {
+            window.facturarTemaMediaConectada = true;
             var consulta = window.matchMedia('(prefers-color-scheme: dark)');
             var alCambiar = function () {
                 if (leerPreferencia() === 'system') {
@@ -84,6 +97,45 @@
         }
 
         aplicar(leerPreferencia());
+    }
+
+    function conectarFormularios() {
+        var formularios = document.querySelectorAll('form[data-envio]');
+        for (var i = 0; i < formularios.length; i += 1) {
+            var formulario = formularios[i];
+            if (formulario.getAttribute('data-envio-conectado') === 'true') {
+                continue;
+            }
+
+            formulario.setAttribute('data-envio-conectado', 'true');
+            formulario.addEventListener('submit', function (evento) {
+                var form = evento.currentTarget;
+                var boton = evento.submitter || form.querySelector('button[type="submit"]');
+                if (!boton) {
+                    return;
+                }
+
+                var texto = boton.getAttribute('data-envio-texto');
+                if (texto) {
+                    boton.setAttribute('data-texto-original', boton.textContent.trim());
+                    boton.textContent = texto;
+                }
+
+                var botones = form.querySelectorAll('button[type="submit"]');
+                for (var j = 0; j < botones.length; j += 1) {
+                    botones[j].disabled = true;
+                }
+            });
+        }
+    }
+
+    function restaurarFormularios() {
+        var botones = document.querySelectorAll('form[data-envio] button[data-texto-original]');
+        for (var i = 0; i < botones.length; i += 1) {
+            botones[i].disabled = false;
+            botones[i].textContent = botones[i].getAttribute('data-texto-original');
+            botones[i].removeAttribute('data-texto-original');
+        }
     }
 
     function conectarMenu() {
@@ -175,7 +227,9 @@
     }
 
     function iniciar() {
+        guardarPreferencia(leerPreferencia());
         conectarTema();
+        conectarFormularios();
         conectarMenu();
         conectarCopiar();
     }
@@ -184,5 +238,13 @@
         document.addEventListener('DOMContentLoaded', iniciar);
     } else {
         iniciar();
+    }
+
+    if (window.Blazor && typeof window.Blazor.addEventListener === 'function') {
+        window.Blazor.addEventListener('enhancedload', function () {
+            restaurarFormularios();
+            conectarTema();
+            conectarFormularios();
+        });
     }
 }());

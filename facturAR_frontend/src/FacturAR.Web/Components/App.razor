@@ -1,6 +1,18 @@
 ﻿@inject NavigationManager Navigation
+@inject IHttpContextAccessor HttpContextAccessor
+@{
+    var preferenciaTema = HttpContextAccessor.HttpContext?.Request.Cookies[SesionPortal.CookieTema];
+    var temaResuelto = preferenciaTema == "claro"
+        ? "light"
+        : preferenciaTema == "oscuro"
+            ? "dark"
+            : string.Empty;
+}
 <!DOCTYPE html>
-<html lang="es-AR">
+<html lang="es-AR"
+      data-theme="@temaResuelto"
+      data-bs-theme="@temaResuelto"
+      data-theme-preference="@(string.IsNullOrEmpty(preferenciaTema) ? "system" : preferenciaTema)">
 
 <head>
     <meta charset="utf-8" />
@@ -12,7 +24,7 @@
         <meta name="robots" content="noindex, nofollow" />
     }
     <script>
-(function(){try{var k='facturar-tema',v=localStorage.getItem(k),d=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches,t=v==='claro'?'light':v==='oscuro'?'dark':(d?'dark':'light'),p=v==='claro'||v==='oscuro'?v:'system';document.documentElement.setAttribute('data-theme',t);document.documentElement.setAttribute('data-theme-preference',p);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+(function(){try{var k='facturar-tema',v=localStorage.getItem(k),d=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches,t=v==='claro'?'light':v==='oscuro'?'dark':(d?'dark':'light'),p=v==='claro'||v==='oscuro'?v:'system',r=document.documentElement;r.setAttribute('data-theme',t);r.setAttribute('data-bs-theme',t);r.setAttribute('data-theme-preference',p);}catch(e){var r=document.documentElement;r.setAttribute('data-theme','light');r.setAttribute('data-bs-theme','light');}})();
     </script>
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["css/tokens.css"]" />
@@ -34,6 +46,7 @@
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@Assets["js/theme.js"]"></script>
+    <script src="@Assets["js/modales.js"]"></script>
     <script type="module" src="@Assets["js/api-keys.js"]"></script>
     <script src="@Assets["js/emision-manual.js"]"></script>
     <script src="@Assets["js/asistente.js"]"></script>
