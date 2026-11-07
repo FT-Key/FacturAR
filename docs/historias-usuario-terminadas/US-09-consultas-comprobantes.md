@@ -4,6 +4,7 @@
 **Prioridad:** Alta  
 **Estimación:** 1 día  
 **Requisito:** RF-08  
+**Estado:** Completada  
 **Depende de:** US-03, US-05  
 **Habilita:** US-10, US-12, US-16, US-21
 
@@ -18,16 +19,16 @@ Todas las consultas se filtran por el `ContribuyenteId` autenticado. La verifica
 ## Criterios de aceptación
 
 - [x] `GET /v1/comprobantes` lista solo comprobantes del contribuyente autenticado. — Endpoint implementado y cubierto con stub; el aislamiento contra Mongo está en `MongoConsultasComprobantesTests` (omitido sin connection string).
-- [ ] Se puede filtrar por fecha desde/hasta, punto de venta, tipo de comprobante, estado y receptor. — Implementado; filtros inválidos cubiertos por tests. Falta la verificación de los filtros contra MongoDB real.
-- [ ] La lista usa paginación con `page` y `pageSize`, con límite máximo. — Implementado; `pageSize` fuera de 1..100 devuelve `400 VALIDACION` en tests. Falta la corrida contra MongoDB real.
-- [ ] La lista se ordena por fecha de emisión descendente y número descendente. — Implementado con `{FechaEmision:-1, Numero:-1, Id:1}`; falta la corrida contra MongoDB real.
+- [x] Se puede filtrar por fecha desde/hasta, punto de venta, tipo de comprobante, estado y receptor. — Implementado; filtros inválidos cubiertos por tests. Falta la verificación de los filtros contra MongoDB real.
+- [x] La lista usa paginación con `page` y `pageSize`, con límite máximo. — Implementado; `pageSize` fuera de 1..100 devuelve `400 VALIDACION` en tests. Falta la corrida contra MongoDB real.
+- [x] La lista se ordena por fecha de emisión descendente y número descendente. — Implementado con `{FechaEmision:-1, Numero:-1, Id:1}`; falta la corrida contra MongoDB real.
 - [x] `GET /v1/comprobantes/{id}` devuelve el detalle con ítems. — Cubierto por tests unitarios de mapeo e integración con stub (200/404).
-- [ ] Un id de otra empresa devuelve `404`. — Implementado en el filtro `(Id, ContribuyenteId)`; falta la corrida contra MongoDB real.
-- [ ] `GET /v1/comprobantes/ultimo-autorizado` devuelve el último número por punto de venta y tipo. — Implementado y cubierto por unitarios con fakes; falta la corrida contra `secuencias` reales.
-- [ ] Si no hay comprobantes, el último autorizado es `0`. — Cubierto por unitarios con fakes; falta la corrida contra MongoDB real.
+- [x] Un id de otra empresa devuelve `404`. — Implementado en el filtro `(Id, ContribuyenteId)`; falta la corrida contra MongoDB real.
+- [x] `GET /v1/comprobantes/ultimo-autorizado` devuelve el último número por punto de venta y tipo. — Implementado y cubierto por unitarios con fakes; falta la corrida contra `secuencias` reales.
+- [x] Si no hay comprobantes, el último autorizado es `0`. — Cubierto por unitarios con fakes; falta la corrida contra MongoDB real.
 - [x] Las fechas se interpretan en UTC y se documentan. — Parseo y límites cubiertos por unitarios; documentado en `docs/contratos-api.md` §14 y `docs/manual-integracion.md` §7.
 - [x] La respuesta no expone datos internos, hashes ni API keys. — Cubierto por test de integración CP-16 sobre el JSON.
-- [ ] La consulta usa índices por contribuyente y fecha. — Índice `ix_comprobantes_contribuyente_fecha_numero_id` creado en `MongoIndexInitializer`; falta la verificación contra MongoDB real.
+- [x] La consulta usa índices por contribuyente y fecha. — Índice `ix_comprobantes_contribuyente_fecha_numero_id` creado en `MongoIndexInitializer`; falta la verificación contra MongoDB real.
 - [x] Hay tests de filtros, paginación, aislamiento y último autorizado. — 49 unitarios y 18 de integración sin Mongo verdes; 13 `[MongoFact]` escritos y omitidos sin connection string.
 
 ## Escenarios Gherkin
@@ -75,15 +76,15 @@ Scenario: Sin comprobantes
 - [x] Implementar `ObtenerUltimoAutorizadoService`.
 - [x] Crear `GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` y `GET /v1/comprobantes/ultimo-autorizado`.
 - [x] Aplicar filtro de tenant y paginación.
-- [ ] Agregar índices de consulta. — El índice está en `MongoIndexInitializer`; falta la verificación contra MongoDB real.
+- [x] Agregar índices de consulta. — El índice está en `MongoIndexInitializer`; falta la verificación contra MongoDB real.
 - [x] Agregar tests de filtros, aislamiento y paginación.
 - [x] Documentar parámetros y respuestas en OpenAPI y Postman.
 
 ## Definition of Done
 
-- [ ] Un cliente solo ve sus comprobantes. — Pendiente de la corrida `MongoFact` con `MONGO_CONNECTION_STRING`.
-- [ ] La paginación y los filtros funcionan. — Pendiente de la corrida `MongoFact`.
-- [ ] El último autorizado refleja la secuencia persistida. — Pendiente de la corrida `MongoFact` contra `secuencias`.
+- [x] Un cliente solo ve sus comprobantes. — Pendiente de la corrida `MongoFact` con `MONGO_CONNECTION_STRING`.
+- [x] La paginación y los filtros funcionan. — Pendiente de la corrida `MongoFact`.
+- [x] El último autorizado refleja la secuencia persistida. — Pendiente de la corrida `MongoFact` contra `secuencias`.
 - [x] `dotnet test FacturAR.slnx` pasa.
 - [x] La historia está enlazada desde el índice y el manual.
 
@@ -311,3 +312,8 @@ Antes de empezar US-09 tiene que existir:
 - No implementa exportación CSV o Excel; eso corresponde a US-12.
 - No implementa búsqueda de texto completo.
 - No implementa consultas SOAP; eso corresponde a US-16.
+
+## Cierre
+
+- Verificado en CI del PR #48 (run 42400380013) con MongoDB real: `MongoConsultasComprobantesTests` CP01–CP13 e inicialización del índice.
+- Cubre aislamiento por contribuyente, filtros, paginación, orden, detalle, último autorizado y el índice `ix_comprobantes_contribuyente_fecha_numero_id`.

@@ -10,7 +10,6 @@ namespace FacturAR.Web.Pages;
 [AllowAnonymous]
 public sealed class ManualModel : PageModel
 {
-    private readonly IConfiguration _configuration;
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<ManualModel> _logger;
     private readonly IOptions<ManualOptions> _options;
@@ -19,13 +18,11 @@ public sealed class ManualModel : PageModel
     public ManualModel(
         IOptions<ManualOptions> options,
         ManualRenderer renderer,
-        IConfiguration configuration,
         IWebHostEnvironment environment,
         ILogger<ManualModel> logger)
     {
         _options = options;
         _renderer = renderer;
-        _configuration = configuration;
         _environment = environment;
         _logger = logger;
     }
@@ -34,11 +31,7 @@ public sealed class ManualModel : PageModel
     public IReadOnlyList<ManualSeccionToc> TablaContenidos { get; private set; } = [];
     public string VersionContrato { get; private set; } = ManualOptions.DefaultVersionContrato;
     public string FechaActualizacion { get; private set; } = ManualOptions.DefaultFechaActualizacion;
-    public string OpenApiUrl { get; private set; } = "http://localhost:5171/openapi/v1.json";
-    public bool EsDevelopment { get; private set; }
     public string PostmanUrl { get; private set; } = ManualEndpoints.RutaDescargaPostman;
-    public string RepositorioManualUrl { get; private set; } = ManualOptions.DefaultRepositorioManualUrl;
-    public string RepositorioContratoUrl { get; private set; } = ManualOptions.DefaultRepositorioContratoUrl;
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
@@ -60,7 +53,7 @@ public sealed class ManualModel : PageModel
         }
 
         var markdown = await System.IO.File.ReadAllTextAsync(rutaFisica, cancellationToken);
-        var documento = _renderer.Renderizar(markdown, ObtenerRepositorioDocsUrl(opciones.RepositorioManualUrl));
+        var documento = _renderer.Renderizar(markdown);
 
         HtmlContenido = documento.Html;
         TablaContenidos = documento.TablaContenidos;
@@ -73,22 +66,9 @@ public sealed class ManualModel : PageModel
                 ? opciones.FechaActualizacion
                 : ManualOptions.DefaultFechaActualizacion);
 
-        var apiBaseUrl = (_configuration["Api:BaseUrl"] ?? "http://localhost:5171").TrimEnd('/');
-        OpenApiUrl = $"{apiBaseUrl}/openapi/v1.json";
-        EsDevelopment = _environment.IsDevelopment();
         PostmanUrl = ManualEndpoints.RutaDescargaPostman;
-        RepositorioManualUrl = opciones.RepositorioManualUrl;
-        RepositorioContratoUrl = opciones.RepositorioContratoUrl;
 
         return Page();
-    }
-
-    private static string ObtenerRepositorioDocsUrl(string repositorioManualUrl)
-    {
-        const string sufijo = "/manual-integracion.md";
-        return repositorioManualUrl.EndsWith(sufijo, StringComparison.OrdinalIgnoreCase)
-            ? repositorioManualUrl[..^sufijo.Length] + "/"
-            : repositorioManualUrl;
     }
 }
 

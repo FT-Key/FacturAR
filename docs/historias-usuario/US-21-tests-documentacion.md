@@ -4,6 +4,7 @@
 **Prioridad:** Alta  
 **Estimación:** 2 días  
 **Requisito:** RNF-13, RNF-17, RNF-18  
+**Estado:** Parcial  
 **Depende de:** todas las historias implementadas; CI depende de US-20 y CD de US-31  
 
 ## Historia
@@ -16,18 +17,18 @@ La suite debe cubrir reglas de negocio, endpoints, Mongo, onboarding, emisión y
 
 ## Criterios de aceptación
 
-- [ ] Los tests unitarios cubren CUIT, CAE, contraseñas, tokens, numeración, idempotencia y reglas de emisión.
+- [x] Los tests unitarios cubren CUIT, CAE, contraseñas, tokens, numeración, idempotencia y reglas de emisión.
 - [x] Hay al menos un test de integración de la API con MongoDB.
-- [ ] Hay tests de solicitud, aprobación, invitación, login, API keys y aislamiento.
-- [ ] Hay tests de emisión, notas, consultas y verificación.
+- [x] Hay tests de solicitud, aprobación, invitación, login, API keys y aislamiento.
+- [x] Hay tests de emisión, notas, consultas y verificación.
 - [x] Existe una colección de Postman o un archivo `.http` con los endpoints principales.
 - [x] El README explica cómo levantar el sistema local y con Docker.
 - [x] OpenAPI se genera y está disponible en Development.
 - [x] Las historias y requisitos están enlazados desde el README.
-- [ ] El manual de integración está publicado en el portal.
-- [ ] `dotnet test FacturAR.slnx` pasa en CI.
-- [ ] La documentación no contiene secretos ni datos reales.
-- [ ] Los códigos de error están documentados y coinciden con la API.
+- [x] El manual de integración está publicado en el portal.
+- [x] `dotnet test FacturAR.slnx` pasa en CI.
+- [x] La documentación no contiene secretos ni datos reales.
+- [x] Los códigos de error están documentados y coinciden con la API.
 
 ## Escenarios Gherkin
 
@@ -67,27 +68,29 @@ Scenario: CI
 - [x] Escribir README, requisitos, modelos e historias.
 - [x] Crear una colección de Postman.
 - [x] Agregar un test de integración con base de datos.
-- [ ] Agregar tests de onboarding y emisión.
-- [ ] Publicar el manual en el portal.
+- [x] Agregar tests de onboarding y emisión.
+- [x] Publicar el manual en el portal.
 - [ ] Actualizar Postman con los endpoints nuevos.
-- [ ] Ejecutar la suite en CI.
-- [ ] Revisar que la documentación coincida con el código.
+- [x] Ejecutar la suite en CI.
+- [x] Revisar que la documentación coincida con el código.
 
 ## Definition of Done
 
 - [ ] Un tercero puede levantar y probar el sistema siguiendo el README.
-- [ ] La suite de tests pasa en local y en CI.
+- [x] La suite de tests pasa en local y en CI.
 - [ ] Postman, OpenAPI y manual están sincronizados.
-- [ ] No hay secretos en la documentación.
-- [ ] La historia está enlazada desde el índice y el README.
+- [x] No hay secretos en la documentación.
+- [x] La historia está enlazada desde el índice y el README.
 
 ## Evidencia
 
 - `docs/postman/FacturAR.postman_collection.json` y environment local.
 - `MongoApiTests` se ejecuta contra MongoDB real y se omite sin connection string.
 - `ApiEndpointsTests` verifica OpenAPI en Development.
-- Suite local: 18 tests unitarios y 9 de integración aprobados.
-- Pendiente: tests de onboarding/emisión y ejecución en CI, que depende de US-20; el deploy en Azure depende de US-31.
+- Suite local del 2026-11-07: 713 unitarios y 215 integración aprobados, 174 omitidos sin `MONGO_CONNECTION_STRING`, 0 fallos.
+- CI del PR #48 (run 42400380013): build, tests y Docker aprobados; MongoDB 8 en réplica set ejecuta los `[MongoFact]`.
+- El manual `/manual` quedó publicado y sincronizado en US-30.
+- Pendiente: completar Postman con `/v1/api-keys` y SOAP, y validar que un tercero levante el sistema siguiendo el README.
 
 ## Contrato técnico
 

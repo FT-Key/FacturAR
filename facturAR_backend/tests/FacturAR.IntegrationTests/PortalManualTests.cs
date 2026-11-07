@@ -76,19 +76,16 @@ public sealed partial class PortalManualTests
     }
 
     [Fact]
-    public async Task Manual_EnDevelopment_MuestraEnlaceDirectoAOpenApiYColeccionPostmanValida()
+    public async Task Manual_MuestraColeccionPostmanValida()
     {
-        using var factory = new PortalWebApplicationFactory()
-            .ConEntorno("Development")
-            .Configurar("Api:BaseUrl", "http://localhost:5171");
+        using var factory = new PortalWebApplicationFactory();
         using var client = factory.CrearCliente();
 
         var response = await client.GetAsync("/manual");
         var html = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("href=\"http://localhost:5171/openapi/v1.json\"", html);
-        Assert.Contains("data-openapi-link", html);
+        Assert.DoesNotContain("openapi", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("href=\"/downloads/FacturAR.postman_collection.json\"", html);
 
         var postmanResponse = await client.GetAsync("/downloads/FacturAR.postman_collection.json");
@@ -105,21 +102,29 @@ public sealed partial class PortalManualTests
     }
 
     [Fact]
-    public async Task Manual_FueraDeDevelopment_MuestraNotaExplicativaDeOpenApiYEnlaceAlContrato()
+    public async Task Manual_NoExponeRutasDeAdministracionNiDetallesInternos()
     {
         using var factory = new PortalWebApplicationFactory()
-            .ConEntorno("Production")
-            .Configurar("Api:BaseUrl", "https://api.facturar.example");
+            .ConEntorno("Production");
         using var client = factory.CrearCliente();
 
         var response = await client.GetAsync("/manual");
         var html = await response.Content.ReadAsStringAsync();
+        var markdown = await File.ReadAllTextAsync(ObtenerRutaDocs("manual-integracion.md"));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.DoesNotContain("data-openapi-link", html);
-        Assert.Contains("data-openapi-nota", html);
-        Assert.Contains("solo se publica en el entorno <strong>Development</strong>", html);
-        Assert.Contains("contratos-api.md", html);
+        Assert.DoesNotContain("data-openapi-nota", html);
+
+        foreach (var contenido in new[] { html, markdown })
+        {
+            Assert.DoesNotContain("/v1/admin", contenido);
+            Assert.DoesNotContain("/admin/solicitudes", contenido);
+            Assert.DoesNotContain("cookies.admin", contenido);
+            Assert.DoesNotContain("Seed__", contenido);
+            Assert.DoesNotContain("MONGO_NO_DISPONIBLE", contenido);
+            Assert.DoesNotContain("docs/contratos-api.md", contenido);
+        }
     }
 
     [Fact]
