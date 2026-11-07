@@ -17,3 +17,5 @@
 !.env.example
 !.env.production.example
 *.md
+!docs/manual-integracion.md
+!docs/postman/FacturAR.postman_collection.json

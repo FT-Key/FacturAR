@@ -1,4 +1,4 @@
-# FacturAR
+﻿# FacturAR
 
 [![CI](https://github.com/FT-Key/FacturAR/actions/workflows/ci.yml/badge.svg?branch=development)](https://github.com/FT-Key/FacturAR/actions/workflows/ci.yml)
 [![CD](https://github.com/FT-Key/FacturAR/actions/workflows/cd.yml/badge.svg?branch=main)](https://github.com/FT-Key/FacturAR/actions/workflows/cd.yml)
@@ -122,6 +122,8 @@ El frontend lee:
 | Variable | Descripción | Ejemplo |
 | --- | --- | --- |
 | `Api__BaseUrl` | URL interna de la API | `http://localhost:5171` |
+| `Manual__RutaArchivo` | Ruta del archivo Markdown del manual de integración | `Content/manual-integracion.md` |
+| `Manual__RutaColeccionPostman` | Ruta de la colección Postman descargable desde `/downloads/FacturAR.postman_collection.json` | `Content/FacturAR.postman_collection.json` |
 | `ASPNETCORE_ENVIRONMENT` | Entorno de ejecución | `Development` |
 
 Variables del asistente de alta (solo portal):
@@ -272,7 +274,8 @@ URLs locales:
 - Verificación: `http://localhost:5116/verificar`
 - Solicitud de alta con asistente: `http://localhost:5116/solicitar-alta`
 - Activación: `http://localhost:5116/activar`
-- Manual (previsto): `http://localhost:5116/manual`
+- Manual de integración: `http://localhost:5116/manual`
+- Descarga de colección Postman: `http://localhost:5116/downloads/FacturAR.postman_collection.json`
 - Administración global: `http://localhost:5116/admin`
 
 ### MongoDB

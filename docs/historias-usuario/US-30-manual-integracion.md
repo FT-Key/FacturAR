@@ -4,6 +4,7 @@
 **Prioridad:** Media  
 **Estimación:** 1 día  
 **Requisito:** RF-27  
+**Estado:** Parcial
 **Depende de:** US-02, US-03, US-05  
 **Habilita:** US-21
 
@@ -17,21 +18,21 @@ El manual debe ser público o accesible desde el portal y estar enlazado desde l
 
 ## Criterios de aceptación
 
-- [ ] Existe una página `/manual` accesible sin autenticación.
-- [ ] El manual explica el proceso de solicitud, aprobación y activación.
-- [ ] El manual explica cómo crear, listar, revocar y regenerar una API key.
-- [ ] El manual explica el header `X-Api-Key` y el formato de la key.
-- [ ] El manual incluye ejemplos de emisión en `curl`, JavaScript y C#.
-- [ ] El manual incluye ejemplos de consulta y verificación pública.
-- [ ] El manual explica la idempotencia y el header `Idempotency-Key`.
-- [ ] El manual lista los códigos de error y su significado.
-- [ ] El manual incluye buenas prácticas de seguridad.
-- [ ] El manual aclara que el CAE es simulado y no tiene validez fiscal.
-- [ ] El manual enlaza a OpenAPI y a la colección Postman.
-- [ ] El manual tiene fecha de última actualización y versión del contrato.
-- [ ] La página es responsive y navegable con teclado.
-- [ ] Los ejemplos no contienen API keys reales.
-- [ ] El contenido se mantiene sincronizado con `docs/manual-integracion.md`.
+- [x] Existe una página `/manual` accesible sin autenticación.
+- [x] El manual explica el proceso de solicitud, aprobación y activación.
+- [x] El manual explica cómo crear, listar, revocar y regenerar una API key.
+- [x] El manual explica el header `X-Api-Key` y el formato de la key.
+- [x] El manual incluye ejemplos de emisión en `curl`, JavaScript y C#.
+- [x] El manual incluye ejemplos de consulta y verificación pública.
+- [x] El manual explica la idempotencia y el header `Idempotency-Key`.
+- [x] El manual lista los códigos de error y su significado.
+- [x] El manual incluye buenas prácticas de seguridad.
+- [x] El manual aclara que el CAE es simulado y no tiene validez fiscal.
+- [x] El manual enlaza a OpenAPI y a la colección Postman.
+- [x] El manual tiene fecha de última actualización y versión del contrato.
+- [x] La página es responsive y navegable con teclado.
+- [x] Los ejemplos no contienen API keys reales.
+- [x] El contenido se mantiene sincronizado con `docs/manual-integracion.md`.
 
 ## Escenarios Gherkin
 
@@ -67,25 +68,25 @@ Scenario: Códigos de error
 
 ## Tareas técnicas
 
-- [ ] Crear la página `/manual` en Razor Pages o Blazor.
-- [ ] Escribir el contenido desde `docs/manual-integracion.md`.
-- [ ] Agregar navegación desde la home, login y sección API keys.
-- [ ] Agregar tabla de contenidos y anclas.
-- [ ] Incluir bloques de código con botón de copiar.
-- [ ] Enlazar OpenAPI y Postman.
-- [ ] Revisar accesibilidad y responsive.
-- [ ] Agregar un test de que la página responde `200`.
-- [ ] Verificar que los ejemplos coincidan con los contratos implementados.
-- [ ] Actualizar el manual cuando cambie un endpoint.
+- [x] Crear la página `/manual` en Razor Pages o Blazor.
+- [x] Escribir el contenido desde `docs/manual-integracion.md`.
+- [x] Agregar navegación desde la home, login y sección API keys.
+- [x] Agregar tabla de contenidos y anclas.
+- [x] Incluir bloques de código con botón de copiar.
+- [x] Enlazar OpenAPI y Postman.
+- [x] Revisar accesibilidad y responsive.
+- [x] Agregar un test de que la página responde `200`.
+- [x] Verificar que los ejemplos coincidan con los contratos implementados.
+- [x] Actualizar el manual cuando cambie un endpoint.
 
 ## Definition of Done
 
 - [ ] Un tercero puede integrar la API siguiendo solo el manual.
-- [ ] El manual funciona sin sesión y está enlazado desde el portal.
-- [ ] Los ejemplos son copiables y no contienen secretos.
-- [ ] La página pasa una revisión básica de accesibilidad.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el README.
+- [x] El manual funciona sin sesión y está enlazado desde el portal.
+- [x] Los ejemplos son copiables y no contienen secretos.
+- [x] La página pasa una revisión básica de accesibilidad.
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el README.
 
 ## Contrato técnico
 
@@ -142,12 +143,12 @@ El portal **no** accede a MongoDB: el manual se arma con archivos locales y conf
 | Clave | Tipo | Default | Uso |
 | --- | --- | --- | --- |
 | `Manual__RutaArchivo` | `string` | `Content/manual-integracion.md` | Ubicación del Markdown dentro del output del portal |
-| `Manual__VersionContrato` | `string` | `0.1.0` | Versión del contrato que se muestra en la página |
-| `Manual__FechaActualizacion` | `string` | Fecha de build | Fecha de última actualización visible en la página |
+| `Manual__VersionContrato` | `string` | Sin valor | Override opcional. Si está vacío, la versión se detecta del Markdown y, si no aparece, cae en `0.1.0` |
+| `Manual__FechaActualizacion` | `string` | Sin valor | Override opcional. Si está vacío, la fecha se detecta del Markdown y, si no aparece, cae en `2026-11-07` |
 
 `Api:BaseUrl` ya está configurado (`http://localhost:5171` en local) y se reutiliza para el enlace a OpenAPI.
 
-El enlace a `/openapi/v1.json` solo resuelve en Development, porque el spec se publica únicamente en ese ambiente. En otros ambientes la página lo muestra con una nota que aclara que el spec se expone desde el repositorio versionado, para no dejar un enlace roto.
+El enlace a `/openapi/v1.json` solo resuelve en Development, porque el spec se publica únicamente en ese ambiente. En otros ambientes la página muestra una nota que aclara que el spec solo se publica en Development y enlaza al contrato versionado, para no dejar un enlace roto.
 
 ### UI
 
@@ -243,3 +244,12 @@ La navegación desde la home y el login se implementa en US-30; los enlaces dent
 - No implementa documentación interactiva generada desde OpenAPI.
 - No reemplaza OpenAPI; lo complementa con una guía de uso.
 - No incluye ejemplos de AFIP real.
+
+## Evidencia
+
+- `dotnet build FacturAR.slnx -c Release`, `dotnet test FacturAR.slnx -c Release --no-build` y `dotnet format FacturAR.slnx --verify-no-changes` pasan el 2026-11-07. La suite de integración cerró con 215 aprobados, 174 omitidos por falta de `MONGO_CONNECTION_STRING` y 0 fallos.
+- QA manual con Playwright sobre `/manual` en 375, 768 y 1280 px: sin scroll horizontal, índice plegado por debajo de 960 px y abierto en escritorio.
+- Teclado: el primer `Tab` enfoca «Saltar al contenido» con outline visible, `Enter` mueve el foco a `#contenido`, y el botón de copiar responde a `Enter` con foco visible.
+- Copiar: el botón cambia a «Copiado», anuncia «Código copiado al portapapeles» por `aria-live` y el portapapeles recibe el texto del bloque; a los 2 segundos vuelve a «Copiar».
+- Tema: el cambio a oscuro actualiza `data-theme` y los colores del documento, y vuelve a claro sin recargar.
+- Header público: el logo se mantiene a 134 px y la navegación entra en el ancho de 1200 px, con y sin sesión. Con sesión, el nombre y las acciones viven en un dropdown (`Ir al panel` / `Cerrar sesión`) en lugar de tres controles sueltos.
