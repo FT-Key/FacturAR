@@ -149,3 +149,18 @@ La base de producción no tiene usuarios demo, así que los flujos autenticados 
 - No se modificó código de producción.
 - No se cambió ningún dato de producción salvo dos solicitudes de alta de QA (`QA Auditoria SRL`, `QA SMTP FacturAR`, `QA SMTP Log FacturAR`) enviadas por el endpoint público.
 - No se mergeó ningún PR.
+
+## Cierre de correcciones (misma rama)
+
+Se corrigieron los bloqueos detectados y se volvió a verificar:
+
+| Hallazgo | Corrección | Verificación |
+| --- | --- | --- |
+| `/admin/solicitudes` 500 | Esquema de autenticación `SesionApi` + orden `UseAuthentication` → `UseAuthorization` → `UseAntiforgery` | Anónimo `302` a `/admin/login`; SuperAdmin `200`; aprobación con SMTP caído muestra «No se pudo enviar el email de invitación. Podés reenviarlo.» y mantiene estado `Aprobada` |
+| Tablas sin responsive | `min-width: 0` en `main`/`.content`, `position: relative` en `.table-responsive` | 16/16 mediciones sin scroll horizontal en 375, 768, 1280 y 1440 px |
+| axe con fallas serias | `tabindex` en bloques scrolleables, `aria-label` del toggle, título y `h1` en `/activar`, landmark del menú | 0 violaciones en `/`, `/login`, `/solicitar-alta`, `/verificar` y `/activar`, en claro y oscuro |
+| Performance landing 77 | Sin cambios de código: la medición inicial era cold start | 97–99 en tres corridas calientes de producción |
+| Asistente con datos incorrectos | Contexto verificado en el `SystemPrompt` | Responde que no hay registro libre, que la cuenta se crea en `/activar` y que la API key se crea en `/api-keys` |
+| Outbox sin handlers | `EmailSolicitudRecibidaOutboxHandler` y `EmailNuevaSolicitudOutboxHandler`; payload solo con el id de solicitud | Mensaje `Procesado`, email generado y auditoría `email.enviado` |
+| Paleta mint | Paleta petróleo (`#1D5E73` / `#5FA8BF`) y ámbar (`#8F4E1C` / `#E0A063`) | axe sin violaciones de contraste; capturas en claro y oscuro |
+| Assets faltantes | `brand/og-image.png`, `brand/logo-horizontal-light.png`, `brand/logo-horizontal-dark.png`, `apple-touch-icon.png` y `favicon.png` | Servidos con `200` y dimensiones correctas |

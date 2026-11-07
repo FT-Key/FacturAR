@@ -242,32 +242,32 @@ Los valores son la fuente de verdad para implementar. El contraste final se vali
 
 | Token | Claro | Oscuro | Uso |
 | --- | --- | --- | --- |
-| `--color-bg` | `#F2F7F4` | `#06100C` | Fondo de página |
-| `--color-bg-subtle` | `#E8F1EC` | `#0A1712` | Secciones alternas |
-| `--color-surface` | `#FFFFFF` | `#0D1B15` | Tarjetas y paneles |
-| `--color-surface-raised` | `#F8FCFA` | `#12241C` | Elementos elevados |
-| `--color-text` | `#0A1511` | `#E9F6EF` | Texto principal |
-| `--color-text-muted` | `#4C615A` | `#A9C0B6` | Texto secundario |
-| `--color-border` | `#D2E3DA` | `#1E3329` | Bordes y separadores |
-| `--color-border-strong` | `#A6C4B6` | `#355547` | Bordes de énfasis y sombras duras |
-| `--color-primary` | `#00BD7D` | `#00D68F` | CTA, focos y acentos |
-| `--color-primary-strong` | `#00996A` | `#00A36C` | Labio 3D del primario |
-| `--color-on-primary` | `#032219` | `#032219` | Texto sobre primario |
-| `--color-accent` | `#00714B` | `#6EE7B7` | Enlaces y énfasis |
-| `--color-on-accent` | `#FFFFFF` | `#04231A` | Texto sobre acento |
-| `--color-success` | `#15803D` | `#4ADE80` | Éxito |
-| `--color-warning` | `#B45309` | `#FBBF24` | Advertencia |
-| `--color-danger` | `#B91C1C` | `#F87171` | Error |
-| `--color-focus` | `#005C3C` | `#7DFFC4` | Anillo de foco funcional |
-| `--color-code-bg` | `#06110C` | `#030A07` | Bloques de código |
-| `--color-code-header` | `#0B1D15` | `#07140F` | Cabecera del bloque de código |
-| `--color-code-text` | `#D7F5E7` | `#D7F5E7` | Texto de código |
-| `--color-primary-soft` | `rgba(0,189,125,.12)` | `rgba(0,214,143,.14)` | Glows y fondos suaves |
-| `--color-grid` | `rgba(7,60,44,.10)` | `rgba(126,231,183,.10)` | Grillas en perspectiva |
+| `--color-bg` | `#F6F4EF` | `#0B1417` | Fondo de página |
+| `--color-bg-subtle` | `#ECEAE2` | `#101C21` | Secciones alternas |
+| `--color-surface` | `#FFFFFF` | `#13232A` | Tarjetas y paneles |
+| `--color-surface-raised` | `#FAF9F5` | `#182C34` | Elementos elevados |
+| `--color-text` | `#101A20` | `#E9F1F2` | Texto principal |
+| `--color-text-muted` | `#4F5E66` | `#A7BBC1` | Texto secundario |
+| `--color-border` | `#D8D4C8` | `#22383F` | Bordes y separadores |
+| `--color-border-strong` | `#B3AC9A` | `#3A555E` | Bordes de énfasis y sombras duras |
+| `--color-primary` | `#1D5E73` | `#5FA8BF` | CTA, focos y acentos |
+| `--color-primary-strong` | `#14495A` | `#3E8AA1` | Labio 3D del primario |
+| `--color-on-primary` | `#FFFFFF` | `#04161C` | Texto sobre primario |
+| `--color-accent` | `#8F4E1C` | `#E0A063` | Enlaces y énfasis |
+| `--color-on-accent` | `#FFFFFF` | `#1F1204` | Texto sobre acento |
+| `--color-success` | `#1F7A4D` | `#5FD39A` | Éxito |
+| `--color-warning` | `#8A4B00` | `#F2C14E` | Advertencia |
+| `--color-danger` | `#B3261E` | `#F08A80` | Error |
+| `--color-focus` | `#14495A` | `#8FD3E6` | Anillo de foco funcional |
+| `--color-code-bg` | `#0E1A20` | `#050C0F` | Bloques de código |
+| `--color-code-header` | `#14242B` | `#0A151A` | Cabecera del bloque de código |
+| `--color-code-text` | `#E6EFEA` | `#DDEDEA` | Texto de código |
+| `--color-primary-soft` | `rgba(29,94,115,.12)` | `rgba(95,168,191,.16)` | Glows y fondos suaves |
+| `--color-grid` | `rgba(29,94,115,.10)` | `rgba(95,168,191,.12)` | Grillas en perspectiva |
 
 Reglas:
 
-- El primario mint se usa para CTA, foco y estados activos; no como color de texto de párrafo.
+- El primario petróleo se usa para CTA, foco y estados activos; no como color de texto de párrafo.
 - La profundidad se construye con desplazamientos duros (`2px`, `4px`, `8px`) y el labio de `4px` del botón primario.
 - La sombra difusa se reserva para el recibo del hero, las tarjetas de autenticación y el panel del asistente.
 - Los planos 3D nunca contienen texto interactivo ni reemplazan la jerarquía semántica.
