@@ -13,6 +13,7 @@ public sealed class LandingModel : PageModel
     public LandingModel(IConfiguration configuration)
     {
         _baseUrl = (configuration["Portal:BaseUrl"] ?? "http://localhost:5116").TrimEnd('/');
+        ApiBaseUrl = (configuration["Api:BaseUrl"] ?? "http://localhost:5171").TrimEnd('/');
         JsonLd = ConstruirJsonLd();
     }
 
@@ -21,6 +22,8 @@ public sealed class LandingModel : PageModel
     public string Description => Descripcion;
 
     public string Canonical => $"{_baseUrl}/";
+
+    public string ApiBaseUrl { get; }
 
     public string OgImage => $"{_baseUrl}/brand/og-image.png";
 
