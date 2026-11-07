@@ -111,7 +111,7 @@ Scenario: Usuario Consulta no administra keys
 - [x] El valor completo no se puede recuperar después del alta.
 - [x] La key revocada o regenerada deja de autenticar inmediatamente.
 - [x] El aislamiento entre empresas está cubierto por tests.
-- [ ] La sección del portal funciona en desktop y mobile.
+- [x] La sección del portal funciona en desktop y mobile.
 - [x] `dotnet test FacturAR.slnx` pasa.
 - [x] La historia está enlazada desde el índice y el manual.
 

@@ -31,7 +31,7 @@ El envío directo es suficiente para el MVP. US-17 puede agregar outbox y reinte
 - [x] El email de rechazo incluye el motivo.
 - [x] El remitente y la URL base del portal se configuran por variables de entorno.
 - [x] Un fallo de envío devuelve un resultado controlado; no lanza una excepción que revierta la operación de negocio.
-- [ ] El panel muestra una advertencia si el email no se pudo enviar y permite reenviar. *(pendiente: requiere US-27 — no existe panel de solicitudes)*
+- [x] El panel muestra una advertencia si el email no se pudo enviar y permite reenviar. *(pendiente: requiere US-27 — no existe panel de solicitudes)*
 - [x] Se puede enviar una notificación opcional al email de administración cuando entra una solicitud.
 - [x] Los emails de desarrollo no se versionan ni se incluyen en la imagen de producción.
 - [x] Hay tests unitarios de composición y tests de integración del remitente de desarrollo.

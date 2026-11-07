@@ -73,7 +73,7 @@ Scenario: Máximo de intentos
 - [x] Crear `OutboxMessage` y `IOutboxRepository`.
 - [x] Implementar el worker de outbox con reintentos y backoff.
 - [x] Crear índices de auditoría y outbox.
-- [ ] Integrar emails de onboarding si US-29 lo permite.
+- [x] Integrar emails de onboarding si US-29 lo permite.
 - [x] Agregar tests de auditoría, worker y reintentos.
 - [x] Documentar eventos y operación.
 

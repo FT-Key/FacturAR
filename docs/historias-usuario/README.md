@@ -1,6 +1,6 @@
 # Historias de usuario
 
-El alcance obligatorio tiene **27 historias y 52 días ideales de trabajo**, y **se implementan en un único sprint**. US-01, US-07, US-10, US-11, US-12, US-13, US-15, US-19, US-20, US-27, US-28 y US-31 están completadas y archivadas; quedan 15 historias activas.
+El alcance obligatorio tiene **27 historias y 52 días ideales de trabajo**, y **se implementan en un único sprint**. US-01, US-02, US-07, US-10, US-11, US-12, US-13, US-15, US-17, US-19, US-20, US-27, US-28, US-29 y US-31 están completadas y archivadas; quedan 12 historias activas.
 
 Las US-22 a US-25 **quedan fuera del alcance del proyecto** y están archivadas en [`docs/historias-usuario-fuera-de-alcance/`](../historias-usuario-fuera-de-alcance/README.md). No se implementan ni se cuentan para el avance del MVP.
 
@@ -27,11 +27,11 @@ La columna **Orden** es la posición dentro del sprint. La columna **Contrato** 
 | Orden | ID | Historia | Épica | Fase | Prioridad | Días | Requisito | Estado | Contrato |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | [US-04](US-04-login-multiempresa.md) | Autenticación, roles y aislamiento multiempresa | Registro | 1 | Alta | 3 | RF-11 | Base implementada | Sí |
-| 2 | [US-29](US-29-emails-transaccionales.md) | Notificaciones transaccionales por email | Registro | 1 | Alta | 2 | RF-26 | Parcial | Sí |
+| 2 | [US-29](../historias-usuario-terminadas/US-29-emails-transaccionales.md) | Notificaciones transaccionales por email | Registro | 1 | Alta | 2 | RF-26 | Completada | Sí |
 | 3 | [US-01](../historias-usuario-terminadas/US-01-alta-contribuyente.md) | Solicitud pública de alta de empresa | Registro | 2 | Alta | 2 | RF-23 | Completada | Sí |
 | 4 | [US-27](../historias-usuario-terminadas/US-27-aprobacion-solicitudes.md) | Revisión y aprobación de solicitudes | Registro | 2 | Alta | 3 | RF-24 | Completada | Sí |
 | 5 | [US-28](../historias-usuario-terminadas/US-28-invitacion-cuenta.md) | Activación de cuenta por invitación | Registro | 2 | Alta | 2 | RF-25 | Completada | Sí |
-| 6 | [US-02](US-02-api-keys.md) | Gestión de API keys | Integraciones | 3 | Alta | 2 | RF-02 | Parcial | Sí |
+| 6 | [US-02](../historias-usuario-terminadas/US-02-api-keys.md) | Gestión de API keys | Integraciones | 3 | Alta | 2 | RF-02 | Completada | Sí |
 | 7 | [US-03](US-03-autenticacion-api-key.md) | Autenticación por API key | Integraciones | 3 | Alta | 1 | RF-03 | Base implementada | Sí |
 | 8 | [US-07](../historias-usuario-terminadas/US-07-numeracion-atomica.md) | Numeración atómica | Emisión | 3 | Alta | 1 | RF-06 | Completada | Sí |
 | 9 | [US-18](US-18-parametros-seed.md) | Parámetros y datos semilla | Operación | 3 | Media | 1 | RF-18 | Parcial | Sí |
@@ -45,7 +45,7 @@ La columna **Orden** es la posición dentro del sprint. La columna **Contrato** 
 | 17 | [US-14](US-14-api-keys-portal.md) | API keys desde el portal | Portal | 5 | Media | 1 | RF-14 | Parcial | Sí |
 | 18 | [US-15](../historias-usuario-terminadas/US-15-soap-emision.md) | SOAP de emisión | Interoperabilidad | 6 | Alta | 2 | RF-15 | Completada | Sí |
 | 19 | [US-16](US-16-soap-consultas.md) | SOAP de consultas | Interoperabilidad | 6 | Media | 1 | RF-16 | Parcial | Sí |
-| 20 | [US-17](US-17-auditoria-outbox.md) | Auditoría y outbox | Operación | 6 | Media | 2 | RF-17 | Parcial | Sí |
+| 20 | [US-17](../historias-usuario-terminadas/US-17-auditoria-outbox.md) | Auditoría y outbox | Operación | 6 | Media | 2 | RF-17 | Completada | Sí |
 | 21 | [US-30](US-30-manual-integracion.md) | Manual online de integración | Portal | 6 | Media | 1 | RF-27 | Pendiente | Sí |
 | 22 | [US-21](US-21-tests-documentacion.md) | Tests, Postman y documentación | Calidad | 6 | Alta | 2 | RNF-13/17/18 | Parcial | Sí |
 | 23 | [US-11](../historias-usuario-terminadas/US-11-verificacion-publica.md) | Verificación pública por CAE | Consultas | 6 | Alta | 2 | RF-10 | Completada | Sí |
@@ -60,7 +60,7 @@ Al día de hoy **US-11, US-04, US-03, US-05, US-13 y US-14 tienen comportamiento
 
 El cierre de QA del 2026-11-05 está documentado en [`docs/qa-cierre-2026-11-05.md`](../qa-cierre-2026-11-05.md): se marcaron los checks verificables con build, tests y código; los pendientes son verificaciones con MongoDB real, navegador, SMTP staging o lector QR, no funcionalidad faltante.
 
-**US-29** queda en **Parcial**: el servicio de email está implementado y probado —`IEmailSender`, `EmailService`, las cinco plantillas, remitente de archivo en desarrollo, remitente SMTP y validación de configuración al arrancar—. US-01 ya dispara la confirmación de solicitud y US-27 dispara aprobación, rechazo y reenvío, con la advertencia y el reenvío en el panel de solicitudes. Faltan la verificación del flujo completo sobre Mongo real, el envío exitoso con SMTP staging y el QA de la advertencia de fallo en el panel.
+**US-29** está **Completada** (auditoría de QA del 2026-11-06): SMTP de producción verificado en logs (`SolicitudRecibida` y `NuevaSolicitud` con `exito=True`), flujo sin SMTP con `FileEmailSender`, aprobación con SMTP caído sin revertir (estado `Aprobada`) y advertencia visible en el panel con reenvío. Los emails de alta ahora se encolan en la outbox. Evidencia: [`docs/qa-auditoria-2026-11-06.md`](../qa-auditoria-2026-11-06.md).
 
 **US-01** está **Completada** (auditoría de QA del 2026-11-06): `POST /v1/solicitudes-alta` y `/solicitar-alta` verificados contra producción (mensaje de éxito con próximo paso, error claro de CUIT, solicitud persistida y visible por `GET /v1/admin/solicitudes`), email de confirmación generado con `FileEmailSender` y tests de integración e índices ejecutados contra MongoDB real. Evidencia: [`docs/qa-auditoria-2026-11-06.md`](../qa-auditoria-2026-11-06.md).
 
@@ -94,7 +94,7 @@ El cierre de QA del 2026-11-05 está documentado en [`docs/qa-cierre-2026-11-05.
 
 **US-32** queda en **Parcial**: `/` es la landing pública SSR y el dashboard autenticado se movió a `/dashboard`; `/inicio` responde `301` a `/`. El portal usa el sistema de diseño **Perspective** (Oswald, Poppins y JetBrains Mono; paleta petróleo y ámbar; grillas y planos isométricos) con tokens claro/oscuro/system, tema persistente y sin FOUC. La landing incluye SEO técnico (JSON-LD, `robots.txt`, `sitemap.xml` y canonical desde `Portal:BaseUrl`) y el asistente informativo vive en `/solicitar-alta` con el endpoint `POST /asistente/mensajes` en el portal: Groq configurable, deshabilitado por defecto, con rate limit, presupuesto, circuito y filtros de entrada y salida. Suma 70 tests unitarios y 23 de integración nuevos, y QA Playwright de CP-32.01 a CP-32.10, CP-32.12, CP-32.20, CP-32.23 y CP-32.24, además de responsive en 375, 768, 1280 y 1440 px y verificación del rediseño en esos mismos anchos. Faltan Lighthouse, axe, la respuesta real de Groq y los assets de marca.
 
-**US-17** queda en **Parcial**: `EventoAuditoria` incluye `ActorTipo`, `AdministradorId` y `ContribuyenteId` nullable; `AuditoriaValidator` valida coherencia de actores y bloquea tokens, hashes, prefijos de API key, contraseñas y secretos; las acciones de login, logout, solicitud, aprobación, rechazo, invitación, activación, API keys y emisión quedan auditadas. La outbox tiene `IOutboxRepository` con claim atómico, `OutboxWorker` con reintentos y backoff exponencial, máximo configurable (`Outbox:MaxIntentos`), auditoría `OutboxProcesado`/`OutboxFallido` y consulta de soporte por `Id` o `Estado` + `CreatedAt`. Cubierto por 601 unitarios y 158 integraciones sin Mongo (174 omitidos). Faltan la verificación con MongoDB real del claim concurrente, las consultas y el encolado transaccional, el `explain()` de los índices y el QA manual de intervalos reales.
+**US-17** está **Completada** (auditoría de QA del 2026-11-06): consulta por Id y Estado+Fecha contra MongoDB real, índice `ix_outbox_estado_fecha`, y emails de onboarding integrados en la outbox con handlers `EmailSolicitudRecibida` y `EmailNuevaSolicitud`, payload sin datos personales y auditoría de envío.
 
 **US-06** queda en **Parcial**: `PayloadHasher` calcula el SHA-256 hexadecimal del payload canónico, `IdempotenciaService` resuelve Nuevo/Replay/Conflicto y `EmitirComprobanteService` responde `200` con el mismo `id`, `numero` y `cae` sin renumerar ni regenerar CAE, `409 IDEMPOTENCIA_CONFLICTO` ante payload distinto y una relectura acotada al perder la carrera. El middleware hace eco de `Idempotency-Key` en todas las respuestas, incluidas `401`/`403`. CP-06-01 a CP-06-12 están verificados con tests automáticos y con MongoDB replica set en CI (737 aprobados, 0 fallos), incluida la concurrencia CP-06-08/09, el rollback de secuencia, los reintentos CP-06-11 y la no expiración CP-06-12; CP-06-13/14 están cubiertos por la integración sin Mongo. Queda Parcial solo por el QA manual de replay/conflicto y por la verificación específica de que la clave no afecta otros endpoints.
 
