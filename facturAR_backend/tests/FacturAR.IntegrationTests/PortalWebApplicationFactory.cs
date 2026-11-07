@@ -13,6 +13,7 @@ namespace FacturAR.IntegrationTests;
 public sealed class PortalWebApplicationFactory : WebApplicationFactory<WebProgram::Program>
 {
     private readonly Dictionary<string, string> _configuracion = new(StringComparer.OrdinalIgnoreCase);
+    private string _entorno = "Development";
 
     public PortalWebApplicationFactory()
     {
@@ -20,6 +21,12 @@ public sealed class PortalWebApplicationFactory : WebApplicationFactory<WebProgr
     }
 
     public FakeGroqChatClient Groq { get; } = new();
+
+    public PortalWebApplicationFactory ConEntorno(string entorno)
+    {
+        _entorno = entorno;
+        return this;
+    }
 
     public PortalWebApplicationFactory Configurar(string clave, string valor)
     {
@@ -44,7 +51,7 @@ public sealed class PortalWebApplicationFactory : WebApplicationFactory<WebProgr
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Development");
+        builder.UseEnvironment(_entorno);
         builder.UseContentRoot(ObtenerContentRoot());
 
         foreach (var par in _configuracion)

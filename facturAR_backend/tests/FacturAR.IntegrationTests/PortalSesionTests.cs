@@ -58,6 +58,9 @@ public sealed class PortalSesionTests
         Assert.Contains("Ir al panel", html);
         Assert.Contains("Cerrar sesión", html);
         Assert.DoesNotContain(">Ingresar<", html);
+        Assert.Contains("data-user-menu", html);
+        Assert.Contains("user-menu__trigger", html);
+        Assert.Contains("user-menu__list", html);
     }
 
     [Fact]

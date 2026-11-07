@@ -44,6 +44,7 @@
                 <ul class="site-nav__links">
                     <li><a href="/#como-funciona">Cómo funciona</a></li>
                     <li><a href="/#api">Para integradores</a></li>
+                    <li><a href="/manual">Guía de integración</a></li>
                     <li><a href="/#seguridad">Seguridad</a></li>
                     <li><a href="/verificar">Verificar comprobante</a></li>
                 </ul>
@@ -51,9 +52,17 @@
                     <partial name="_ThemeToggle" />
                     @if (autenticado)
                     {
-                        <span class="site-nav__sesion" title="Sesión iniciada">@User.Identity?.Name</span>
-                        <a class="btn btn--ghost" href="@panelUrl">@(esAdmin ? "Consola global" : "Ir al panel")</a>
-                        <a class="btn btn--primary" href="/logout">Cerrar sesión</a>
+                        <details class="user-menu" data-user-menu>
+                            <summary class="user-menu__trigger">
+                                <span class="user-menu__name">@User.Identity?.Name</span>
+                                <span class="user-menu__chevron" aria-hidden="true"></span>
+                                <span class="visually-hidden">Abrir menú de cuenta</span>
+                            </summary>
+                            <ul class="user-menu__list">
+                                <li><a class="user-menu__link" href="@panelUrl">@(esAdmin ? "Consola global" : "Ir al panel")</a></li>
+                                <li><a class="user-menu__link" href="/logout">Cerrar sesión</a></li>
+                            </ul>
+                        </details>
                     }
                     else
                     {
@@ -91,7 +100,7 @@
                     <ul>
                         <li><a href="/#api">Para integradores</a></li>
                         <li><a href="/health">Estado del servicio</a></li>
-                        <li><span aria-disabled="true">Guía de integración — Próximamente</span></li>
+                        <li><a href="/manual">Guía de integración</a></li>
                     </ul>
                 </div>
                 <div class="footer-col">

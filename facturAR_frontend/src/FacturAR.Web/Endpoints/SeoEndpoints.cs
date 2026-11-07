@@ -4,7 +4,7 @@ namespace FacturAR.Web.Endpoints;
 
 public static class SeoEndpoints
 {
-    private static readonly string[] RutasPublicas = ["/", "/solicitar-alta", "/verificar"];
+    private static readonly string[] RutasPublicas = ["/", "/solicitar-alta", "/verificar", "/manual"];
 
     private static readonly string[] RutasPrivadas =
     [

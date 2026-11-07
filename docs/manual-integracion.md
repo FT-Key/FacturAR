@@ -1,8 +1,10 @@
 # Manual de integración
 
+Versión del contrato: `0.1.0` | Última actualización: `2026-11-07`
+
 ## Estado de la API
 
-> **Estado del manual.** Este documento describe el contrato del MVP y marca el estado real de cada ruta. Lo que ya tiene historia implementada responde hoy y figura en "Endpoints disponibles hoy"; lo que sigue especificado sin implementación responde `404`.
+> **Estado del manual.** Este documento describe el contrato del MVP y marca el estado real de cada ruta. Todas las rutas de "Endpoints disponibles hoy" responden en la API actual; las que no figuran en este manual no forman parte del MVP.
 
 Qué describe este documento: cómo un tercero pide acceso, activa su cuenta, crea una API key, emite comprobantes, los consulta, descarga su PDF, usa idempotencia, verifica un comprobante por su CAE y emite por SOAP.
 
@@ -18,6 +20,21 @@ Base URL local: `http://localhost:5171`. En Docker: `http://localhost:8080`.
 | `GET` | `/` | Nombre del servicio, versión y commit. |
 | `GET` | `/health` | Readiness: verifica MongoDB. `200` si responde, `503` si no. |
 | `GET` | `/health/live` | Liveness: no consulta MongoDB. Siempre `200`. |
+| `POST` | `/v1/solicitudes-alta` | Solicitud pública de alta de empresa, con rate limit. |
+| `GET` | `/v1/admin/solicitudes` | Lista las solicitudes de alta para la consola global. |
+| `GET` | `/v1/admin/solicitudes/{id}` | Detalle de una solicitud de alta. |
+| `PUT` | `/v1/admin/solicitudes/{id}` | Edición de una solicitud antes de aprobarla o rechazarla. |
+| `POST` | `/v1/admin/solicitudes/{id}/aprobar` | Aprueba la solicitud y crea empresa, punto de venta e invitación. |
+| `POST` | `/v1/admin/solicitudes/{id}/rechazar` | Rechaza la solicitud. |
+| `POST` | `/v1/admin/solicitudes/{id}/reenviar-invitacion` | Reenvía la invitación de una solicitud aprobada. |
+| `GET` | `/v1/invitaciones/{token}` | Valida el token de invitación. |
+| `POST` | `/v1/invitaciones/{token}/aceptar` | Activa la cuenta y define la contraseña. |
+| `POST` | `/v1/auth/login` | Login de empresa; devuelve la cookie de sesión. |
+| `POST` | `/v1/auth/logout` | Cierra la sesión de empresa. |
+| `GET` | `/v1/auth/me` | Datos del usuario de empresa autenticado. |
+| `POST` | `/v1/admin/auth/login` | Login de la consola global. |
+| `POST` | `/v1/admin/auth/logout` | Cierra la sesión de la consola global. |
+| `GET` | `/v1/admin/auth/me` | Datos del administrador global autenticado. |
 | `GET` | `/v1/comprobantes/verificar/{cae}` | Verificación pública de un comprobante por CAE. No requiere autenticación. |
 | `GET` | `/v1/api-keys` | Lista las API keys de la empresa. Requiere cookie de empresa (rol `Administrador`). |
 | `POST` | `/v1/api-keys` | Crea una key y devuelve el valor completo una única vez. Requiere cookie de empresa (rol `Administrador`). |
@@ -34,7 +51,7 @@ Base URL local: `http://localhost:5171`. En Docker: `http://localhost:8080`.
 | `GET` | `/v1/comprobantes/ultimo-autorizado` | Último número autorizado por tipo y punto de venta. |
 | `GET` | `/v1/comprobantes/dashboard` | Métricas del mes y últimos cinco comprobantes de la empresa autenticada. |
 
-Todo lo demás que aparece en este manual está **especificado pero no implementado**: esas rutas responden `404` hasta que su historia se complete.
+El contrato completo de cada ruta, sus roles y sus errores está en [`docs/contratos-api.md`](contratos-api.md).
 
 ### Endpoints del MVP y su estado
 
@@ -43,23 +60,31 @@ Todo lo demás que aparece en este manual está **especificado pero no implement
 | `GET` | `/` | — | disponible hoy |
 | `GET` | `/health` | — | disponible hoy |
 | `GET` | `/health/live` | — | disponible hoy |
-| `GET` | `/v1/comprobantes/verificar/{cae}` | ninguna | disponible hoy |
-| `POST` | `/v1/solicitudes-alta` | público, con rate limit | especificado, pendiente de implementar (US-01) |
-| `GET` | `/v1/admin/solicitudes` | cookie de consola global | especificado, pendiente de implementar (US-27) |
-| `POST` | `/v1/admin/solicitudes/{id}/aprobar` | cookie de consola global | especificado, pendiente de implementar (US-27) |
-| `POST` | `/v1/admin/solicitudes/{id}/rechazar` | cookie de consola global | especificado, pendiente de implementar (US-27) |
-| `POST` | `/v1/admin/solicitudes/{id}/reenviar-invitacion` | cookie de consola global | especificado, pendiente de implementar (US-27) |
+| `POST` | `/v1/solicitudes-alta` | público, con rate limit | implementado (US-01) |
+| `GET` | `/v1/admin/solicitudes` | cookie de consola global | implementado (US-27) |
+| `GET` | `/v1/admin/solicitudes/{id}` | cookie de consola global | implementado (US-27) |
+| `PUT` | `/v1/admin/solicitudes/{id}` | cookie de consola global | implementado (US-27) |
+| `POST` | `/v1/admin/solicitudes/{id}/aprobar` | cookie de consola global | implementado (US-27) |
+| `POST` | `/v1/admin/solicitudes/{id}/rechazar` | cookie de consola global | implementado (US-27) |
+| `POST` | `/v1/admin/solicitudes/{id}/reenviar-invitacion` | cookie de consola global | implementado (US-27) |
 | `GET` | `/v1/invitaciones/{token}` | público, con rate limit | implementado (US-28) |
 | `POST` | `/v1/invitaciones/{token}/aceptar` | público, con rate limit | implementado (US-28) |
+| `POST` | `/v1/auth/login` | público, con rate limit | implementado (US-04) |
+| `POST` | `/v1/auth/logout` | cookie de empresa | implementado (US-04) |
+| `GET` | `/v1/auth/me` | cookie de empresa | implementado (US-04) |
+| `POST` | `/v1/admin/auth/login` | público, con rate limit | implementado (US-04) |
+| `POST` | `/v1/admin/auth/logout` | cookie de consola global | implementado (US-04) |
+| `GET` | `/v1/admin/auth/me` | cookie de consola global | implementado (US-04) |
+| `GET` | `/v1/comprobantes/verificar/{cae}` | ninguna | implementado (US-11) |
 | `GET` | `/v1/api-keys` | cookie de empresa | implementado (US-02) |
 | `POST` | `/v1/api-keys` | cookie de empresa | implementado (US-02) |
 | `DELETE` | `/v1/api-keys/{id}` | cookie de empresa | implementado (US-02) |
 | `POST` | `/v1/api-keys/{id}/regenerar` | cookie de empresa | implementado (US-02) |
-| `POST` | `/v1/comprobantes` | API key o cookie de empresa (rol `Administrador`/`Emisor`) | implementado (US-05 y US-13) |
+| `POST` | `/v1/comprobantes` | API key o cookie de empresa (rol `Administrador`/`Emisor`) | implementado (US-05, US-08 y US-13) |
 | `POST` | `/v1/comprobantes/presupuesto` | cookie de empresa (rol `Administrador`/`Emisor`) | implementado (US-13) |
 | `GET` | `/v1/puntos-venta` | cookie de empresa (rol `Administrador`/`Emisor`) | implementado (US-13) |
-| `POST` | `/soap` | API key en header o `Auth/Token` | implementado (US-15); verificación end-to-end con Mongo pendiente |
-| `GET` | `/soap?wsdl` | ninguna | implementado (US-15) |
+| `POST` | `/soap` | API key en header o `Auth/Token` | implementado (US-15 y US-16) |
+| `GET` | `/soap?wsdl` | ninguna | implementado (US-15 y US-16) |
 | `GET` | `/v1/comprobantes` | API key o cookie de empresa | implementado (US-09) |
 | `GET` | `/v1/comprobantes/{id}` | API key o cookie de empresa | implementado (US-09) |
 | `GET` | `/v1/comprobantes/ultimo-autorizado` | API key o cookie de empresa | implementado (US-09) |
@@ -73,7 +98,7 @@ La API key viaja en el header `X-Api-Key`. La sesión del portal usa cookies con
 | Header | Dónde | Regla |
 | --- | --- | --- |
 | `X-Api-Key` | Endpoints de negocio | Obligatorio. Nombre configurable con `ApiKeys__HeaderName` (default `X-Api-Key`). Formato `^fak_[0-9a-f]{12}_[A-Za-z0-9_-]{43}$`, máximo 200 caracteres. Si falta: `401 API_KEY_AUSENTE`. Si no existe, está revocada, el hash no coincide o la empresa está inactiva: `401 API_KEY_INVALIDA`. Si Mongo no responde: `503 MONGO_NO_DISPONIBLE`. |
-| `Idempotency-Key` | `POST /v1/comprobantes` | Obligatorio. Máximo 128 caracteres. Alcance `(empresa, clave)`; hasta US-06 la clave debe ser única por empresa. El reintento con la misma clave (`200` con el comprobante original) y el `409 IDEMPOTENCIA_CONFLICTO` por payload distinto llegan con US-06. |
+| `Idempotency-Key` | `POST /v1/comprobantes` | Obligatorio. Máximo 128 caracteres. Alcance `(empresa, clave)`. El reintento con la misma clave y el mismo payload devuelve `200` con el comprobante original; un payload distinto responde `409 IDEMPOTENCIA_CONFLICTO`. No expira. |
 
 ### Códigos de error
 
@@ -114,28 +139,31 @@ El catálogo es cerrado y vive en `docs/contratos-api.md` §2.1. Un cliente pued
 
 | Historia | Qué parte del manual describe | Estado |
 | --- | --- | --- |
-| US-01 | §1 Solicitar acceso: formulario público de alta | Pendiente |
-| US-02 | §3 Crear una API key | Implementado |
-| US-03 | §4 Autenticar requests con API key | Base implementada |
-| US-04 | §2 Activar la cuenta: login de empresa y roles | Pendiente |
-| US-05 | §5 Emitir una factura | Parcial |
-| US-15 | §5.1 Emitir por SOAP | Parcial |
-| US-16 | §7.5 Consultar por SOAP (`FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy`) | Parcial |
-| US-06 | §6 Idempotencia | Parcial |
-| US-07 | Numeración correlativa del comprobante (reglas de §5) | Pendiente |
-| US-09 | §7 Consultar comprobantes | Parcial |
-| US-10 | §7.4 Descarga del PDF (`GET /v1/comprobantes/{id}/pdf`) | Parcial |
-| US-12 | §7.6 Dashboard (`GET /v1/comprobantes/dashboard`) | Completada |
-| US-11 | §8 Verificar un comprobante por CAE | Base implementada |
-| US-27 | §1 Revisión y aprobación del administrador global | Pendiente |
+| US-01 | §1 Solicitar acceso: formulario público de alta | Completada |
+| US-27 | §1 Revisión y aprobación del administrador global | Completada |
 | US-28 | §2 Activar la cuenta: invitación por token | Completada |
-| US-29 | Emails de onboarding de §1 y §2 | Pendiente |
+| US-29 | Emails de onboarding de §1 y §2 | Completada |
+| US-04 | §2 Activar la cuenta: login de empresa y roles | Base implementada |
+| US-02 | §3 Crear una API key | Completada |
+| US-14 | §3 Gestión de API keys desde el portal | Completada |
+| US-03 | §4 Autenticar requests con API key | Base implementada |
+| US-05 | §5 Emitir una factura | Completada |
+| US-08 | §5 Notas de crédito y débito | Completada |
+| US-07 | Numeración correlativa del comprobante (reglas de §5) | Completada |
+| US-06 | §6 Idempotencia | Parcial |
+| US-09 | §7 Consultar comprobantes | Parcial |
+| US-10 | §7.4 Descarga del PDF (`GET /v1/comprobantes/{id}/pdf`) | Completada |
+| US-11 | §8 Verificar un comprobante por CAE | Completada |
+| US-12 | §7.6 Dashboard (`GET /v1/comprobantes/dashboard`) | Completada |
+| US-13 | §5.2 Emisión manual desde el portal | Completada |
+| US-15 | §5.1 Emitir por SOAP | Completada |
+| US-16 | §7.5 Consultar por SOAP (`FECompUltimoAutorizado`, `FECompConsultar` y `FEDummy`) | Parcial |
 | US-21 | Veracidad documental de este manual | Parcial |
-| US-30 | Publicación del manual online en el portal | Pendiente |
+| US-30 | Publicación del manual online en el portal | Parcial |
 
 ## Qué es FacturAR
 
-FacturAR es un simulador de facturación electrónica argentina. El diseño del MVP permite solicitar el alta de una empresa, activar una cuenta, crear API keys, emitir comprobantes con CAE simulado, consultarlos y verificar un comprobante por su CAE. De ese recorrido, hoy están implementadas la emisión por API key (US-05), la emisión por SOAP (US-15), las consultas de comprobantes (US-09), la gestión de API keys desde el portal (US-14), la descarga del PDF de un comprobante (US-10, con la verificación real con MongoDB y en Docker pendiente) y la verificación por CAE; el alta y la activación siguen pendientes; la emisión y las consultas SOAP (US-15 y US-16) están disponibles, con la verificación real contra MongoDB pendiente: ver [Estado de la API](#estado-de-la-api).
+FacturAR es un simulador de facturación electrónica argentina. Hoy el recorrido completo está implementado: solicitud y aprobación del alta, invitación y activación, login de empresa, gestión de API keys, emisión REST y SOAP de facturas y notas, consultas, PDF, dashboard y verificación pública por CAE. Los estados `Parcial` corresponden a verificaciones con MongoDB real y QA manual pendientes en US-06, US-09, US-16 y US-30; US-03 y US-04 están en `Base implementada` porque su alcance se completa con los endpoints de negocio. Ver [Estado de la API](#estado-de-la-api).
 
 > Importante: el CAE es simulado y los comprobantes no tienen validez fiscal. No se realizan llamadas reales a AFIP/ARCA.
 
@@ -152,7 +180,7 @@ Salud: `GET /health` (readiness, verifica MongoDB) y `GET /health/live` (livenes
 
 ## 1. Solicitar acceso
 
-> **Diseño objetivo — US-01, US-27, US-29.** El formulario público de alta, la consola del administrador global y los emails de onboarding **todavía no están implementados**. Las rutas `POST /v1/solicitudes-alta` y `/v1/admin/solicitudes/**` responden `404` hasta que US-01, US-27 y US-29 se completen.
+> **Disponible — US-01, US-27 y US-29.** El formulario público de alta vive en `/solicitar-alta`; la consola global, en `/admin/solicitudes`. Las rutas `POST /v1/solicitudes-alta` y `/v1/admin/solicitudes/**` responden y los emails de onboarding están integrados en la outbox.
 
 1. Ingresar al portal y abrir la solicitud de alta de empresa.
 2. Completar razón social, CUIT, condición frente al IVA, datos del solicitante, email, teléfono y domicilio.
@@ -167,7 +195,7 @@ Errores del flujo: `400 VALIDACION` y `400 CUIT_INVALIDO` por datos inválidos, 
 
 ## 2. Activar la cuenta
 
-> **Estado — US-28, US-04, US-29.** La activación por invitación (US-28) y el login de empresa (US-04) están implementados: `GET /v1/invitaciones/{token}` y `POST /v1/invitaciones/{token}/aceptar` ya responden. Los emails transaccionales (US-29) siguen parciales. Errores: `404 INVITACION_NO_ENCONTRADA`, `410 INVITACION_VENCIDA`, `409 INVITACION_USADA`, `403 CUENTA_INACTIVA`, `400 PASSWORD_DEBIL`, `400 VALIDACION` y `429 RATE_LIMIT`, con rate limit por IP y hora configurable en `RateLimit:Invitacion`.
+> **Implementado — US-28, US-04 y US-29.** La activación por invitación y el login de empresa están implementados: `GET /v1/invitaciones/{token}`, `POST /v1/invitaciones/{token}/aceptar`, `POST /v1/auth/login`, `POST /v1/auth/logout` y `GET /v1/auth/me` responden. Los emails transaccionales (US-29) están integrados en la outbox. Errores: `404 INVITACION_NO_ENCONTRADA`, `410 INVITACION_VENCIDA`, `409 INVITACION_USADA`, `403 CUENTA_INACTIVA`, `400 PASSWORD_DEBIL`, `400 VALIDACION` y `429 RATE_LIMIT`, con rate limit por IP y hora configurable en `RateLimit:Invitacion`.
 
 1. Abrir el link del email de invitación.
 2. Verificar la razón social y el email.
@@ -188,7 +216,7 @@ Errores del flujo: `404 INVITACION_NO_ENCONTRADA`, `410 INVITACION_VENCIDA`, `40
 
 ## 3. Crear una API key
 
-> **Disponible — US-02 y US-14.** La gestión de API keys funciona desde el portal: en `/api-keys`, un usuario `Administrador` crea una key con un nombre, ve el valor completo una sola vez, lo copia y puede revocar o regenerar keys desde el listado. El contrato de los endpoints (`GET|POST /v1/api-keys`, `DELETE /v1/api-keys/{id}` y `POST /v1/api-keys/{id}/regenerar`) está en [`docs/contratos-api.md`](contratos-api.md); la pantalla y la regla de valor único están detalladas en [`US-14`](historias-usuario/US-14-api-keys-portal.md). Las consultas y la descarga del PDF ya están disponibles; la emisión y las consultas por SOAP también, con la verificación con MongoDB real pendiente.
+> **Disponible — US-02 y US-14.** La gestión de API keys funciona desde el portal: en `/api-keys`, un usuario `Administrador` crea una key con un nombre, ve el valor completo una sola vez, lo copia y puede revocar o regenerar keys desde el listado. El contrato de los endpoints (`GET|POST /v1/api-keys`, `DELETE /v1/api-keys/{id}` y `POST /v1/api-keys/{id}/regenerar`) está en [`docs/contratos-api.md`](contratos-api.md); la pantalla y la regla de valor único están detalladas en [`US-14`](historias-usuario-terminadas/US-14-api-keys-portal.md).
 
 1. Iniciar sesión en el portal como administrador de la empresa.
 2. Abrir la sección API keys.
@@ -250,7 +278,7 @@ La API actualiza `UltimoUso` en cada autenticación exitosa, con granularidad de
 
 ## 5. Emitir una factura
 
-> **Implementado — US-05.** `POST /v1/comprobantes` acepta facturas A (`1`), B (`6`) y C (`11`). Requiere API key o cookie de empresa (rol `Administrador` o `Emisor`) e `Idempotency-Key`. La emisión manual desde el portal está implementada con US-13. La lógica y el endpoint están cubiertos por tests unitarios y de integración sin Mongo; la verificación real con MongoDB replica set (transacción, concurrencia e índice único) sigue pendiente.
+> **Implementado — US-05.** `POST /v1/comprobantes` acepta facturas A (`1`), B (`6`) y C (`11`). Requiere API key o cookie de empresa (rol `Administrador` o `Emisor`) e `Idempotency-Key`. La emisión manual desde el portal está implementada con US-13. La emisión está cubierta por tests y por QA con MongoDB en replica set.
 
 | Header | Regla |
 | --- | --- |
@@ -368,7 +396,7 @@ El punto de venta debe existir y estar activo. Si no existe o pertenece a otra e
 
 ### 5.1 Emitir por SOAP (US-15)
 
-> **Parcial — US-15.** `FECAESolicitar` y `FECAEGenerar` están implementadas y cubiertas por tests unitarios y de integración sin Mongo. La emisión real con MongoDB replica set, la comparación CP-15.10 REST/SOAP y la verificación de idempotencia CP-15.08/09 con Mongo real siguen pendientes; la fachada ya reutiliza US-06 y mapea `IDEMPOTENCIA_CONFLICTO`.
+> **Completada — US-15.** `FECAESolicitar` y `FECAEGenerar` están implementadas y verificadas contra MongoDB en replica set; la fachada reutiliza US-06 y mapea `IDEMPOTENCIA_CONFLICTO`.
 
 La fachada SOAP usa **SOAP 1.1** sobre `POST /soap`; el WSDL se publica en `GET /soap?wsdl`. El namespace es `http://ar.gov.afip.dif.FEV1Service/`. Es una fachada del mismo caso de uso de emisión: no duplica reglas, numeración ni generación de CAE.
 
@@ -460,7 +488,7 @@ Error de autenticación o protocolo: `SOAP Fault` con el HTTP del código. La AP
 Límites conocidos:
 
 - El contrato XML no transporta `RazonSocial` del receptor. Una Factura C se emite de punta a punta; las Facturas A y B se rechazan con `VALIDACION` por SOAP.
-- `IdempotencyKey` es una extensión opcional. Si se omite, cada reintento es una emisión nueva. La fachada reutiliza la idempotencia de US-06: con la misma clave y el mismo payload devuelve el mismo comprobante, y con un payload distinto rechaza con `IDEMPOTENCIA_CONFLICTO`. La verificación con MongoDB real sigue pendiente.
+- `IdempotencyKey` es una extensión opcional. Si se omite, cada reintento es una emisión nueva. La fachada reutiliza la idempotencia de US-06: con la misma clave y el mismo payload devuelve el mismo comprobante, y con un payload distinto rechaza con `IDEMPOTENCIA_CONFLICTO`.
 - `Concepto` se acepta por compatibilidad con el contrato AFIP; la emisión del MVP calcula según el tipo y los ítems.
 - Configuración: `Soap__Habilitado` (default `true`) y `Soap__Ruta` (default `/soap`). Con `Soap__Habilitado=false`, la ruta responde `404`.
 
@@ -549,7 +577,7 @@ Respuesta `200`:
 
 ## 6. Idempotencia
 
-> **Parcial — US-05 y US-06.** El comportamiento idempotente está implementado y cubierto por tests automáticos sin Mongo. La verificación contra MongoDB en replica set (concurrencia y rollback de secuencia) y el QA manual contra la API real siguen pendientes.
+> **Parcial — US-06.** El comportamiento idempotente está implementado y verificado en CI con MongoDB en replica set (concurrencia, rollback de secuencia, reintentos y no expiración). El QA manual de replay y conflicto contra la API real sigue pendiente.
 
 Enviar un header `Idempotency-Key` único por operación:
 
@@ -699,7 +727,7 @@ Respuesta `200`:
 
 ### 7.4 Descarga del PDF
 
-> **Implementado — US-10 (Parcial).** El endpoint compone el PDF con QuestPDF y el QR con QRCoder. Está cubierto por tests sin Mongo; la verificación con MongoDB real y en el contenedor Docker sigue pendiente.
+> **Completada — US-10.** El endpoint compone el PDF con QuestPDF y el QR con QRCoder. Está cubierto por tests y por QA con MongoDB real, incluida la decodificación del QR.
 
 ```http
 GET /v1/comprobantes/6ae24e50-1c3e-4f0a-9f3e-9d2f0b7a1c22/pdf
@@ -862,7 +890,7 @@ El contrato completo y los casos de prueba están en [`US-12`](historias-usuario
 
 ## 8. Verificar un comprobante
 
-> **Disponible hoy — US-11 (base implementada).** La verificación no requiere API key. La emisión (`POST /v1/comprobantes`) también está disponible y acepta API key o cookie de empresa con rol `Administrador` o `Emisor`.
+> **Disponible hoy — US-11 (Completada).** La verificación no requiere API key. La emisión (`POST /v1/comprobantes`) también está disponible y acepta API key o cookie de empresa con rol `Administrador` o `Emisor`.
 
 La verificación es pública y no requiere API key:
 
@@ -900,7 +928,7 @@ La respuesta no expone datos internos, secretos ni API keys.
 
 ## 9. Ejemplos
 
-> **Disponible — US-05.** Los ejemplos de emisión funcionan contra `POST /v1/comprobantes`; aceptan API key o cookie de empresa con rol `Administrador` o `Emisor`, e `Idempotency-Key`.
+> **Disponible — US-05, US-09 y US-11.** Los ejemplos de emisión (`POST /v1/comprobantes`), consulta (`GET /v1/comprobantes`) y verificación pública (`GET /v1/comprobantes/verificar/{cae}`) están listos para copiar y ejecutar.
 
 ### curl
 
@@ -927,12 +955,17 @@ curl -X POST "http://localhost:5171/v1/comprobantes" \
       }
     ]
   }'
+
+curl -X GET "http://localhost:5171/v1/comprobantes?page=1&pageSize=20" \
+  -H "X-Api-Key: fak_<prefijo>_<secreto>"
+
+curl -X GET "http://localhost:5171/v1/comprobantes/verificar/12345678901234"
 ```
 
 ### JavaScript
 
 ```javascript
-const response = await fetch("http://localhost:5171/v1/comprobantes", {
+const emitirResponse = await fetch("http://localhost:5171/v1/comprobantes", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -951,15 +984,23 @@ const response = await fetch("http://localhost:5171/v1/comprobantes", {
     items: [
       {
         descripcion: "Curso de programación",
-        cantidad: 1,
-        precioUnitario: 10000,
-        alicuotaIva: 21
+        "cantidad": 1,
+        "precioUnitario": 10000,
+        "alicuotaIva": 21
       }
     ]
   })
 });
 
-const comprobante = await response.json();
+const comprobante = await emitirResponse.json();
+
+const listadoResponse = await fetch("http://localhost:5171/v1/comprobantes?page=1&pageSize=20", {
+  headers: { "X-Api-Key": process.env.FACTURAR_API_KEY }
+});
+const listado = await listadoResponse.json();
+
+const verificacionResponse = await fetch(`http://localhost:5171/v1/comprobantes/verificar/${comprobante.cae}`);
+const verificacion = await verificacionResponse.json();
 ```
 
 ### C#
@@ -998,6 +1039,13 @@ var response = await client.PostAsJsonAsync(
 
 response.EnsureSuccessStatusCode();
 var comprobante = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+var listado = await client.GetFromJsonAsync<JsonElement>(
+    "http://localhost:5171/v1/comprobantes?page=1&pageSize=20");
+
+var cae = comprobante.GetProperty("cae").GetString();
+var verificacion = await client.GetFromJsonAsync<JsonElement>(
+    $"http://localhost:5171/v1/comprobantes/verificar/{cae}");
 ```
 
 ## 10. Errores
@@ -1033,7 +1081,7 @@ El catálogo cerrado de códigos está en [Estado de la API](#estado-de-la-api) 
 ## 12. Preguntas frecuentes
 
 **¿Qué puedo consumir hoy?**
-La emisión de facturas A, B y C y de notas de crédito y débito (`POST /v1/comprobantes`, con API key o cookie de empresa e `Idempotency-Key`), la emisión por SOAP (`POST /soap`, con `FECAESolicitar` y `FECAEGenerar`), las consultas de comprobantes (`GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` y `GET /v1/comprobantes/ultimo-autorizado`, con API key o cookie de empresa), la descarga del PDF (`GET /v1/comprobantes/{id}/pdf`, con API key o cookie de empresa), la verificación pública por CAE (`GET /v1/comprobantes/verificar/{cae}`), los endpoints de salud, el login y la sesión (`/v1/auth/**` y `/v1/admin/auth/**`) y la gestión de API keys (`/v1/api-keys`, US-02 y US-14) y la emisión manual desde el portal (`POST /v1/comprobantes/presupuesto`, `GET /v1/puntos-venta` y `POST /v1/comprobantes` con cookie, US-13). El alta y la activación siguen pendientes; el contrato completo está en `docs/contratos-api.md`.
+La emisión de facturas A, B y C y de notas de crédito y débito (`POST /v1/comprobantes`, con API key o cookie de empresa e `Idempotency-Key`), la emisión por SOAP (`POST /soap`, con `FECAESolicitar` y `FECAEGenerar`), las consultas de comprobantes (`GET /v1/comprobantes`, `GET /v1/comprobantes/{id}` y `GET /v1/comprobantes/ultimo-autorizado`, con API key o cookie de empresa), la descarga del PDF (`GET /v1/comprobantes/{id}/pdf`, con API key o cookie de empresa), la verificación pública por CAE (`GET /v1/comprobantes/verificar/{cae}`), los endpoints de salud, el login y la sesión (`/v1/auth/**` y `/v1/admin/auth/**`) y la gestión de API keys (`/v1/api-keys`, US-02 y US-14) y la emisión manual desde el portal (`POST /v1/comprobantes/presupuesto`, `GET /v1/puntos-venta` y `POST /v1/comprobantes` con cookie, US-13). El alta, la aprobación, la invitación y la activación también están disponibles; el contrato completo está en `docs/contratos-api.md`.
 
 **¿Puedo registrarme solo con el CUIT?**
 No. El CUIT es público. La cuenta se activa con una invitación enviada al email del solicitante y aprobada por un administrador global.
