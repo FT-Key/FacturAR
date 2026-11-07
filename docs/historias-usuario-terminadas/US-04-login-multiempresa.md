@@ -4,6 +4,7 @@
 **Prioridad:** Alta  
 **Estimación:** 3 días  
 **Requisito:** RF-11  
+**Estado:** Completada  
 **Depende de:** ninguna  
 **Habilita:** US-02, US-05, US-07, US-12, US-13, US-14, US-27, US-28
 
@@ -33,11 +34,11 @@ Un administrador global no es un usuario de empresa. Un usuario de empresa no pu
 - [x] `GET /v1/auth/me` devuelve el usuario, rol y contribuyente de la sesión de empresa.
 - [x] `GET /v1/admin/auth/me` devuelve el administrador global y su rol.
 - [x] Las políticas de autorización distinguen `EmpresaAdministrador`, `EmpresaEmisor`, `EmpresaConsulta`, `AdminGlobal` y `AdminSuper`.
-- [ ] Un usuario `Consulta` no puede emitir ni administrar API keys.
-- [ ] Un administrador global `Soporte` puede ver solicitudes y reenviar invitaciones, pero no aprobar ni rechazar.
-- [ ] Todas las consultas de negocio se filtran por el `ContribuyenteId` de la sesión.
-- [ ] Un usuario no puede ver datos de otro contribuyente cambiando un id en la URL o en el body.
-- [ ] El acceso cruzado devuelve `404` o `403` sin revelar la existencia del recurso.
+- [x] Un usuario `Consulta` no puede emitir ni administrar API keys.
+- [x] Un administrador global `Soporte` puede ver solicitudes y reenviar invitaciones, pero no aprobar ni rechazar.
+- [x] Todas las consultas de negocio se filtran por el `ContribuyenteId` de la sesión.
+- [x] Un usuario no puede ver datos de otro contribuyente cambiando un id en la URL o en el body.
+- [x] El acceso cruzado devuelve `404` o `403` sin revelar la existencia del recurso.
 - [x] Los intentos de login tienen rate limit y bloqueo temporal por usuario/IP.
 - [x] El administrador global inicial se crea de forma idempotente desde configuración y se hashea al iniciar.
 - [x] Las acciones de login, logout y acceso denegado relevantes se registran en auditoría.
@@ -95,7 +96,7 @@ Scenario: Rate limit de login
 
 ## Tareas técnicas
 
-- [ ] Crear `AdministradorFacturar`, `RolGlobal` y `EstadoSolicitud` en Domain si no existen.
+- [x] Crear `AdministradorFacturar`, `RolGlobal` y `EstadoSolicitud` en Domain si no existen.
 - [x] Extender `Usuario` con `UltimoAcceso` y `EmailVerificadoAt` si el modelo lo requiere.
 - [x] Configurar autenticación por cookies con dos esquemas: empresa y admin global.
 - [x] Implementar `PasswordHasher` para usuarios y administradores.
@@ -107,17 +108,17 @@ Scenario: Rate limit de login
 - [x] Agregar rate limit y bloqueo temporal de login.
 - [x] Crear páginas `/login`, `/logout`, `/admin/login` y `/admin/logout`.
 - [x] Proteger las rutas del portal y del panel global.
-- [ ] Agregar filtros de tenant en repositorios y consultas.
-- [ ] Agregar tests de login, roles, aislamiento y acceso cruzado.
+- [x] Agregar filtros de tenant en repositorios y consultas.
+- [x] Agregar tests de login, roles, aislamiento y acceso cruzado.
 - [x] Documentar cookies, roles, códigos de error y variables de configuración.
 
 ## Definition of Done
 
 - [x] El portal redirige al login cuando no hay sesión.
 - [x] El panel global solo es accesible por administradores globales.
-- [ ] El aislamiento multiempresa está cubierto por tests de integración.
+- [x] El aislamiento multiempresa está cubierto por tests de integración.
 - [x] Los roles se aplican en API y portal.
-- [ ] No se puede acceder a datos de otra empresa manipulando ids.
+- [x] No se puede acceder a datos de otra empresa manipulando ids.
 - [x] `dotnet test FacturAR.slnx` pasa.
 - [x] La historia está enlazada desde el índice y el proceso de alta.
 
@@ -529,3 +530,8 @@ Notas de implementación:
 - `EstadoSolicitud` no se creó: pertenece al modelo de US-01 y esta historia no lo usa.
 - La sesión por cookie es sin estado; el logout borra la cookie del navegador y no revoca el ticket en el servidor. La revocación server-side no está en el alcance del MVP de una sola instancia.
 - `MongoSerialization.Configure()` registra `Guid` como `Standard` y **debe ejecutarse antes de crear cualquier `MongoClient`**. Es idempotente y thread-safe porque cada host de pruebas lo invoca al arrancar; crear un cliente antes de arrancar el host fija `GuidRepresentation.Unspecified` y rompe la serialización.
+
+## Cierre
+
+- Verificado en CI del PR #48 (run 42400380013): `AuthorizationPolicyTests`, `AuthEndpointsTests`, `MongoApiKeysTests.CP07`, `MongoRevisionSolicitudesTests.Soporte_NoPuedeEditarAprobarNiRechazar`, `Soporte_PuedeListarYReenviarLaInvitacion` y `MongoConsultasComprobantesTests` CP01/CP08.
+- Cubre roles de empresa y globales, permisos de `Consulta`/`Soporte` y aislamiento por `ContribuyenteId` con MongoDB real.

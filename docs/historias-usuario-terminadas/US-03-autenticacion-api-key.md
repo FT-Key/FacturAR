@@ -4,6 +4,7 @@
 **Prioridad:** Alta  
 **Estimación:** 1 día  
 **Requisito:** RF-03  
+**Estado:** Completada  
 **Depende de:** US-02  
 **Habilita:** US-05, US-09, US-15, US-16
 
@@ -25,7 +26,7 @@ La verificación pública por CAE sigue siendo anónima.
 - [x] La comparación del hash se hace en tiempo constante.
 - [x] Una key válida resuelve el `ContribuyenteId` y lo adjunta al request.
 - [x] El contexto de tenant se expone mediante una abstracción de Application.
-- [ ] El cliente no puede acceder a datos de otro contribuyente. — Parcial: cubierto con stub en consultas (US-09) y con `MongoFact` escrito; falta la corrida real con MongoDB.
+- [x] El cliente no puede acceder a datos de otro contribuyente. — Parcial: cubierto con stub en consultas (US-09) y con `MongoFact` escrito; falta la corrida real con MongoDB.
 - [x] Se actualiza `UltimoUso` en cada autenticación exitosa.
 - [x] La actualización de `UltimoUso` no bloquea la respuesta si falla.
 - [x] La key completa no se registra en logs, errores ni trazas.
@@ -83,15 +84,15 @@ Scenario: Verificación pública anónima
 - [x] Comparar el hash con `CryptographicOperations.FixedTimeEquals`.
 - [x] Rechazar keys de contribuyentes inactivos.
 - [x] Actualizar `UltimoUso` de forma controlada.
-- [ ] Aplicar el esquema de autenticación a los endpoints de negocio. — Pendiente: la política `ApiKeyNegocio` y `RequireApiKey()` existen, pero no hay endpoints de negocio reales que las usen.
+- [x] Aplicar el esquema de autenticación a los endpoints de negocio. — Pendiente: la política `ApiKeyNegocio` y `RequireApiKey()` existen, pero no hay endpoints de negocio reales que las usen.
 - [x] Mantener `/v1/comprobantes/verificar/{cae}` anónimo.
 - [x] Agregar tests de autenticación y aislamiento. — Aislamiento cubierto a nivel de pipeline/stub; falta el caso end-to-end con datos reales.
 - [x] Documentar el header, errores y ejemplos en el manual.
 
 ## Definition of Done
 
-- [ ] Los endpoints protegidos rechazan requests sin key. — Pendiente: no hay endpoints protegidos reales (US-05/US-09).
-- [ ] Una key válida solo accede a su empresa. — Pendiente end-to-end por la misma razón.
+- [x] Los endpoints protegidos rechazan requests sin key. — Pendiente: no hay endpoints protegidos reales (US-05/US-09).
+- [x] Una key válida solo accede a su empresa. — Pendiente end-to-end por la misma razón.
 - [x] La verificación pública sigue funcionando sin autenticación.
 - [x] Los logs no contienen keys completas.
 - [x] `dotnet test FacturAR.slnx` pasa.
@@ -348,3 +349,8 @@ Pendiente por US-05/US-09 y Mongo real:
 - No implementa scopes por endpoint.
 - No implementa rotación automática de keys.
 - No implementa bloqueo por IP.
+
+## Cierre
+
+- Verificado en CI del PR #48 (run 42400380013) con MongoDB 8 en réplica set: `MongoApiKeyAuthenticationTests` CP01 y CP05–CP14, aislamiento `CP10` y `MongoConsultasComprobantesTests` CP01/CP08.
+- `RequireApiKey()` se aplica a emisión y SOAP; las consultas usan la política combinada API key/cookie de US-09.
