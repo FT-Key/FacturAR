@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
+using FacturAR.Application.Auditoria;
 using FacturAR.Application.Notificaciones;
+using FacturAR.Application.Outbox;
 using FacturAR.Contracts.Solicitudes;
 using FacturAR.Domain.Entities;
 using FacturAR.Domain.Enums;
@@ -83,9 +85,13 @@ public sealed class MongoSolicitudAltaTests : IAsyncLifetime
         Assert.Equal(0, await CountAsync(MongoCollections.PuntosVenta));
         Assert.Equal(0, await CountAsync(MongoCollections.ApiKeys));
 
-        var mensaje = Assert.Single(_emails.Enviados);
-        Assert.Equal(EmailValido, mensaje.Para);
-        Assert.Equal(PlantillasEmail.NombreSolicitudRecibida, mensaje.Plantilla);
+        var mensaje = Assert.Single(await GetCollection<OutboxMessage>(MongoCollections.Outbox)
+            .Find(FilterDefinition<OutboxMessage>.Empty)
+            .ToListAsync());
+        Assert.Equal(TiposMensajeOutbox.EmailSolicitudRecibida, mensaje.Tipo);
+        Assert.Equal($"{{\"solicitudId\":\"{solicitud.Id}\"}}", mensaje.Payload);
+        Assert.DoesNotContain(EmailValido, mensaje.Payload);
+        Assert.Empty(_emails.Enviados);
     }
 
     [MongoFact]
@@ -191,7 +197,7 @@ public sealed class MongoSolicitudAltaTests : IAsyncLifetime
     }
 
     [MongoFact]
-    public async Task Post_ConEmailFallido_DejaLaSolicitudPersistidaYAuditaElFallo()
+    public async Task Post_ConEmailCaido_DejaLaSolicitudYElMensajeEncolado()
     {
         _emails.Excepcion = new InvalidOperationException("SMTP caído.");
 
@@ -199,9 +205,11 @@ public sealed class MongoSolicitudAltaTests : IAsyncLifetime
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         Assert.Equal(1, await CountAsync(MongoCollections.SolicitudesAlta));
+        Assert.Equal(1, await CountAsync(MongoCollections.Outbox));
+        Assert.Empty(_emails.Enviados);
 
         var evento = await GetCollection<EventoAuditoria>(MongoCollections.Eventos)
-            .Find(e => e.Accion == "email.fallido")
+            .Find(e => e.Accion == AccionesAuditoria.SolicitudCreada)
             .SingleAsync();
         Assert.Contains(CuitValido, evento.Datos);
     }

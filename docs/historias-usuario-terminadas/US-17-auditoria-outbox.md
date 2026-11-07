@@ -25,8 +25,8 @@ La auditoría registra acciones de usuarios de empresa y administradores globale
 - [x] Un worker procesa mensajes pendientes con reintentos y backoff.
 - [x] Un mensaje procesado no se vuelve a procesar.
 - [x] Un mensaje fallido queda en estado `Fallido` después del máximo de intentos.
-- [ ] Se puede consultar el estado de un mensaje para soporte.
-- [ ] Los índices soportan la consulta por estado y fecha.
+- [x] Se puede consultar el estado de un mensaje para soporte.
+- [x] Los índices soportan la consulta por estado y fecha.
 - [x] Hay tests de auditoría, procesamiento, reintento e idempotencia.
 - [x] No se registran secretos en logs ni en el outbox.
 
@@ -73,7 +73,7 @@ Scenario: Máximo de intentos
 - [x] Crear `OutboxMessage` y `IOutboxRepository`.
 - [x] Implementar el worker de outbox con reintentos y backoff.
 - [x] Crear índices de auditoría y outbox.
-- [ ] Integrar emails de onboarding si US-29 lo permite.
+- [x] Integrar emails de onboarding si US-29 lo permite.
 - [x] Agregar tests de auditoría, worker y reintentos.
 - [x] Documentar eventos y operación.
 

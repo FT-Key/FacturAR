@@ -737,7 +737,7 @@ Errores:
 
 Los errores se devuelven como `ErrorResponse` JSON (`codigo` y `mensaje`), igual que en el resto de la API. Un fallo de generación nunca devuelve un PDF parcial ni un `200` con cuerpo vacío.
 
-El contrato completo y los casos de prueba están en [`US-10`](historias-usuario/US-10-pdf-qr.md).
+El contrato completo y los casos de prueba están en [`US-10`](historias-usuario-terminadas/US-10-pdf-qr.md).
 
 ### 7.5 Consultar por SOAP (US-16)
 

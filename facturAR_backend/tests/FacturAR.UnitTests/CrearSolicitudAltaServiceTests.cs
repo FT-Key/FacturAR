@@ -1,5 +1,7 @@
 using FacturAR.Application.Abstractions;
+using FacturAR.Application.Auditoria;
 using FacturAR.Application.Notificaciones;
+using FacturAR.Application.Outbox;
 using FacturAR.Application.Solicitudes;
 using FacturAR.Contracts.Solicitudes;
 using FacturAR.Domain;
@@ -46,16 +48,21 @@ public sealed class CrearSolicitudAltaServiceTests
     }
 
     [Fact]
-    public async Task CrearAsync_ConSolicitudValida_EnviaConfirmacionAlEmailNormalizado()
+    public async Task CrearAsync_ConSolicitudValida_EncolaLaConfirmacionSinDatosPersonales()
     {
         var contexto = new Contexto();
 
         await contexto.Service.CrearAsync(Request());
 
-        var mensaje = Assert.Single(contexto.Emails.Enviados);
-        Assert.Equal(EmailValido, mensaje.Para);
-        Assert.Equal(PlantillasEmail.NombreSolicitudRecibida, mensaje.Plantilla);
-        Assert.True(contexto.Eventos.ContienePlantilla(PlantillasEmail.NombreSolicitudRecibida));
+        var solicitud = Assert.Single(contexto.Solicitudes.Insertadas);
+        var mensaje = Assert.Single(contexto.Outbox.Encolados);
+        Assert.Equal(TiposMensajeOutbox.EmailSolicitudRecibida, mensaje.Tipo);
+        Assert.Equal($"{{\"solicitudId\":\"{solicitud.Id}\"}}", mensaje.Payload);
+        Assert.Equal(solicitud.Id, PayloadEmailSolicitud.Leer(mensaje.Payload));
+        Assert.DoesNotContain(EmailValido, mensaje.Payload);
+        Assert.DoesNotContain("Ana Pérez", mensaje.Payload);
+        Assert.Contains(AccionesAuditoria.SolicitudCreada, contexto.Eventos.Acciones);
+        Assert.DoesNotContain(AccionesAuditoria.EmailEnviado, contexto.Eventos.Acciones);
     }
 
     [Theory]
@@ -74,7 +81,7 @@ public sealed class CrearSolicitudAltaServiceTests
     [InlineData("codigo-postal-caracteres", "El código postal no es válido.")]
     [InlineData("mensaje", "El mensaje es demasiado largo.")]
     [InlineData("terminos", "Tenés que aceptar los términos para enviar la solicitud.")]
-    public async Task CrearAsync_ConDatosInvalidos_LanzaValidacionYNoInsertaNiEnvia(
+    public async Task CrearAsync_ConDatosInvalidos_LanzaValidacionYNoInsertaNiEncola(
         string caso,
         string mensajeEsperado)
     {
@@ -105,7 +112,7 @@ public sealed class CrearSolicitudAltaServiceTests
 
         Assert.Equal(mensajeEsperado, excepcion.Message);
         Assert.Empty(contexto.Solicitudes.Insertadas);
-        Assert.Empty(contexto.Emails.Enviados);
+        Assert.Empty(contexto.Outbox.Encolados);
         Assert.Empty(contexto.Eventos.Eventos);
     }
 
@@ -119,7 +126,7 @@ public sealed class CrearSolicitudAltaServiceTests
             () => contexto.Service.CrearAsync(Request()));
 
         Assert.Empty(contexto.Solicitudes.Insertadas);
-        Assert.Empty(contexto.Emails.Enviados);
+        Assert.Empty(contexto.Outbox.Encolados);
         Assert.Empty(contexto.Eventos.Eventos);
     }
 
@@ -133,7 +140,7 @@ public sealed class CrearSolicitudAltaServiceTests
             () => contexto.Service.CrearAsync(Request()));
 
         Assert.Empty(contexto.Solicitudes.Insertadas);
-        Assert.Empty(contexto.Emails.Enviados);
+        Assert.Empty(contexto.Outbox.Encolados);
         Assert.Empty(contexto.Eventos.Eventos);
     }
 
@@ -148,7 +155,7 @@ public sealed class CrearSolicitudAltaServiceTests
         Assert.Equal("SOLICITUD_RECIBIDA", respuesta.Codigo);
         Assert.Equal(CrearSolicitudAltaService.MensajeSolicitudRecibida, respuesta.Mensaje);
         Assert.Empty(contexto.Solicitudes.Insertadas);
-        Assert.Empty(contexto.Emails.Enviados);
+        Assert.Empty(contexto.Outbox.Encolados);
 
         var evento = Assert.Single(contexto.Eventos.Eventos);
         Assert.Equal("solicitud.cuit_registrado", evento.Accion);
@@ -158,48 +165,52 @@ public sealed class CrearSolicitudAltaServiceTests
     }
 
     [Fact]
-    public async Task CrearAsync_ConEmailDeConfirmacionFallido_PersisteLaSolicitudYAuditaElFallo()
+    public async Task CrearAsync_SiElEncoladoFalla_IgualPersisteYResponde()
     {
         var contexto = new Contexto();
-        contexto.Emails.Excepcion = new InvalidOperationException("SMTP caído.");
+        contexto.Outbox.Excepcion = new InvalidOperationException("outbox caída.");
 
         var respuesta = await contexto.Service.CrearAsync(Request());
 
         Assert.Equal("SOLICITUD_RECIBIDA", respuesta.Codigo);
         Assert.Single(contexto.Solicitudes.Insertadas);
-        Assert.Contains("email.fallido", contexto.Eventos.Acciones);
-        Assert.DoesNotContain("email.enviado", contexto.Eventos.Acciones);
-        Assert.False(contexto.Eventos.ContienePlantilla(PlantillasEmail.NombreNuevaSolicitud));
+        Assert.Empty(contexto.Outbox.Encolados);
+        Assert.Contains(AccionesAuditoria.SolicitudCreada, contexto.Eventos.Acciones);
     }
 
     [Fact]
-    public async Task CrearAsync_ConAdministracionConfigurada_EnviaLaNotificacionAlAdministrador()
+    public async Task CrearAsync_ConAdministracionConfigurada_EncolaLaNotificacionAlAdministrador()
     {
         var contexto = new Contexto(adminNotificationEmail: "admin@facturar.com");
 
         await contexto.Service.CrearAsync(Request());
 
-        Assert.Equal(2, contexto.Emails.Enviados.Count);
-        Assert.Contains(contexto.Emails.Enviados, m => m.Para == EmailValido);
-        Assert.Contains(contexto.Emails.Enviados, m => m.Para == "admin@facturar.com");
-        Assert.Contains(contexto.Emails.Enviados, m => m.Plantilla == PlantillasEmail.NombreNuevaSolicitud);
-        Assert.Equal(2, contexto.Eventos.Acciones.Count(a => a == "email.enviado"));
+        var solicitud = Assert.Single(contexto.Solicitudes.Insertadas);
+        Assert.Equal(2, contexto.Outbox.Encolados.Count);
+        Assert.Contains(
+            contexto.Outbox.Encolados,
+            m => m.Tipo == TiposMensajeOutbox.EmailSolicitudRecibida);
+        Assert.Contains(
+            contexto.Outbox.Encolados,
+            m => m.Tipo == TiposMensajeOutbox.EmailNuevaSolicitud);
+        Assert.All(
+            contexto.Outbox.Encolados,
+            m => Assert.Equal(solicitud.Id, PayloadEmailSolicitud.Leer(m.Payload)));
     }
 
     [Fact]
-    public async Task CrearAsync_SinAdministracionConfigurada_NoEnviaLaNotificacionAlAdministrador()
+    public async Task CrearAsync_SinAdministracionConfigurada_NoEncolaLaNotificacionAlAdministrador()
     {
         var contexto = new Contexto(adminNotificationEmail: null);
 
         await contexto.Service.CrearAsync(Request());
 
-        var mensaje = Assert.Single(contexto.Emails.Enviados);
-        Assert.Equal(PlantillasEmail.NombreSolicitudRecibida, mensaje.Plantilla);
-        Assert.False(contexto.Eventos.ContienePlantilla(PlantillasEmail.NombreNuevaSolicitud));
+        var mensaje = Assert.Single(contexto.Outbox.Encolados);
+        Assert.Equal(TiposMensajeOutbox.EmailSolicitudRecibida, mensaje.Tipo);
     }
 
     [Fact]
-    public async Task CrearAsync_ConDatosPersonales_LaAuditoriaNoLosGuarda()
+    public async Task CrearAsync_ConDatosPersonales_LaAuditoriaYElPayloadNoLosGuardan()
     {
         var contexto = new Contexto();
         var request = Request() with
@@ -224,10 +235,20 @@ public sealed class CrearSolicitudAltaServiceTests
             Assert.DoesNotContain("Domicilio Secreto", datos);
             Assert.DoesNotContain("Mensaje privado", datos);
         }
+
+        Assert.NotEmpty(contexto.Outbox.Encolados);
+        foreach (var mensaje in contexto.Outbox.Encolados)
+        {
+            Assert.DoesNotContain("persona.sensible@demo.com", mensaje.Payload);
+            Assert.DoesNotContain("Nombre Muy Sensible", mensaje.Payload);
+            Assert.DoesNotContain("5555", mensaje.Payload);
+            Assert.DoesNotContain("Domicilio Secreto", mensaje.Payload);
+            Assert.DoesNotContain("Mensaje privado", mensaje.Payload);
+        }
     }
 
     [Fact]
-    public async Task CrearAsync_SiLaAuditoriaFalla_IgualPersisteYResponde()
+    public async Task CrearAsync_SiLaAuditoriaFalla_IgualPersisteYEncola()
     {
         var contexto = new Contexto();
         contexto.Eventos.Excepcion = new InvalidOperationException("auditoría caída.");
@@ -236,7 +257,7 @@ public sealed class CrearSolicitudAltaServiceTests
 
         Assert.Equal("SOLICITUD_RECIBIDA", respuesta.Codigo);
         Assert.Single(contexto.Solicitudes.Insertadas);
-        Assert.Single(contexto.Emails.Enviados);
+        Assert.Single(contexto.Outbox.Encolados);
     }
 
     private static SolicitudAltaRequest Request() => new(
@@ -261,9 +282,8 @@ public sealed class CrearSolicitudAltaServiceTests
                 Solicitudes,
                 Contribuyentes,
                 Eventos,
-                new EmailService(
-                    Emails,
-                    new NotificacionesOptions { AdminNotificationEmail = adminNotificationEmail }),
+                Outbox,
+                new NotificacionesOptions { AdminNotificationEmail = adminNotificationEmail },
                 NullLogger<CrearSolicitudAltaService>.Instance);
         }
 
@@ -273,7 +293,7 @@ public sealed class CrearSolicitudAltaServiceTests
 
         public FakeEventoAuditoriaRepository Eventos { get; } = new();
 
-        public FakeEmailSender Emails { get; } = new();
+        public FakeOutboxRepository Outbox { get; } = new();
 
         public CrearSolicitudAltaService Service { get; }
     }
@@ -349,9 +369,6 @@ public sealed class CrearSolicitudAltaServiceTests
 
         public IReadOnlyList<string> Acciones => Eventos.Select(e => e.Accion).ToList();
 
-        public bool ContienePlantilla(string nombre)
-            => Eventos.Any(e => (e.Datos ?? string.Empty).Contains(nombre, StringComparison.Ordinal));
-
         public Task AddAsync(EventoAuditoria evento, CancellationToken ct = default)
         {
             if (Excepcion is not null)
@@ -370,23 +387,51 @@ public sealed class CrearSolicitudAltaServiceTests
             => throw new NotSupportedException();
     }
 
-    private sealed class FakeEmailSender : IEmailSender
+    private sealed class FakeOutboxRepository : IOutboxRepository
     {
-        public List<EmailMessage> Enviados { get; } = [];
+        public List<OutboxMessage> Encolados { get; } = [];
 
         public Exception? Excepcion { get; set; }
 
-        public Task<EmailResult> EnviarAsync(
-            EmailMessage mensaje,
-            CancellationToken cancellationToken = default)
+        public Task<OutboxMessage> EncolarAsync(
+            string tipo,
+            string payload,
+            CancellationToken ct = default)
         {
             if (Excepcion is not null)
             {
                 throw Excepcion;
             }
 
-            Enviados.Add(mensaje);
-            return Task.FromResult(EmailResult.Ok(DateTime.UtcNow));
+            var mensaje = new OutboxMessage { Tipo = tipo, Payload = payload };
+            Encolados.Add(mensaje);
+            return Task.FromResult(mensaje);
         }
+
+        public Task<IReadOnlyList<OutboxMessage>> ReclamarPendientesAsync(
+            int lote,
+            IReadOnlyCollection<Guid>? excluir = null,
+            CancellationToken ct = default)
+            => throw new NotSupportedException();
+
+        public Task MarcarProcesadoAsync(Guid id, CancellationToken ct = default)
+            => throw new NotSupportedException();
+
+        public Task MarcarFallidoAsync(Guid id, string error, CancellationToken ct = default)
+            => throw new NotSupportedException();
+
+        public Task DevolverAPendienteAsync(Guid id, string? error, CancellationToken ct = default)
+            => throw new NotSupportedException();
+
+        public Task<OutboxMessage?> ConsultarAsync(Guid id, CancellationToken ct = default)
+            => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<OutboxMessage>> ListarPorEstadoAsync(
+            string estado,
+            DateTime? desde,
+            DateTime? hasta,
+            int limite,
+            CancellationToken ct = default)
+            => throw new NotSupportedException();
     }
 }

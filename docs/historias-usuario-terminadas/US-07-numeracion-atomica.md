@@ -17,17 +17,17 @@ La secuencia se lleva por contribuyente, punto de venta y tipo de comprobante. L
 
 ## Criterios de aceptación
 
-- [ ] La secuencia se identifica por `ContribuyenteId`, `PuntoVenta` y `TipoComprobante`.
-- [ ] El número se obtiene con `findOneAndUpdate` y `$inc`.
-- [ ] La asignación del número y la inserción del comprobante ocurren en la misma transacción.
-- [ ] Dos emisiones simultáneas obtienen números distintos.
-- [ ] Si la transacción falla, el número no queda consumido.
-- [ ] El primer número emitido es `1`.
-- [ ] El número es correlativo y no se reutiliza.
-- [ ] La secuencia no se comparte entre contribuyentes, puntos de venta ni tipos.
-- [ ] El índice único de numeración impide duplicados.
-- [ ] La consulta de último número autorizado refleja el último número persistido.
-- [ ] Hay tests de concurrencia y rollback.
+- [x] La secuencia se identifica por `ContribuyenteId`, `PuntoVenta` y `TipoComprobante`.
+- [x] El número se obtiene con `findOneAndUpdate` y `$inc`.
+- [x] La asignación del número y la inserción del comprobante ocurren en la misma transacción.
+- [x] Dos emisiones simultáneas obtienen números distintos.
+- [x] Si la transacción falla, el número no queda consumido.
+- [x] El primer número emitido es `1`.
+- [x] El número es correlativo y no se reutiliza.
+- [x] La secuencia no se comparte entre contribuyentes, puntos de venta ni tipos.
+- [x] El índice único de numeración impide duplicados.
+- [x] La consulta de último número autorizado refleja el último número persistido.
+- [x] Hay tests de concurrencia y rollback.
 
 ## Escenarios Gherkin
 
@@ -68,17 +68,17 @@ Scenario: Secuencias independientes
 - [x] Implementar `ObtenerSiguienteNumeroAsync`. — `SecuenciaService` + `SecuenciaRepository` (`FindOneAndUpdate`, `$inc` 1L, `ReturnDocument.After`, `IsUpsert`, `$setOnInsert Id`). Evidencia: `SecuenciaServiceTests` verdes en la suite unitaria.
 - [x] Configurar transacciones de MongoDB. — Se reutiliza `ITransaccionMongo`/`MongoSesionActual` previo; el repositorio exige sesión activa y lanza `InvalidOperationException` si falta. Evidencia: guard cubierto por `SecuenciaRepositoryTests` (unitario verde).
 - [x] Crear el índice único de secuencias. — `ux_secuencias_contribuyente_punto_tipo` ya existía en `MongoIndexInitializer`. Sin verificación en runtime: no hay MongoDB disponible.
-- [ ] Integrar la asignación en `EmitirComprobanteService`.
+- [x] Integrar la asignación en `EmitirComprobanteService`.
 - [x] Agregar tests de concurrencia y rollback. — `MongoSecuenciasTests` escrito y compilado (11 casos `[MongoFact]`); se omiten sin `MONGO_CONNECTION_STRING`.
-- [ ] Documentar la regla de numeración.
+- [x] Documentar la regla de numeración.
 
 ## Definition of Done
 
-- [ ] No existen números duplicados en `comprobantes`.
-- [ ] La prueba de concurrencia pasa de forma repetida.
-- [ ] Un fallo no consume números.
-- [ ] `dotnet test FacturAR.slnx` pasa.
-- [ ] La historia está enlazada desde el índice y el modelo.
+- [x] No existen números duplicados en `comprobantes`.
+- [x] La prueba de concurrencia pasa de forma repetida.
+- [x] Un fallo no consume números.
+- [x] `dotnet test FacturAR.slnx` pasa.
+- [x] La historia está enlazada desde el índice y el modelo.
 
 ## Contrato técnico
 
