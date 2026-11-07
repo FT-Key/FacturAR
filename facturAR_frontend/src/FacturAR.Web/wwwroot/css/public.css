@@ -1802,7 +1802,7 @@ html[data-theme="dark"] .brand-logo--oscuro {
     border-top: var(--border);
 }
 
-.manual-openapi-note {
+.manual-api-note {
     margin: 0;
     padding: var(--space-3) var(--space-4);
     font-size: var(--text-sm);
