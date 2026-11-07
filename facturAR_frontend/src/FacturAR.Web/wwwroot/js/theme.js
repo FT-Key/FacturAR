@@ -169,6 +169,37 @@
         });
     }
 
+    function conectarMenuUsuario() {
+        var menus = document.querySelectorAll('[data-user-menu]');
+        for (var i = 0; i < menus.length; i += 1) {
+            (function (menu) {
+                if (menu.getAttribute('data-menu-conectado') === 'true') {
+                    return;
+                }
+
+                menu.setAttribute('data-menu-conectado', 'true');
+
+                document.addEventListener('click', function (evento) {
+                    if (menu.open && !menu.contains(evento.target)) {
+                        menu.open = false;
+                    }
+                });
+
+                menu.addEventListener('keydown', function (evento) {
+                    if (evento.key !== 'Escape' || !menu.open) {
+                        return;
+                    }
+
+                    menu.open = false;
+                    var resumen = menu.querySelector('summary');
+                    if (resumen) {
+                        resumen.focus();
+                    }
+                });
+            }(menus[i]));
+        }
+    }
+
     function respaldoCopiar(texto, alCopiar) {
         var area = document.createElement('textarea');
         area.value = texto;
@@ -189,6 +220,9 @@
     function conectarCopiar() {
         var botones = document.querySelectorAll('[data-copiar]');
         for (var i = 0; i < botones.length; i += 1) {
+            if (botones[i].hasAttribute('data-copiar-manual')) {
+                continue;
+            }
             (function (boton) {
                 boton.addEventListener('click', function () {
                     var objetivoId = boton.getAttribute('data-copiar-target');
@@ -231,6 +265,7 @@
         conectarTema();
         conectarFormularios();
         conectarMenu();
+        conectarMenuUsuario();
         conectarCopiar();
     }
 
